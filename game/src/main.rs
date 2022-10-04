@@ -6,6 +6,7 @@ use bevy::{
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 
+
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -22,30 +23,32 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+	let images= &["jacob.png","bailey.png","brian.png","ethan.png","jack.png","gio.png"];
 	commands.spawn_bundle(Camera2dBundle::default());
-	commands
+	let mut time: f32=0.0;
+	for image in images {
+		commands
 		.spawn_bundle(SpriteBundle {
-			texture: asset_server.load("credits.png"),
-			..default()
-		});
-        commands
-		.spawn_bundle(SpriteBundle {
-			texture: asset_server.load("ez.png"),
+			texture: asset_server.load(*image),
 			transform: Transform::from_xyz(0., 0., -1.),
 			..default()
 		})
-		.insert(PopupTimer(Timer::from_seconds(5., false)));
+		.insert(PopupTimer(Timer::from_seconds(time, false)));
+		time+=5.0;
+	}
+		
 }
 
 fn show_popup(
 	time: Res<Time>,
 	mut popup: Query<(&mut PopupTimer, &mut Transform)>
 ) {
+	let mut count = 1.0;
 	for (mut timer, mut transform) in popup.iter_mut() {
 		timer.tick(time.delta());
 		if timer.just_finished() {
-			transform.translation.z = 2.;
-			info!("Actually is Linux!");
+			transform.translation.z = count;
 		}
+		count+=1.0;
 	}
 }
