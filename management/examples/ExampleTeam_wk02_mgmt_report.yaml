@@ -1,0 +1,17 @@
+# Magagment week end report
+manager_pitt_username: "wcg6"
+week: 5
+final_commit_id: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+# Specific goals:
+goals:
+  - desc: "Build an bad example YAML report"
+    prs: ["kajhsdfkjhasdkfjh"]
+    status: "DONE"
+# Team member evalution
+team_members:
+  - pitt_username: "nlf4"
+    score: "0"
+    desc: "Still awesome"
+  - pitt_username: "wcg6"
+    score: -10
+    desc: "Still terrible"
