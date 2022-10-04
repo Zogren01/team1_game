@@ -23,7 +23,7 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-	let images= &["jacob.png","bailey.png","brian.png","ethan.png","jack.png","gio.png"];
+	let images= &["jacob.png","bailey.png","brian.png","ethan.png","jack.png","gio.png", "zach.png"];
 	commands.spawn_bundle(Camera2dBundle::default());
 	let mut time: f32=0.0;
 	for image in images {
