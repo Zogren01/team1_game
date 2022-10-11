@@ -46,6 +46,9 @@ impl Line {
 		(self.end.x - self.start.x) * (self.end.x - self.start.x) + 
 		(self.end.y - self.start.y) * (self.end.y - self.start.y)
 	}
+	fn print_line(&self) {
+		println!("Start: {},{} \n End: {},{} \n", self.start.x, self.start.y, self.end.x, self.end.y);
+	}
 }
 
 #[derive(Component)]
@@ -151,102 +154,102 @@ fn calculate_sight(
 	objects: Query<(&Rect, &Transform), With<Object>>,
 	input: Res<Input<KeyCode>>,
 ){
+	//TODO: make a struct for alll of the sight lines for a given object
+		// hold a Vec containing lines
+		// hold a reference to the object
+		// loop through each of these when doing checks
 	let origin = player.single();
 	let x_pos = origin.translation.x;
 	let y_pos = origin.translation.y;
 
 	if input.pressed(KeyCode::Space){
 		println!("space pressed");
-		let sight_distance = 500.0;
+		let sight_distance = 300.0;
 		let mut sight_lines = Vec::new();
 		let mut object_lines = Vec::new();
+
 		for (r, t) in objects.iter(){
-
-			let tl = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
-			let tr = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
-			let bl = Vec2::new(t.translation.x - r.width/2., t.translation.y - r.height/2.);
-			let br = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
-
-
-			//the outline of a better implementation is below
-			/*
+			//v1 and v2 hold the endpoints for line of sight
+			let v1: Vec2;
+			let v2: Vec2;
+			//v3 is the third point for the two sides to be used for collision
+			let v3: Vec2;
+			
 			if x_pos > t.translation.x {
-
-				if y_pos > t.translation.y {
-					//tl
-					//br
-					//top side
-					//right side
-					let tl = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
-					let br = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
-					let s1 = Line::new(origin.translation, tl);
-					let s2 = Line::new(origin.translation, br);
-					let mut in_range = false;
-					if s1.length_squared() < sight_distance*sight_distance {
-						sight_lines.push(s1);
-						in_range = true;
-					}
-					if s2.length_squared() < sight_distance*sight_distance{
-						sight_lines.push(s2);
-						in_range = true;
-					}
-					if in_range {
-						let tr = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
-						let o1 = Line::new(tl, tr);
-						let o2 = Line::new(tr, br);
-						object_lines.push(o1);
-						object_lines.push(o2);
-					}
-				}
-				else if y_pos < t.translation.y {
-					//tr
-					//bl
-					//bottom side
-					//right side
+				if y_pos >= t.translation.y {
+					//top left point
+					v1 = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
+					//bottom right point
+					v2 = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
+					//top right point
+					v3 = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
 				}
 				else {
-					//tr
-					//br
-					//right side
+					//top right point
+					v1 = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
+					//bottom left point
+					v2 = Vec2::new(t.translation.x - r.width/2., t.translation.y - r.height/2.);
+					//bottom right point
+					v3 = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
 				}
+				//MAYBE code for when y's are equal
 			}
-			else if x_pos < t.translation.x {
-
+			else {
 				if y_pos > t.translation.y {
-					//tr
-					//bl
-					//top side
-					//left side
-				}
-				else if y_pos < t.translation.y {
-					//tl
-					//br
-					//bottom side
-					//left side
+					//top right point
+					v1 = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
+					//bottom left point
+					v2 = Vec2::new(t.translation.x - r.width/2., t.translation.y - r.height/2.);
+					//top left point
+					v3 = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
 				}
 				else {
-					//tl
-					//bl
-					//left side
+					//top left point
+					v1 = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
+					//bottom right point
+					v2 = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
+					//bottom left point
+					v3 = Vec2::new(t.translation.x - r.width/2., t.translation.y - r.height/2.);
 				}
+				//MAYBE code for when y's are equal
 			}
-			else{
+			//MAYBE code for when x's are equal
 
-				if y_pos > t.translation.y {
-					//tr
-					//tl
-					//top side
-				}
-				else{
-					//br
-					//bl
-					//bottom side
-				}
+			//generate lines of sight
+			let s1 = Line::new(Vec2::new(x_pos, y_pos), v1);
+			let s2 = Line::new(Vec2::new(x_pos, y_pos), v2);
+			//MAYBE third line of sight to corner
+
+			//track whether these are in range
+			let mut in_range = false;
+			if s1.length_squared() < sight_distance*sight_distance {
+				sight_lines.push(s1);
+				in_range = true;
 			}
-		*/	
+			if s2.length_squared() < sight_distance*sight_distance{
+				sight_lines.push(s2);
+				in_range = true;
+			}
+			if in_range {
+				let o1 = Line::new(v1, v3);
+				let o2 = Line::new(v2, v3);
+				object_lines.push(o1);
+				object_lines.push(o2);
+			}
 		}
-
+		println!("LINES OF SIGHT:");
+		for l in sight_lines.iter_mut(){
+			l.print_line();
+		}
+		println!("OBJECT EDGES:");
+		for o in object_lines.iter_mut(){
+			o.print_line();
+		}
 	}
+	
+}
+
+fn determine_visibility(sight: Vec, obj: Vec) {
 	
 }
 
