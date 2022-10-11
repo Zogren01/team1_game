@@ -3,6 +3,7 @@ use bevy::{
 	window::PresentMode,
 };
 use std::convert::From;
+use std::collections::HashSet;
 
 const TITLE: &str = "Team 1 Game";
 const WIN_W: f32 = 1280.;
@@ -36,11 +37,12 @@ impl Velocity {
 struct Line {
 	start: Vec2,
 	end: Vec2,
+	obj_id: i8,
 }
 
 impl Line {
-	fn new(s: Vec2, e: Vec2) -> Self {
-		Self { start: s, end: e}
+	fn new(s: Vec2, e: Vec2, i: i8) -> Self {
+		Self { start: s, end: e, obj_id: i}
 	}
 	fn length_squared(&self) -> f32 {
 		(self.end.x - self.start.x) * (self.end.x - self.start.x) + 
@@ -51,6 +53,16 @@ impl Line {
 	}
 }
 
+#[derive(Component)]
+struct Object{
+	id: i8,
+}
+
+impl Object{
+	fn new(i: i8) -> Self {
+		Self { id: i }
+	}
+}
 #[derive(Component)]
 struct Rect {
 	width: f32,
@@ -65,9 +77,6 @@ impl Rect {
 
 #[derive(Component)]
 struct Player;
-
-#[derive(Component)]
-struct Object;
 
 fn main() {
 	App::new()
@@ -105,7 +114,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
 				color: Color::BLUE,
-				custom_size: Some(Vec2::new(PLAYER_SZ, 64.)),
+				custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
 				..default()
 			},
 			transform: Transform {
@@ -121,7 +130,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
 				color: Color::BLACK,
-				custom_size: Some(Vec2::splat(PLAYER_SZ)),
+				custom_size: Some(Vec2::new(32., 200.)),
 				..default()
 			},
 			transform: Transform {
@@ -130,8 +139,24 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 			},
 			..default()
 		})
-		.insert(Rect::new(PLAYER_SZ, PLAYER_SZ))
-		.insert(Object);
+		.insert(Rect::new(32., 200.))
+		.insert(Object::new(1));
+
+	commands
+		.spawn_bundle(SpriteBundle {
+			sprite: Sprite {
+				color: Color::BLACK,
+				custom_size: Some(Vec2::new(32., 32.)),
+				..default()
+			},
+			transform: Transform {
+				translation: Vec3::new(100., 0., 1.),
+				..default()
+			},
+			..default()
+		})
+		.insert(Rect::new(32., 32.))
+		.insert(Object::new(2));
 }
 
 fn show_popup(
@@ -151,10 +176,10 @@ fn show_popup(
 fn calculate_sight(
 	time: Res<Time>,
 	player: Query<&Transform, With<Player>>,
-	objects: Query<(&Rect, &Transform), With<Object>>,
+	objects: Query<(&Object, &Rect, &Transform), With<Object>>,
 	input: Res<Input<KeyCode>>,
 ){
-	//TODO: make a struct for alll of the sight lines for a given object
+	//TODO: make a struct for all of the sight lines for a given object
 		// hold a Vec containing lines
 		// hold a reference to the object
 		// loop through each of these when doing checks
@@ -163,12 +188,12 @@ fn calculate_sight(
 	let y_pos = origin.translation.y;
 
 	if input.pressed(KeyCode::Space){
-		println!("space pressed");
+		println!("\nSpacebar pressed\n");
 		let sight_distance = 300.0;
 		let mut sight_lines = Vec::new();
 		let mut object_lines = Vec::new();
 
-		for (r, t) in objects.iter(){
+		for (o, r, t) in objects.iter(){
 			//v1 and v2 hold the endpoints for line of sight
 			let v1: Vec2;
 			let v2: Vec2;
@@ -216,8 +241,8 @@ fn calculate_sight(
 			//MAYBE code for when x's are equal
 
 			//generate lines of sight
-			let s1 = Line::new(Vec2::new(x_pos, y_pos), v1);
-			let s2 = Line::new(Vec2::new(x_pos, y_pos), v2);
+			let s1 = Line::new(Vec2::new(x_pos, y_pos), v1, o.id);
+			let s2 = Line::new(Vec2::new(x_pos, y_pos), v2, o.id);
 			//MAYBE third line of sight to corner
 
 			//track whether these are in range
@@ -231,12 +256,13 @@ fn calculate_sight(
 				in_range = true;
 			}
 			if in_range {
-				let o1 = Line::new(v1, v3);
-				let o2 = Line::new(v2, v3);
+				let o1 = Line::new(v1, v3, o.id);
+				let o2 = Line::new(v2, v3, o.id);
 				object_lines.push(o1);
 				object_lines.push(o2);
 			}
 		}
+		/*
 		println!("LINES OF SIGHT:");
 		for l in sight_lines.iter_mut(){
 			l.print_line();
@@ -245,11 +271,32 @@ fn calculate_sight(
 		for o in object_lines.iter_mut(){
 			o.print_line();
 		}
+		*/
+		determine_visibility(sight_lines, object_lines);
 	}
 	
 }
 
-fn determine_visibility(sight: Vec, obj: Vec) {
+fn determine_visibility(sight: Vec<Line>, obj: Vec<Line>) {
+	println!("Determining objects in view...");
+
+	let mut ids: HashSet<i8> = HashSet::new();
+	for l in sight.iter(){
+		let mut result = true;
+		for o in obj.iter(){
+			let intersect = lines_intersect(l, o);
+			if intersect && (o.obj_id != l.obj_id){
+				result = false;
+				break;
+			}
+		}
+		if result{
+			ids.insert(l.obj_id);
+		}
+	}
+	for id in ids.iter(){
+		println!("Object with id {} is visible", id);
+	}
 	
 }
 
@@ -257,7 +304,7 @@ fn helper(i: Vec2, j: Vec2, k: Vec2) -> bool{
 	(k.y - i.y) * (j.x) > (j.y - i.y) * (k.x - i.x)
 }
 
-fn lines_intersect(a: Line, b: Line) -> bool{
+fn lines_intersect(a: &Line, b: &Line) -> bool{
 	(helper(a.start, b.start, b.end) != helper(a.end, b.start, b.end)) && 
 	(helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
