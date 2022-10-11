@@ -8,12 +8,13 @@ const TITLE: &str = "Team 1 Game";
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
 
+
 const PLAYER_SPEED: f32 = 500.;
 const ACCEL_RATE: f32 = 5000.;
 
 const PLAYER_SZ: f32 = 32.;
 
-const TILE_SIZE: f32 = 100.;
+const TILE_SIZE: f32 = 32.;
 
 const SCROLL_SPEED: f32 = 120.;
 
@@ -32,7 +33,38 @@ impl Velocity {
 }
 
 #[derive(Component)]
+struct Line {
+	start: Vec2,
+	end: Vec2,
+}
+
+impl Line {
+	fn new(s: Vec2, e: Vec2) -> Self {
+		Self { start: s, end: e}
+	}
+	fn length_squared(&self) -> f32 {
+		(self.end.x - self.start.x) * (self.end.x - self.start.x) + 
+		(self.end.y - self.start.y) * (self.end.y - self.start.y)
+	}
+}
+
+#[derive(Component)]
+struct Rect {
+	width: f32,
+	height: f32,
+}
+
+impl Rect {
+	fn new(w: f32, h: f32) -> Self {
+		Self { width: w, height: h}
+	}
+}
+
+#[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct Object;
 
 fn main() {
 	App::new()
@@ -47,6 +79,7 @@ fn main() {
 		.add_startup_system(setup)
 		//.add_system(show_popup)
 		.add_system(move_player)
+		.add_system(calculate_sight)
 		.run();
 }
 
@@ -69,7 +102,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
 				color: Color::BLUE,
-				custom_size: Some(Vec2::splat(PLAYER_SZ)),
+				custom_size: Some(Vec2::new(PLAYER_SZ, 64.)),
 				..default()
 			},
 			transform: Transform {
@@ -79,7 +112,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 			..default()
 		})
 		.insert(Velocity::new())
-		.insert(Player);	
+		.insert(Player);
+		
+	commands
+		.spawn_bundle(SpriteBundle {
+			sprite: Sprite {
+				color: Color::BLACK,
+				custom_size: Some(Vec2::splat(PLAYER_SZ)),
+				..default()
+			},
+			transform: Transform {
+				translation: Vec3::new(50., 50., 1.),
+				..default()
+			},
+			..default()
+		})
+		.insert(Rect::new(PLAYER_SZ, PLAYER_SZ))
+		.insert(Object);
 }
 
 fn show_popup(
@@ -94,6 +143,120 @@ fn show_popup(
 		}
 		count+=1.0;
 	}
+}
+
+fn calculate_sight(
+	time: Res<Time>,
+	player: Query<&Transform, With<Player>>,
+	objects: Query<(&Rect, &Transform), With<Object>>,
+	input: Res<Input<KeyCode>>,
+){
+	let origin = player.single();
+	let x_pos = origin.translation.x;
+	let y_pos = origin.translation.y;
+
+	if input.pressed(KeyCode::Space){
+		println!("space pressed");
+		let sight_distance = 500.0;
+		let mut sight_lines = Vec::new();
+		let mut object_lines = Vec::new();
+		for (r, t) in objects.iter(){
+
+			let tl = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
+			let tr = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
+			let bl = Vec2::new(t.translation.x - r.width/2., t.translation.y - r.height/2.);
+			let br = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
+
+
+			//the outline of a better implementation is below
+			/*
+			if x_pos > t.translation.x {
+
+				if y_pos > t.translation.y {
+					//tl
+					//br
+					//top side
+					//right side
+					let tl = Vec2::new(t.translation.x - r.width/2., t.translation.y + r.height/2.);
+					let br = Vec2::new(t.translation.x + r.width/2., t.translation.y - r.height/2.);
+					let s1 = Line::new(origin.translation, tl);
+					let s2 = Line::new(origin.translation, br);
+					let mut in_range = false;
+					if s1.length_squared() < sight_distance*sight_distance {
+						sight_lines.push(s1);
+						in_range = true;
+					}
+					if s2.length_squared() < sight_distance*sight_distance{
+						sight_lines.push(s2);
+						in_range = true;
+					}
+					if in_range {
+						let tr = Vec2::new(t.translation.x + r.width/2., t.translation.y + r.height/2.);
+						let o1 = Line::new(tl, tr);
+						let o2 = Line::new(tr, br);
+						object_lines.push(o1);
+						object_lines.push(o2);
+					}
+				}
+				else if y_pos < t.translation.y {
+					//tr
+					//bl
+					//bottom side
+					//right side
+				}
+				else {
+					//tr
+					//br
+					//right side
+				}
+			}
+			else if x_pos < t.translation.x {
+
+				if y_pos > t.translation.y {
+					//tr
+					//bl
+					//top side
+					//left side
+				}
+				else if y_pos < t.translation.y {
+					//tl
+					//br
+					//bottom side
+					//left side
+				}
+				else {
+					//tl
+					//bl
+					//left side
+				}
+			}
+			else{
+
+				if y_pos > t.translation.y {
+					//tr
+					//tl
+					//top side
+				}
+				else{
+					//br
+					//bl
+					//bottom side
+				}
+			}
+		*/	
+		}
+
+	}
+	
+}
+
+fn helper(i: Vec2, j: Vec2, k: Vec2) -> bool{
+	(k.y - i.y) * (j.x) > (j.y - i.y) * (k.x - i.x)
+}
+
+fn lines_intersect(a: Line, b: Line) -> bool{
+	(helper(a.start, b.start, b.end) != helper(a.end, b.start, b.end)) && 
+	(helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
 fn move_player(
@@ -140,8 +303,8 @@ fn move_player(
 		0.,
 		0.,
 	);
-	if new_pos.x >= -(WIN_W/2.) + TILE_SIZE/2.
-		&& new_pos.x <= WIN_W/2. - TILE_SIZE/2.
+	if new_pos.x >= -(WIN_W/2.) + TILE_SIZE*1.5
+		&& new_pos.x <= WIN_W/2. - TILE_SIZE*1.5
 	{
 		pt.translation = new_pos;
 	}
@@ -151,8 +314,8 @@ fn move_player(
 		change.y,
 		0.,
 	);
-	if new_pos.y >= -(WIN_H/2.) + TILE_SIZE/2.
-		&& new_pos.y <= WIN_H/2. - TILE_SIZE/2.
+	if new_pos.y >= -(WIN_H/2.) + TILE_SIZE*2.
+		&& new_pos.y <= WIN_H/2. - TILE_SIZE*2.
 	{
 		pt.translation = new_pos;
 	}
