@@ -78,6 +78,11 @@ impl Rect {
 #[derive(Component)]
 struct Player;
 
+/*
+#[derive(Component)]
+struct Ground;
+*/
+
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -95,7 +100,7 @@ fn main() {
 		.run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut texture_atlases: ResMut<Assets<TextureAtlas>>,) {
 	let images= &["jacob.png","bailey.png","brian.png","ethan.png","jack.png","gio.png", "zach.png"];
 	commands.spawn_bundle(Camera2dBundle::default());
 	let mut time: f32=0.0;
@@ -109,6 +114,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.insert(PopupTimer(Timer::from_seconds(time, false)));
 		time+=5.0;
 	}
+
+	//load in ground textures
+	/*
+	let ground_handle = asset_server.load("ground.png");
+	let ground_atlas = TextureAtlas::from_grid(ground_handle, Vec2::splat(TILE_SIZE), 2, 2);
+	let ground_atlas_len = ground_atlas.textures.len();
+	let ground_atlas_handle = texture_atlases.add(ground_atlas);
+
+	let x_bound = WIN_W/2. - TILE_SIZE/2.;
+	let y_bound = WIN_H/2. - TILE_SIZE/2.;
+	*/
+
 
 	commands
 		.spawn_bundle(SpriteBundle {
@@ -157,6 +174,32 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		})
 		.insert(Rect::new(32., 32.))
 		.insert(Object::new(2));
+/*
+	let mut count = 0.;
+	for i in 0..41 {
+		let t = Vec3::new(
+			-x_bound + TILE_SIZE*count,
+			-y_bound,
+			900.,
+		);
+	commands
+		.spawn_bundle(SpriteSheetBundle {
+			texture_atlas: ground_atlas_handle.clone(),
+			transform: Transform {
+			translation: t,
+		..default()
+		},
+			sprite: TextureAtlasSprite {
+			index: i % ground_atlas_len,
+		..default()
+		},
+		..default()
+	})
+	.insert(Ground);
+	count = count + 1.;
+	println!("{}", count);
+}
+*/
 }
 
 fn show_popup(
@@ -285,6 +328,10 @@ fn determine_visibility(sight: Vec<Line>, obj: Vec<Line>) {
 		let mut result = true;
 		for o in obj.iter(){
 			let intersect = lines_intersect(l, o);
+			if l.obj_id == 2 && o.obj_id == 1{
+				l.print_line();
+				o.print_line();
+			}
 			if intersect && (o.obj_id != l.obj_id){
 				result = false;
 				break;
@@ -301,7 +348,7 @@ fn determine_visibility(sight: Vec<Line>, obj: Vec<Line>) {
 }
 
 fn helper(i: Vec2, j: Vec2, k: Vec2) -> bool{
-	(k.y - i.y) * (j.x) > (j.y - i.y) * (k.x - i.x)
+	(k.y - i.y) * (j.x - i.x) > (j.y - i.y) * (k.x - i.x)
 }
 
 fn lines_intersect(a: &Line, b: &Line) -> bool{
