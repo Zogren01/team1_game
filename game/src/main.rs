@@ -6,8 +6,9 @@ const TITLE: &str = "Team 1 Game";
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
 
+const GRAVITY: f32 = -20.;
 const PLAYER_SPEED: f32 = 500.;
-const ACCEL_RATE: f32 = 1000.;
+const ACCEL_RATE: f32 = 5000.;
 
 const PLAYER_SZ: f32 = 32.;
 
@@ -166,11 +167,11 @@ fn setup(
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::BLACK,
-                custom_size: Some(Vec2::new(200., 32.)),
+                custom_size: Some(Vec2::new(32., 200.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(50., -300., 1.),
+                translation: Vec3::new(50., -200., 1.),
                 ..default()
             },
             ..default()
@@ -186,7 +187,7 @@ fn setup(
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(100., 0., 1.),
+                translation: Vec3::new(100., -200., 1.),
                 ..default()
             },
             ..default()
@@ -410,40 +411,54 @@ fn move_player(
 ) {
     let (mut pt, mut pv) = player.single_mut();
 
-    let mut deltav = Vec2::splat(0.);
+    // if A pressed & not at full speed, accel; otherwise, deaccel
+    if input.pressed(KeyCode::A) {
+        if pv.velocity.x > -300. {
+            pv.velocity.x = pv.velocity.x - 20.;
+        }
+    } else if pv.velocity.x < 0. {
+        pv.velocity.x = pv.velocity.x + 20.;
+    }
+
+    // if D pressed & not at full speed, accel; otherwise, deaccel
+    if input.pressed(KeyCode::D) {
+        if pv.velocity.x < 300. {
+            pv.velocity.x = pv.velocity.x + 20.;
+        }
+    } else if pv.velocity.x > 0. {
+        pv.velocity.x = pv.velocity.x - 20.;
+    }
+
+    // if W pressed and we are on the 'ground', increase our vertical velocity to 600s
+    if input.pressed(KeyCode::W) {
+        if pt.translation.y == -(WIN_H / 2.) + TILE_SIZE * 1.5 {
+            pv.velocity.y = 600.;
+        }
+    }
+
+    // if we are NOT on the ground, apply gravity
+    if pt.translation.y > -(WIN_H / 2.) + TILE_SIZE * 1.5 {
+        pv.velocity.y += GRAVITY;
+    }
 
     let deltat = time.delta_seconds();
-    let acc = ACCEL_RATE * deltat;
-    deltav.y = -acc;
 
-    if input.pressed(KeyCode::A) {
-        deltav.x -= 1.;
-    }
-
-    if input.pressed(KeyCode::D) {
-        deltav.x += 1.;
-    }
-
-    if input.pressed(KeyCode::W) {
-        deltav.y += 1.;
-    }
-
-    pv.velocity = if deltav.length() > 0. {
-        (pv.velocity + (deltav.normalize_or_zero() * acc)).clamp_length_max(PLAYER_SPEED)
-    } else if pv.velocity.length() > acc {
-        pv.velocity + (pv.velocity.normalize_or_zero() * -acc)
-    } else {
-        Vec2::splat(0.)
-    };
+    // calculate physical change (d/t * t = d)
     let change = pv.velocity * deltat;
 
+    // new position is equal to old position plus our change in X/Y since last update
     let new_pos = pt.translation + Vec3::new(change.x, 0., 0.);
     if new_pos.x >= -(WIN_W / 2.) + TILE_SIZE * 1.5 && new_pos.x <= WIN_W / 2. - TILE_SIZE * 1.5 {
         pt.translation = new_pos;
     }
 
     let new_pos = pt.translation + Vec3::new(0., change.y, 0.);
-    if new_pos.y >= -(WIN_H / 2.) + TILE_SIZE * 2. && new_pos.y <= WIN_H / 2. - TILE_SIZE * 2. {
+    // allow translation if in bounds
+    if new_pos.y >= -(WIN_H / 2.) + TILE_SIZE * 1.5 && new_pos.y <= WIN_H / 2. - TILE_SIZE * 1.5 {
         pt.translation = new_pos;
+    }
+    // snap player back to ground level if going below it
+    else if new_pos.y < -(WIN_H / 2.) + TILE_SIZE * 1.5 {
+        pt.translation.y = -(WIN_H / 2.) + TILE_SIZE * 1.5;
     }
 }
