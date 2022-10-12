@@ -411,7 +411,7 @@ fn move_player(
 ) {
     let (mut pt, mut pv) = player.single_mut();
 
-    // if A pressed & not at full speed, accel; otherwise, deaccel
+    // if A / D pressed & not at full speed, accel; otherwise, deaccel
     if input.pressed(KeyCode::A) {
         if pv.velocity.x > -300. {
             pv.velocity.x = pv.velocity.x - 20.;
@@ -419,8 +419,6 @@ fn move_player(
     } else if pv.velocity.x < 0. {
         pv.velocity.x = pv.velocity.x + 20.;
     }
-
-    // if D pressed & not at full speed, accel; otherwise, deaccel
     if input.pressed(KeyCode::D) {
         if pv.velocity.x < 300. {
             pv.velocity.x = pv.velocity.x + 20.;
