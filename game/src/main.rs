@@ -441,9 +441,8 @@ fn move_player(
         pv.velocity.y += GRAVITY;
     }
 
-    let deltat = time.delta_seconds();
-
     // calculate physical change (d/t * t = d)
+    let deltat = time.delta_seconds();
     let change = pv.velocity * deltat;
 
     // new position is equal to old position plus our change in X/Y since last update
