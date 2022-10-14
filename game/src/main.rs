@@ -152,7 +152,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut texture_atl
 				..default()
 			},
 			transform: Transform {
-				translation: Vec3::new(50., -200., 1.),
+				translation: Vec3::new(50., -150., 1.),
 				..default()
 			},
 			..default()
@@ -410,7 +410,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 				}
 				Collision::Bottom => {
 					pv.velocity.y=0.;
-					pt.translation.y=t.translation.y-r.height;
+					pt.translation.y=t.translation.y-(r.height/2.)-PLAYER_SZ/2.;
 				}
 				Collision::Inside => {
 					pv.velocity = Vec2::new(0.,0.);
