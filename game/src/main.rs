@@ -1,3 +1,4 @@
+//imports from outside crates
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{
 	prelude::*,
@@ -6,78 +7,15 @@ use bevy::{
 use std::convert::From;
 use std::collections::HashSet;
 
-const TITLE: &str = "Team 1 Game";
-const WIN_W: f32 = 1280.;
-const WIN_H: f32 = 720.;
+//imports from local creates
+mod util;
+use crate::util::*;
 
-const GRAVITY: f32 = -20.;
-const PLAYER_SPEED: f32 = 500.;
-const ACCEL_RATE: f32 = 5000.;
-
-const PLAYER_SZ: f32 = 32.;
-
-const TILE_SIZE: f32 = 32.;
-
-const SCROLL_SPEED: f32 = 120.;
+mod active_util;
+use crate::active_util::*;
 
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-
-#[derive(Component)]
-struct Velocity {
-	velocity: Vec2,
-}
-
-impl Velocity {
-	fn new() -> Self {
-		Self { velocity: Vec2::splat(0.) }
-	}
-}
-
-#[derive(Component)]
-struct Line {
-	start: Vec2,
-	end: Vec2,
-	obj_id: i8,
-}
-
-impl Line {
-	fn new(s: Vec2, e: Vec2, i: i8) -> Self {
-		Self { start: s, end: e, obj_id: i}
-	}
-	fn length_squared(&self) -> f32 {
-		(self.end.x - self.start.x) * (self.end.x - self.start.x) + 
-		(self.end.y - self.start.y) * (self.end.y - self.start.y)
-	}
-	fn print_line(&self) {
-		println!("Start: {},{} \n End: {},{} \n", self.start.x, self.start.y, self.end.x, self.end.y);
-	}
-}
-
-#[derive(Component)]
-struct Object{
-	id: i8,
-}
-
-impl Object{
-	fn new(i: i8) -> Self {
-		Self { id: i }
-	}
-}
-#[derive(Component)]
-struct Rect {
-	width: f32,
-	height: f32,
-}
-
-impl Rect {
-	fn new(w: f32, h: f32) -> Self {
-		Self { width: w, height: h}
-	}
-}
-
-#[derive(Component)]
-struct Player;
 
 /*
 #[derive(Component)]
@@ -142,7 +80,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut texture_atl
 			..default()
 		})
 		.insert(Velocity::new())
-		.insert(Player);
+		.insert(Player::new());
 		
 	commands
 		.spawn_bundle(SpriteBundle {
@@ -373,17 +311,19 @@ fn lines_intersect(a: &Line, b: &Line) -> bool{
 	(helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
-fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>,) {
+fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>,) {
 
-	let (mut pt, mut pv) = player.single_mut();
-	let mut jumped= false;
+	let (mut pl, mut pt, mut pv) = player.single_mut();
 	for (_o,r,t) in objects.iter() {
 		let res = bevy::sprite::collide_aabb::collide(
 			pt.translation,
-			Vec2::new(PLAYER_SZ, PLAYER_SZ),
+			Vec2::new(PLAYER_SZ, PLAYER_SZ+1.),
 			t.translation,
 			Vec2::new(r.width,r.height)
 		);
+        if !pl.grounded{
+            pv.velocity.y+=GRAVITY;
+        }
 		if res.is_some()
 		{
 			let coll_type :bevy::sprite::collide_aabb::Collision= res.unwrap();
@@ -391,41 +331,39 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 				Collision::Left => {
 					pv.velocity.x=0.;
 					pt.translation.x=t.translation.x-PLAYER_SZ;
-					pv.velocity.y+=GRAVITY;
+					pl.grounded = false;
 				}
 				Collision::Right => {
 					pv.velocity.x=0.;
 					pt.translation.x=t.translation.x+PLAYER_SZ;
-					pv.velocity.y+=GRAVITY;
+					pl.grounded = false;
 				}
 				Collision::Top => {
-					pt.translation.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
+                    pt.translation.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
 					pv.velocity.y=0.;
-					if input.pressed(KeyCode::W) {
-						jumped=true;
-					}
-					else {
-						jumped=false;
-					}
+                    pl.grounded = true;
+                    if input.pressed(KeyCode::W){
+                        pv.velocity.y += 1000.;
+                    }
 				}
 				Collision::Bottom => {
 					pv.velocity.y=0.;
 					pt.translation.y=t.translation.y-(r.height/2.)-PLAYER_SZ/2.;
+                    pl.grounded = false;
 				}
 				Collision::Inside => {
+                    println!("inside");
 					pv.velocity = Vec2::new(0.,0.);
 				}
 			}
 		}
-		else {
-			pv.velocity.y+=GRAVITY;
-		}
+        else{
+            pl.grounded = false;
+        }
 	}
-	if jumped {
-		pv.velocity.y += 1000.;
-	}
+
 	if input.pressed(KeyCode::A) {
-		if pv.velocity.x > -300.{
+		if pv.velocity.x > -PLAYER_SPEED{
 			pv.velocity.x = pv.velocity.x - 20.;
 		}	
 	}
@@ -434,7 +372,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	}
 
 	if input.pressed(KeyCode::D) {
-		if pv.velocity.x < 300.{
+		if pv.velocity.x < PLAYER_SPEED{
 			pv.velocity.x = pv.velocity.x + 20.;
 		}
 	}
