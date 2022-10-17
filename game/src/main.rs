@@ -36,6 +36,7 @@ fn main() {
 		//.add_system(show_popup)
 		.add_system(move_player)
 		.add_system(calculate_sight)
+		.add_system(camera_follow)
 		.run();
 }
 
@@ -407,3 +408,17 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	
 	
 }
+
+fn camera_follow(
+	player_query: Query<&Transform, With<Player>>,
+	mut Camera_query: Query<&mut Transform, (Without<Player>, With<Camera>)>
+)
+{
+	let player = player_query.single();
+	let mut camera = Camera_query.single_mut();
+
+	camera.translation.x = player.translation.x;
+	camera.translation.y = player.translation.y;
+}
+
+
