@@ -380,6 +380,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	
 
     if input.pressed(KeyCode::A) {
+        pl.facing_left=true;
         if pv.velocity.x > -PLAYER_SPEED {
             pv.velocity.x = pv.velocity.x - 20.;
         }
@@ -388,6 +389,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
     }
 
 	if input.pressed(KeyCode::D) {
+        pl.facing_left=false;
 		if pv.velocity.x < PLAYER_SPEED{
 			pv.velocity.x = pv.velocity.x + 20.;
 		}
@@ -416,7 +418,6 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	);
     //this variable will track where the player will end up if there is no collision with a surface
     let y_goal = new_pos.y;
-
 	for (_o,r,t) in objects.iter() {
 		let res = bevy::sprite::collide_aabb::collide(
 			new_pos,
@@ -437,7 +438,9 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 					new_pos.x=t.translation.x+(r.width/2.)+PLAYER_SZ/2.;
 				}
 				Collision::Top => {
-					pv.velocity.y=0.;
+                    if(pv.velocity.y<0.) { //if falling down
+                        pv.velocity.y=0.; //stop vertical velocity
+                    }
                     new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
                     if _o.id == 1
                     {
