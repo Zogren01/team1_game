@@ -128,11 +128,10 @@ fn setup(
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::GRAY,
+                color: Color::BLACK,
                 custom_size: Some(Vec2::new(WIN_W, TILE_SIZE)),
                 ..default()
             },
-            texture: asset_server.load("spikes.png"),
             transform: Transform {
                 translation: Vec3::new(0., -WIN_H / 2. + TILE_SIZE, 1.),
                 ..default()
@@ -140,7 +139,7 @@ fn setup(
             ..default()
         })
         .insert(Rect::new(WIN_W, TILE_SIZE))
-        .insert(Object::new(1));
+        .insert(Object::new(0));
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -375,7 +374,7 @@ fn lines_intersect(a: &Line, b: &Line) -> bool {
         && (helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
-fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>,) {
+fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>, mut exit: EventWriter<AppExit>) {
 
 	let (mut pl, mut pt, mut pv) = player.single_mut();
 	
@@ -402,7 +401,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
     }
 
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pv.velocity.y = PLAYER_SPEED * 1.5;
+        pv.velocity.y = PLAYER_SPEED * 2.;
     }
 
     pl.grounded = false;
@@ -440,6 +439,10 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 				Collision::Top => {
 					pv.velocity.y=0.;
                     new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
+                    if _o.id == 1
+                    {
+                        exit.send(AppExit);
+                    }
 				}
 				Collision::Bottom => {
 					pv.velocity.y=0.;
