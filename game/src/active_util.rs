@@ -27,10 +27,11 @@ pub enum ActiveType {
 #[derive(Component)]
 pub struct Player {
     pub grounded: bool,
+    pub facing_left: bool,
 }
 
 impl Player{
     pub fn new()-> Self {
-        Self {grounded: false}
+        Self {grounded: false, facing_left: true}
     }
 }
