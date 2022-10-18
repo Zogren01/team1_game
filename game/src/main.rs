@@ -128,11 +128,10 @@ fn setup(
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::GRAY,
+                color: Color::BLACK,
                 custom_size: Some(Vec2::new(WIN_W, TILE_SIZE)),
                 ..default()
             },
-            texture: asset_server.load("spikes.png"),
             transform: Transform {
                 translation: Vec3::new(0., -WIN_H / 2. + TILE_SIZE, 1.),
                 ..default()
@@ -140,7 +139,7 @@ fn setup(
             ..default()
         })
         .insert(Rect::new(WIN_W, TILE_SIZE))
-        .insert(Object::new(1));
+        .insert(Object::new(0));
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -375,12 +374,13 @@ fn lines_intersect(a: &Line, b: &Line) -> bool {
         && (helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
-fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>,) {
+fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>, mut exit: EventWriter<AppExit>) {
 
 	let (mut pl, mut pt, mut pv) = player.single_mut();
 	
 
     if input.pressed(KeyCode::A) {
+        pl.facing_left=true;
         if pv.velocity.x > -PLAYER_SPEED {
             pv.velocity.x = pv.velocity.x - 20.;
         }
@@ -389,6 +389,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
     }
 
 	if input.pressed(KeyCode::D) {
+        pl.facing_left=false;
 		if pv.velocity.x < PLAYER_SPEED{
 			pv.velocity.x = pv.velocity.x + 20.;
 		}
@@ -402,7 +403,7 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
     }
 
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pv.velocity.y = PLAYER_SPEED * 1.5;
+        pv.velocity.y = PLAYER_SPEED * 2.;
     }
 
     pl.grounded = false;
@@ -417,7 +418,6 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	);
     //this variable will track where the player will end up if there is no collision with a surface
     let y_goal = new_pos.y;
-
 	for (_o,r,t) in objects.iter() {
 		let res = bevy::sprite::collide_aabb::collide(
 			new_pos,
@@ -438,8 +438,14 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 					new_pos.x=t.translation.x+(r.width/2.)+PLAYER_SZ/2.;
 				}
 				Collision::Top => {
-					pv.velocity.y=0.;
+                    if(pv.velocity.y<0.) { //if falling down
+                        pv.velocity.y=0.; //stop vertical velocity
+                    }
                     new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
+                    if _o.id == 1
+                    {
+                        exit.send(AppExit);
+                    }
 				}
 				Collision::Bottom => {
 					pv.velocity.y=0.;
