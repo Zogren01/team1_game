@@ -19,6 +19,11 @@ pub struct ActiveObject {
     pub velocity: Velocity,
 }
 
+pub enum ActiveType {
+    Player,
+    Enemy,
+}
+
 #[derive(Component)]
 pub struct Player {
     pub grounded: bool,
