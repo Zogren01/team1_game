@@ -35,7 +35,7 @@ fn main() {
         //.add_system(show_popup)
         .add_system(move_player)
         .add_system(calculate_sight)
-        .add_system(camera_follow)
+        //.add_system(camera_follow)
         .run();
 }
 
@@ -374,11 +374,15 @@ fn lines_intersect(a: &Line, b: &Line) -> bool {
         && (helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
-fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>, mut exit: EventWriter<AppExit>) {
+fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, 
+	mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	
+	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>, 
+	mut exit: EventWriter<AppExit>,
+	mut cam: Query<&mut Transform,  (With<Camera>, Without<Object>, Without<Player>)>,) {
 
 	let (mut pl, mut pt, mut pv) = player.single_mut();
 	
-
+	let mut camera = cam.single_mut();
     if input.pressed(KeyCode::A) {
         pl.facing_left=true;
         if pv.velocity.x > -PLAYER_SPEED {
@@ -417,7 +421,6 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 		0.,
 	);
     //this variable will track where the player will end up if there is no collision with a surface
-    let y_goal = new_pos.y;
 	for (_o,r,t) in objects.iter() {
 		let res = bevy::sprite::collide_aabb::collide(
 			new_pos,
@@ -438,8 +441,9 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 					new_pos.x=t.translation.x+(r.width/2.)+PLAYER_SZ/2.;
 				}
 				Collision::Top => {
-                    if(pv.velocity.y<0.) { //if falling down
+                    if pv.velocity.y<0. { //if falling down
                         pv.velocity.y=0.; //stop vertical velocity
+						pl.grounded = true;
                     }
                     new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
                     if _o.id == 1
@@ -458,14 +462,12 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 			}
 		}
     }
-    //if the intended y is less than where the player ends up, no ground collision occured
-    if y_goal < new_pos.y{
-        pl.grounded = true;
-    }
-    pt.translation = new_pos;
-	
-}
 
+    pt.translation = new_pos;
+	camera.translation.x = pt.translation.x;
+    camera.translation.y = pt.translation.y;
+}
+/*
 fn camera_follow(
     player_query: Query<&Transform, With<Player>>,
     mut Camera_query: Query<&mut Transform, (Without<Player>, With<Camera>)>,
@@ -476,3 +478,4 @@ fn camera_follow(
     camera.translation.x = player.translation.x;
     camera.translation.y = player.translation.y;
 }
+*/
