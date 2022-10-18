@@ -112,16 +112,16 @@ fn setup(
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::BLACK,
-                custom_size: Some(Vec2::new(32., 32.)),
+                custom_size: Some(Vec2::new(200., 32.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(100., -200., 1.),
+                translation: Vec3::new(100., -240., 1.),
                 ..default()
             },
             ..default()
         })
-        .insert(Rect::new(32., 32.))
+        .insert(Rect::new(200., 32.))
         .insert(Object::new(0));
 
     commands
