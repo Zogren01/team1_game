@@ -17,6 +17,7 @@ use crate::active_util::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 
+
 /*
 #[derive(Component)]
 struct Ground;
@@ -186,8 +187,8 @@ fn calculate_sight(
 	let x_pos = origin.translation.x;
 	let y_pos = origin.translation.y;
 
-	if input.pressed(KeyCode::Space){
-		println!("\nSpacebar pressed\n");
+	if input.pressed(KeyCode::Q){
+
 		let sight_distance = 300.0;
 		let mut sight_lines = Vec::new();
 		let mut object_lines = Vec::new();
@@ -261,16 +262,6 @@ fn calculate_sight(
 				object_lines.push(o2);
 			}
 		}
-		/*
-		println!("LINES OF SIGHT:");
-		for l in sight_lines.iter_mut(){
-			l.print_line();
-		}
-		println!("OBJECT EDGES:");
-		for o in object_lines.iter_mut(){
-			o.print_line();
-		}
-		*/
 		determine_visibility(sight_lines, object_lines);
 	}
 	
@@ -315,53 +306,7 @@ fn lines_intersect(a: &Line, b: &Line) -> bool{
 fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>,) {
 
 	let (mut pl, mut pt, mut pv) = player.single_mut();
-	for (_o,r,t) in objects.iter() {
-		let res = bevy::sprite::collide_aabb::collide(
-			pt.translation,
-			Vec2::new(PLAYER_SZ, PLAYER_SZ+1.),
-			t.translation,
-			Vec2::new(r.width,r.height)
-		);
-        if !pl.grounded{
-            pv.velocity.y+=GRAVITY;
-        }
-		if res.is_some()
-		{
-			let coll_type :bevy::sprite::collide_aabb::Collision= res.unwrap();
-			match coll_type {
-				Collision::Left => {
-					pv.velocity.x=0.;
-					pt.translation.x=t.translation.x-PLAYER_SZ;
-					pl.grounded = false;
-				}
-				Collision::Right => {
-					pv.velocity.x=0.;
-					pt.translation.x=t.translation.x+PLAYER_SZ;
-					pl.grounded = false;
-				}
-				Collision::Top => {
-                    pt.translation.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
-					pv.velocity.y=0.;
-                    pl.grounded = true;
-                    if input.pressed(KeyCode::W){
-                        pv.velocity.y += 1000.;
-                    }
-				}
-				Collision::Bottom => {
-					pv.velocity.y=0.;
-					pt.translation.y=t.translation.y-(r.height/2.)-PLAYER_SZ/2.;
-                    pl.grounded = false;
-				}
-				Collision::Inside => {
-                    println!("inside");
-					pv.velocity = Vec2::new(0.,0.);
-				}
-			}
-		}
-        else{
-            pl.grounded = false;
-        }
-	}
+	
 
 	if input.pressed(KeyCode::A) {
 		if pv.velocity.x > -PLAYER_SPEED{
@@ -380,32 +325,67 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, mut player: Query<(&
 	else if pv.velocity.x > 0.{
 		pv.velocity.x = pv.velocity.x - 20.;
 	}
+    
+    if pv.velocity.y > TERMINAL_VELOCITY{
+        pv.velocity.y += GRAVITY;
+    }
 
+    if input.pressed(KeyCode::Space) && pl.grounded {
+        pv.velocity.y = PLAYER_SPEED * 1.5;
+    }
+
+    pl.grounded = false;
 	let deltat = time.delta_seconds(); 
 
 	let change = pv.velocity * deltat;
 
-	let new_pos = pt.translation + Vec3::new(
+	let mut new_pos = pt.translation + Vec3::new(
 		change.x,
-		0.,
-		0.,
-	);
-	if new_pos.x >= -(WIN_W/2.) + TILE_SIZE*1.5
-		&& new_pos.x <= WIN_W/2. - TILE_SIZE*1.5
-	{
-		pt.translation = new_pos;
-	}
-
-	let new_pos = pt.translation + Vec3::new(
-		0.,
 		change.y,
 		0.,
 	);
-	if new_pos.y <= WIN_H/2. - TILE_SIZE*1.5
-	{
-		pt.translation = new_pos;
-	}
-	
+    //this variable will track where the player will end up if there is no collision with a surface
+    let y_goal = new_pos.y;
+
+	for (_o,r,t) in objects.iter() {
+		let res = bevy::sprite::collide_aabb::collide(
+			new_pos,
+			Vec2::new(PLAYER_SZ, PLAYER_SZ),
+			t.translation,
+			Vec2::new(r.width,r.height)
+		);
+		if res.is_some()
+		{
+			let coll_type :bevy::sprite::collide_aabb::Collision= res.unwrap();
+			match coll_type {
+				Collision::Left => {
+					pv.velocity.x=0.;
+					new_pos.x=t.translation.x-(r.width/2.)-PLAYER_SZ/2.;
+				}
+				Collision::Right => {
+					pv.velocity.x=0.;
+					new_pos.x=t.translation.x+(r.width/2.)+PLAYER_SZ/2.;
+				}
+				Collision::Top => {
+					pv.velocity.y=0.;
+                    new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
+				}
+				Collision::Bottom => {
+					pv.velocity.y=0.;
+					new_pos.y=t.translation.y-(r.height/2.)-PLAYER_SZ/2.;
+				}
+				Collision::Inside => {
+                    println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+					pv.velocity = Vec2::new(0.,0.);
+				}
+			}
+		}
+    }
+    //if the intended y is less than where the player ends up, no ground collision occured
+    if y_goal < new_pos.y{
+        pl.grounded = true;
+    }
+    pt.translation = new_pos;
 	
 }
 
