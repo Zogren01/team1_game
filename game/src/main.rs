@@ -77,6 +77,20 @@ fn setup(
     let y_bound = WIN_H/2. - TILE_SIZE/2.;
     */
 
+    //This is for the overlay
+    //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(1920.0, 1080.0)),
+                ..default()
+            },
+            texture: asset_server.load("Room_1.png"),
+            transform: Transform::from_xyz(912., 500., 0.),
+            ..default()
+            });
+        
+    //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -85,7 +99,7 @@ fn setup(
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(WIN_W / 3., 0., 900.),
+                translation: Vec3::new(0., 64., 900.),
                 ..default()
             },
             ..default()
@@ -93,74 +107,710 @@ fn setup(
         .insert(Velocity::new())
         .insert(Player::new());
 
+    //main floor
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(32., 200.)),
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(1856., 32.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(50., -150., 1.),
+                translation: Vec3::new(912., 0., 2.),
                 ..default()
             },
             ..default()
         })
-        .insert(Rect::new(32., 200.))
+        .insert(Rect::new(1856., 32.))
         .insert(Object::new(0));
 
+    //ceiling
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(200., 32.)),
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(1920., 32.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(100., -240., 1.),
+                translation: Vec3::new(912., 1024., 2.),
                 ..default()
             },
             ..default()
         })
-        .insert(Rect::new(200., 32.))
+        .insert(Rect::new(1920., 32.))
         .insert(Object::new(0));
 
+    //left wall
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(WIN_W, TILE_SIZE)),
+                custom_size: Some(Vec2::new(32., 1024.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(0., -WIN_H / 2. + TILE_SIZE, 1.),
+                translation: Vec3::new(-32., 496., 2.),
                 ..default()
             },
             ..default()
         })
-        .insert(Rect::new(WIN_W, TILE_SIZE))
+        .insert(Rect::new(32., 1024.))
         .insert(Object::new(0));
 
+    //right wall
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(400., 32.)),
+                custom_size: Some(Vec2::new(32., 1024.)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(350., -168., 1.),
+                translation: Vec3::new(1856., 496., 2.),
                 ..default()
             },
             ..default()
         })
-        .insert(Rect::new(400., 32.))
+        .insert(Rect::new(32., 1024.))
         .insert(Object::new(0));
 
+    
+
+    //first 1x2 wall on first floor
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::GRAY,
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 64.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(192., 48., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 64.))
+        .insert(Object::new(0));
+    
+    //second 1x2 wall on first floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 64.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(576., 48., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 64.))
+        .insert(Object::new(0));
+
+    //2x3 block on first floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(64., 96.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1040., 64., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(64., 96.))
+        .insert(Object::new(0));
+
+    //last 1x2 block on first floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 64.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1312., 48., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 64.))
+        .insert(Object::new(0));
+
+    //first floating 1x1 on first floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1472., 64., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //second floating 1x1 on first floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1632., 64., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+     //grounded 1x1 on first floor
+     commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1728., 32., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //second floor from left side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(992., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(480., 192., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(992., 32.))
+        .insert(Object::new(0));
+
+    //second floor from right side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(768., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1456., 192., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(768., 32.))
+        .insert(Object::new(0));
+
+    //first 1x2 wall on second floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 64.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(224., 240., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 64.))
+        .insert(Object::new(0));
+
+    //2x3 block on second floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(64., 96.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(848., 256., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(64., 96.))
+        .insert(Object::new(0));
+
+    //platform above second floor jutting out from left wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(192., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(80., 352., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(192., 32.))
+        .insert(Object::new(0));
+
+    //platform floating above second floor in left-middle
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(512., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(528., 384., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(512., 32.))
+        .insert(Object::new(0));
+
+    //floor of box on upper-mid right side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(768., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1456., 352., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(768., 32.))
+        .insert(Object::new(0));
+
+     //left wall of box on upper-mid right side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 384.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1088., 464., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 384.))
+        .insert(Object::new(0));
+
+    //ceiling of box on upper-mid right side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(512., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1360., 640., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(512., 32.))
+        .insert(Object::new(0));
+
+    //floating platform in box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(512., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1424., 480., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(512., 32.))
+        .insert(Object::new(0));
+
+    //1x1 on floating platform in box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1376., 512., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //1x1 on right wall in box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1824., 576., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //1x1 on right corner in box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1824., 384., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+     
+        
+    //1x1 on right corner in box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1440., 384., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+    //1x1 in left corner of box on upper-mid side
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1120., 384., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+
+    //1x2 floating in air
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 64.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(960., 432., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 64.))
+        .insert(Object::new(0));
+        
+    //1x3 on platform above second floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 96.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(608., 448., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 96.))
+        .insert(Object::new(0));
+
+    //wall beside 1x3
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 192.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(512., 496., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 192.))
+        .insert(Object::new(0));
+    //floor connected to ^ wall
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(512., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(240., 576., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(512., 32.))
+        .insert(Object::new(0));
+
+    //1x1 sitting on ^ floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0., 608., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //1x1 floating in air below enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(896., 608., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //1x1 floating in air above enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(928., 800., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(736., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1472., 768., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(736., 32.))
+        .insert(Object::new(0));
+
+    //1x1 on wall below floating 1x1
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(1056., 512., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //floor to room left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(768., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(400., 704., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(768., 32.))
+        .insert(Object::new(0));
+
+    //1x1 in room to left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(448., 736., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //wall in room to left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 192.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(288., 816., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 192.))
+        .insert(Object::new(0));
+    
+    //1x1 on left side of wall in room to left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(256., 800., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //1x1 on right side of wall in room to left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 32.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(320., 832., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 32.))
+        .insert(Object::new(0));
+
+    //right wall of room to left of enemy floor
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::BLACK,
+                custom_size: Some(Vec2::new(32., 288.)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(512., 864., 1.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Rect::new(32., 288.))
+        .insert(Object::new(0));
+
+
+
+    /*
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                //color: Color::GRAY,
                 custom_size: Some(Vec2::new(32., 32.)),
                 ..default()
             },
@@ -173,6 +823,7 @@ fn setup(
         })
         .insert(Rect::new(32., 32.))
         .insert(Object::new(1));
+        */
     /*
         let mut count = 0.;
         for i in 0..41 {
