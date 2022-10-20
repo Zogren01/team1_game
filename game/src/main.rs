@@ -15,7 +15,6 @@ use crate::active_util::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 
-
 /*
 #[derive(Component)]
 struct Ground;
@@ -35,6 +34,7 @@ fn main() {
         //.add_system(show_popup)
         .add_system(move_player)
         .add_system(calculate_sight)
+        .add_system(attack)
         //.add_system(camera_follow)
         .run();
 }
@@ -79,17 +79,16 @@ fn setup(
 
     //This is for the overlay
     //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(1920.0, 1080.0)),
-                ..default()
-            },
-            texture: asset_server.load("Room_1.png"),
-            transform: Transform::from_xyz(912., 500., 0.),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(1920.0, 1080.0)),
             ..default()
-            });
-        
+        },
+        texture: asset_server.load("Room_1.png"),
+        transform: Transform::from_xyz(912., 500., 0.),
+        ..default()
+    });
+
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
         .spawn_bundle(SpriteBundle {
@@ -173,8 +172,6 @@ fn setup(
         .insert(Rect::new(32., 1024.))
         .insert(Object::new(0));
 
-    
-
     //first 1x2 wall on first floor
     commands
         .spawn_bundle(SpriteBundle {
@@ -191,7 +188,7 @@ fn setup(
         })
         .insert(Rect::new(32., 64.))
         .insert(Object::new(0));
-    
+
     //second 1x2 wall on first floor
     commands
         .spawn_bundle(SpriteBundle {
@@ -277,8 +274,8 @@ fn setup(
         .insert(Rect::new(32., 32.))
         .insert(Object::new(0));
 
-     //grounded 1x1 on first floor
-     commands
+    //grounded 1x1 on first floor
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 //color: Color::BLACK,
@@ -413,7 +410,7 @@ fn setup(
         .insert(Rect::new(768., 32.))
         .insert(Object::new(0));
 
-     //left wall of box on upper-mid right side
+    //left wall of box on upper-mid right side
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -514,8 +511,7 @@ fn setup(
         })
         .insert(Rect::new(32., 32.))
         .insert(Object::new(0));
-     
-        
+
     //1x1 on right corner in box on upper-mid side
     commands
         .spawn_bundle(SpriteBundle {
@@ -549,7 +545,6 @@ fn setup(
         .insert(Rect::new(32., 32.))
         .insert(Object::new(0));
 
-
     //1x2 floating in air
     commands
         .spawn_bundle(SpriteBundle {
@@ -566,7 +561,7 @@ fn setup(
         })
         .insert(Rect::new(32., 64.))
         .insert(Object::new(0));
-        
+
     //1x3 on platform above second floor
     commands
         .spawn_bundle(SpriteBundle {
@@ -752,7 +747,7 @@ fn setup(
         })
         .insert(Rect::new(32., 192.))
         .insert(Object::new(0));
-    
+
     //1x1 on left side of wall in room to left of enemy floor
     commands
         .spawn_bundle(SpriteBundle {
@@ -803,8 +798,6 @@ fn setup(
         })
         .insert(Rect::new(32., 288.))
         .insert(Object::new(0));
-
-
 
     /*
     commands
@@ -877,11 +870,10 @@ fn calculate_sight(
     let x_pos = origin.translation.x;
     let y_pos = origin.translation.y;
 
-	if input.pressed(KeyCode::Q){
-
-		let sight_distance = 300.0;
-		let mut sight_lines = Vec::new();
-		let mut object_lines = Vec::new();
+    if input.pressed(KeyCode::Q) {
+        let sight_distance = 300.0;
+        let mut sight_lines = Vec::new();
+        let mut object_lines = Vec::new();
 
         for (o, r, t) in objects.iter() {
             //v1 and v2 hold the endpoints for line of sight
@@ -968,26 +960,25 @@ fn calculate_sight(
             let s2 = Line::new(Vec2::new(x_pos, y_pos), v2, o.id);
             //MAYBE third line of sight to corner
 
-			//track whether these are in range
-			let mut in_range = false;
-			if s1.length_squared() < sight_distance*sight_distance {
-				sight_lines.push(s1);
-				in_range = true;
-			}
-			if s2.length_squared() < sight_distance*sight_distance{
-				sight_lines.push(s2);
-				in_range = true;
-			}
-			if in_range {
-				let o1 = Line::new(v1, v3, o.id);
-				let o2 = Line::new(v2, v3, o.id);
-				object_lines.push(o1);
-				object_lines.push(o2);
-			}
-		}
-		determine_visibility(sight_lines, object_lines);
-	}
-	
+            //track whether these are in range
+            let mut in_range = false;
+            if s1.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s1);
+                in_range = true;
+            }
+            if s2.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s2);
+                in_range = true;
+            }
+            if in_range {
+                let o1 = Line::new(v1, v3, o.id);
+                let o2 = Line::new(v2, v3, o.id);
+                object_lines.push(o1);
+                object_lines.push(o2);
+            }
+        }
+        determine_visibility(sight_lines, object_lines);
+    }
 }
 
 fn determine_visibility(sight: Vec<Line>, obj: Vec<Line>) {
@@ -1025,17 +1016,22 @@ fn lines_intersect(a: &Line, b: &Line) -> bool {
         && (helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
 }
 
-fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>, 
-	mut player: Query<(&mut Player, &mut Transform, &mut Velocity), (With<Player>, Without<Object>)>, 	
-	objects: Query<(&Object, &Rect, &Transform), (With<Object>,Without<Player>)>, 
-	mut exit: EventWriter<AppExit>,
-	mut cam: Query<&mut Transform,  (With<Camera>, Without<Object>, Without<Player>)>,) {
+fn move_player(
+    time: Res<Time>,
+    input: Res<Input<KeyCode>>,
+    mut player: Query<
+        (&mut Player, &mut Transform, &mut Velocity),
+        (With<Player>, Without<Object>),
+    >,
+    objects: Query<(&Object, &Rect, &Transform), (With<Object>, Without<Player>)>,
+    mut exit: EventWriter<AppExit>,
+    mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<Player>)>,
+) {
+    let (mut pl, mut pt, mut pv) = player.single_mut();
 
-	let (mut pl, mut pt, mut pv) = player.single_mut();
-	
-	let mut camera = cam.single_mut();
+    let mut camera = cam.single_mut();
     if input.pressed(KeyCode::A) {
-        pl.facing_left=true;
+        pl.facing_left = true;
         if pv.velocity.x > -PLAYER_SPEED {
             pv.velocity.x = pv.velocity.x - 20.;
         }
@@ -1043,17 +1039,16 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>,
         pv.velocity.x = pv.velocity.x + 20.;
     }
 
-	if input.pressed(KeyCode::D) {
-        pl.facing_left=false;
-		if pv.velocity.x < PLAYER_SPEED{
-			pv.velocity.x = pv.velocity.x + 20.;
-		}
-	}
-	else if pv.velocity.x > 0.{
-		pv.velocity.x = pv.velocity.x - 20.;
-	}
-    
-    if pv.velocity.y > TERMINAL_VELOCITY{
+    if input.pressed(KeyCode::D) {
+        pl.facing_left = false;
+        if pv.velocity.x < PLAYER_SPEED {
+            pv.velocity.x = pv.velocity.x + 20.;
+        }
+    } else if pv.velocity.x > 0. {
+        pv.velocity.x = pv.velocity.x - 20.;
+    }
+
+    if pv.velocity.y > TERMINAL_VELOCITY {
         pv.velocity.y += GRAVITY;
     }
 
@@ -1062,61 +1057,114 @@ fn move_player(time: Res<Time>,	input: Res<Input<KeyCode>>,
     }
 
     pl.grounded = false;
-	let deltat = time.delta_seconds(); 
+    let deltat = time.delta_seconds();
 
     let change = pv.velocity * deltat;
 
-	let mut new_pos = pt.translation + Vec3::new(
-		change.x,
-		change.y,
-		0.,
-	);
+    let mut new_pos = pt.translation + Vec3::new(change.x, change.y, 0.);
     //this variable will track where the player will end up if there is no collision with a surface
-	for (_o,r,t) in objects.iter() {
-		let res = bevy::sprite::collide_aabb::collide(
-			new_pos,
-			Vec2::new(PLAYER_SZ, PLAYER_SZ),
-			t.translation,
-			Vec2::new(r.width,r.height)
-		);
-		if res.is_some()
-		{
-			let coll_type :bevy::sprite::collide_aabb::Collision= res.unwrap();
-			match coll_type {
-				Collision::Left => {
-					pv.velocity.x=0.;
-					new_pos.x=t.translation.x-(r.width/2.)-PLAYER_SZ/2.;
-				}
-				Collision::Right => {
-					pv.velocity.x=0.;
-					new_pos.x=t.translation.x+(r.width/2.)+PLAYER_SZ/2.;
-				}
-				Collision::Top => {
-                    if pv.velocity.y<0. { //if falling down
-                        pv.velocity.y=0.; //stop vertical velocity
-						pl.grounded = true;
+    for (_o, r, t) in objects.iter() {
+        let res = bevy::sprite::collide_aabb::collide(
+            new_pos,
+            Vec2::new(PLAYER_SZ, PLAYER_SZ),
+            t.translation,
+            Vec2::new(r.width, r.height),
+        );
+        if res.is_some() {
+            let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+            match coll_type {
+                Collision::Left => {
+                    pv.velocity.x = 0.;
+                    new_pos.x = t.translation.x - (r.width / 2.) - PLAYER_SZ / 2.;
+                }
+                Collision::Right => {
+                    pv.velocity.x = 0.;
+                    new_pos.x = t.translation.x + (r.width / 2.) + PLAYER_SZ / 2.;
+                }
+                Collision::Top => {
+                    if pv.velocity.y < 0. {
+                        //if falling down
+                        pv.velocity.y = 0.; //stop vertical velocity
+                        pl.grounded = true;
                     }
-                    new_pos.y=t.translation.y+(r.height/2.)+PLAYER_SZ/2.;
-                    if _o.id == 1
-                    {
+                    new_pos.y = t.translation.y + (r.height / 2.) + PLAYER_SZ / 2.;
+                    if _o.id == 1 {
                         exit.send(AppExit);
                     }
-				}
-				Collision::Bottom => {
-					pv.velocity.y=0.;
-					new_pos.y=t.translation.y-(r.height/2.)-PLAYER_SZ/2.;
-				}
-				Collision::Inside => {
+                }
+                Collision::Bottom => {
+                    pv.velocity.y = 0.;
+                    new_pos.y = t.translation.y - (r.height / 2.) - PLAYER_SZ / 2.;
+                }
+                Collision::Inside => {
                     println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-					pv.velocity = Vec2::new(0.,0.);
-				}
-			}
-		}
+                    pv.velocity = Vec2::new(0., 0.);
+                }
+            }
+        }
     }
 
     pt.translation = new_pos;
-	camera.translation.x = pt.translation.x;
+    camera.translation.x = pt.translation.x;
     camera.translation.y = pt.translation.y;
+}
+
+fn attack(
+    input: Res<Input<KeyCode>>,
+    mut player: Query<
+        (&mut Player, &mut Transform, &mut Velocity),
+        (With<Player>, Without<Object>),
+    >,
+    objects: Query<(&Object, &Rect, &Transform), (With<Object>, Without<Player>)>,
+    mut commands: Commands,
+) {
+    let (pl, pt, pv) = player.single_mut();
+    if input.just_pressed(KeyCode::P) {
+        let mut hitbox_pos;
+        if (input.pressed(KeyCode::S)) {
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
+        } else if (pv.velocity.y != 0.) {
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
+        } else if (!pl.facing_left) {
+            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+        } else {
+            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
+        }
+        for (_o, r, t) in objects.iter() {
+            let res = bevy::sprite::collide_aabb::collide(
+                hitbox_pos,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                t.translation,
+                Vec2::new(r.width, r.height),
+            );
+            if res.is_some() {
+                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                match coll_type {
+                    Collision::Left => {
+                        println!("Attacked object right of player");
+                    }
+                    Collision::Right => {
+                        println!("Attacked object left of player");
+                    }
+                    Collision::Top => {
+                        println!("Attacked object bottom of player");
+                    }
+                    Collision::Bottom => {
+                        println!("Attacked object top of player");
+                    }
+                    Collision::Inside => {
+                        if (pt.translation.y - PLAYER_SZ / 2. >= t.translation.y + PLAYER_SZ / 2.) {
+                            println!("Attacked object below player");
+                        } else if (pt.translation.x > t.translation.x) {
+                            println!("Attacked object left of player");
+                        } else {
+                            println!("Attacked object right of player");
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 /*
 fn camera_follow(
