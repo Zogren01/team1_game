@@ -16,22 +16,35 @@ impl Velocity {
 #[derive(Component)]
 pub struct ActiveObject {
     pub grounded: bool,
-    pub velocity: Velocity,
+    pub facing_left: bool,
+    pub velocity: Vec2,
+    pub max_health: i32,
+    pub health: i32,
+    pub damage: i32,
 }
 
-pub enum ActiveType {
-    Player,
-    Enemy,
+impl ActiveObject {
+    pub fn new(h: i32, d: i32) -> Self{
+        Self {
+            grounded: false, 
+            facing_left: false,
+            velocity: Vec2::splat(0.),
+            max_health: h,
+            health: h,
+            damage: d,
+        }
+    }
+    pub fn take_damage(&self, damage: i32){
+        //implement taking damage
+    }
+    pub fn heal(&self, gain: i32) {
+        //implement healing
+    }
 }
 
 #[derive(Component)]
-pub struct Player {
-    pub grounded: bool,
-    pub facing_left: bool,
-}
+pub struct Player;
 
-impl Player{
-    pub fn new()-> Self {
-        Self {grounded: false, facing_left: true}
-    }
-}
+
+#[derive(Component)]
+pub struct Enemy;

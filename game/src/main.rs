@@ -2,8 +2,6 @@
 use bevy::app::AppExit;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
-use std::collections::HashSet;
-use std::convert::From;
 
 //imports from local creates
 mod util;
@@ -12,6 +10,8 @@ use crate::util::*;
 mod active_util;
 use crate::active_util::*;
 
+mod ai;
+use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 
@@ -57,7 +57,7 @@ fn main() {
         //.add_system(show_popup)
         .add_system(move_player)
         .add_system(calculate_sight)
-        .add_system(attack)
+        //.add_system(attack)
         .run();
 }
 
@@ -125,8 +125,8 @@ fn setup(
             },
             ..default()
         })
-        .insert(Velocity::new())
-        .insert(Player::new());
+        .insert(ActiveObject::new(100, 25))
+        .insert(Player);
 
     //main floor
     let mut level = get_level(1);
@@ -270,85 +270,50 @@ fn calculate_sight(
     }
 }
 
-fn determine_visibility(sight: Vec<Line>, obj: Vec<Line>) {
-    println!("Determining objects in view...");
-
-    let mut ids: HashSet<i8> = HashSet::new();
-    for l in sight.iter() {
-        let mut result = true;
-        for o in obj.iter() {
-            let intersect = lines_intersect(l, o);
-            if l.obj_id == 2 && o.obj_id == 1 {
-                l.print_line();
-                o.print_line();
-            }
-            if intersect && (o.obj_id != l.obj_id) {
-                result = false;
-                break;
-            }
-        }
-        if result {
-            ids.insert(l.obj_id);
-        }
-    }
-    for id in ids.iter() {
-        println!("Object with id {} is visible", id);
-    }
-}
-
-fn helper(i: Vec2, j: Vec2, k: Vec2) -> bool {
-    (k.y - i.y) * (j.x - i.x) > (j.y - i.y) * (k.x - i.x)
-}
-
-fn lines_intersect(a: &Line, b: &Line) -> bool {
-    (helper(a.start, b.start, b.end) != helper(a.end, b.start, b.end))
-        && (helper(a.start, a.end, b.start) != helper(a.start, a.end, b.end))
-}
-
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut player: Query<
-        (&mut Player, &mut Transform, &mut Velocity),
+        (&mut ActiveObject, &mut Transform),
         (With<Player>, Without<Object>),
     >,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut exit: EventWriter<AppExit>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<Player>)>,
 ) {
-    let (mut pl, mut pt, mut pv) = player.single_mut();
+    let (mut pl, mut pt) = player.single_mut();
 
     let mut camera = cam.single_mut();
     if input.pressed(KeyCode::A) {
         pl.facing_left = true;
-        if pv.velocity.x > -PLAYER_SPEED {
-            pv.velocity.x = pv.velocity.x - 20.;
+        if pl.velocity.x > -PLAYER_SPEED {
+            pl.velocity.x = pl.velocity.x - 20.;
         }
-    } else if pv.velocity.x < 0. {
-        pv.velocity.x = pv.velocity.x + 20.;
+    } else if pl.velocity.x < 0. {
+        pl.velocity.x = pl.velocity.x + 20.;
     }
 
     if input.pressed(KeyCode::D) {
         pl.facing_left = false;
-        if pv.velocity.x < PLAYER_SPEED {
-            pv.velocity.x = pv.velocity.x + 20.;
+        if pl.velocity.x < PLAYER_SPEED {
+            pl.velocity.x = pl.velocity.x + 20.;
         }
-    } else if pv.velocity.x > 0. {
-        pv.velocity.x = pv.velocity.x - 20.;
+    } else if pl.velocity.x > 0. {
+        pl.velocity.x = pl.velocity.x - 20.;
     }
 
-    if pv.velocity.y > TERMINAL_VELOCITY {
-        pv.velocity.y += GRAVITY;
+    if pl.velocity.y > TERMINAL_VELOCITY {
+        pl.velocity.y += GRAVITY;
     }
 
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pv.velocity.y = PLAYER_SPEED * 2.;
+        pl.velocity.y = PLAYER_SPEED * 2.;
     }
 
     pl.grounded = false;
     let deltat = time.delta_seconds();
 
-    let change = pv.velocity * deltat;
+    let change = pl.velocity * deltat;
 
     let mut new_pos = pt.translation + Vec3::new(change.x, change.y, 0.);
     //this variable will track where the player will end up if there is no collision with a surface
@@ -363,17 +328,17 @@ fn move_player(
             let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
             match coll_type {
                 Collision::Left => {
-                    pv.velocity.x = 0.;
+                    pl.velocity.x = 0.;
                     new_pos.x = t.translation.x - (_o.width / 2.) - PLAYER_SZ / 2.;
                 }
                 Collision::Right => {
-                    pv.velocity.x = 0.;
+                    pl.velocity.x = 0.;
                     new_pos.x = t.translation.x + (_o.width / 2.) + PLAYER_SZ / 2.;
                 }
                 Collision::Top => {
-                    if pv.velocity.y < 0. {
+                    if pl.velocity.y < 0. {
                         //if falling down
-                        pv.velocity.y = 0.; //stop vertical velocity
+                        pl.velocity.y = 0.; //stop vertical velocity
                         pl.grounded = true;
                     }
                     new_pos.y = t.translation.y + (_o.height / 2.) + PLAYER_SZ / 2.;
@@ -382,12 +347,12 @@ fn move_player(
                     }
                 }
                 Collision::Bottom => {
-                    pv.velocity.y = 0.;
+                    pl.velocity.y = 0.;
                     new_pos.y = t.translation.y - (_o.height / 2.) - PLAYER_SZ / 2.;
                 }
                 Collision::Inside => {
                     println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                    pv.velocity = Vec2::new(0., 0.);
+                    pl.velocity = Vec2::new(0., 0.);
                 }
             }
         }
@@ -397,7 +362,7 @@ fn move_player(
     camera.translation.x = pt.translation.x;
     camera.translation.y = pt.translation.y;
 }
-
+/*
 fn attack(
     input: Res<Input<KeyCode>>,
     mut player: Query<
@@ -454,16 +419,5 @@ fn attack(
             }
         }
     }
-}
-/*
-fn camera_follow(
-    player_query: Query<&Transform, With<Player>>,
-    mut Camera_query: Query<&mut Transform, (Without<Player>, With<Camera>)>,
-) {
-    let player = player_query.single();
-    let mut camera = Camera_query.single_mut();
-
-    camera.translation.x = player.translation.x;
-    camera.translation.y = player.translation.y;
 }
 */
