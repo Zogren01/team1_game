@@ -21,6 +21,7 @@ pub struct ActiveObject {
     pub max_health: i32,
     pub health: i32,
     pub damage: i32,
+    pub projected_position: Vec3,
 }
 
 impl ActiveObject {
@@ -32,6 +33,7 @@ impl ActiveObject {
             max_health: h,
             health: h,
             damage: d,
+            projected_position: Vec3::splat(0.),
         }
     }
     pub fn take_damage(&self, damage: i32){
