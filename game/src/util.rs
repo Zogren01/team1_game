@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{prelude::*};
 
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
@@ -125,31 +125,4 @@ impl Object{
             height: h,
         }
 	}
-}
-
-#[derive(Component)]
-pub struct Line {
-    pub start: Vec2,
-    pub end: Vec2,
-    pub obj_id: i8,
-}
-
-impl Line {
-    pub fn new(s: Vec2, e: Vec2, i: i8) -> Self {
-        Self {
-            start: s,
-            end: e,
-            obj_id: i,
-        }
-    }
-    pub fn length_squared(&self) -> f32 {
-        (self.end.x - self.start.x) * (self.end.x - self.start.x)
-            + (self.end.y - self.start.y) * (self.end.y - self.start.y)
-    }
-    pub fn print_line(&self) {
-        println!(
-            "Start: {},{} \n End: {},{} \n",
-            self.start.x, self.start.y, self.end.x, self.end.y
-        );
-    }
 }
