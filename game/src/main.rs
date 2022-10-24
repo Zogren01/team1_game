@@ -57,9 +57,17 @@ fn main() {
         .add_startup_system(setup)
         //.add_system(show_popup)
         .add_system(apply_collisions)
-        .add_system(move_player.after(setup).before(apply_collisions))
-        .add_system(update_positions.after(apply_collisions))
-        .add_system(move_enemies.after(move_player).before(apply_collisions))
+        .add_system(
+            move_player
+                .after(setup)
+                .before(apply_collisions))
+        .add_system(
+               update_positions
+                .after(apply_collisions))
+        .add_system(
+            move_enemies
+                .after(move_player)
+                .before(apply_collisions))
         //.add_system(calculate_sight)
         //.add_system(attack)
         .run();
@@ -397,8 +405,8 @@ fn move_enemies(
     for (mut enemy, mut et) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 7.;
-            change.y = 7.;
+            enemy.velocity.y = 8.;
+            change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
         else {
@@ -443,8 +451,8 @@ fn move_player(
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 7.;
-        change.y = 7.;
+        pl.velocity.y = 8.;
+        change.y = 8.;
     }
     //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
     else {
