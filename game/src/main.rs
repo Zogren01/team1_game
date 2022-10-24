@@ -111,7 +111,7 @@ fn setup(
 
     commands.insert_resource(Clock {
         // create the repeating timer
-        timer: Timer::from_seconds(10.0, true),
+        timer: Timer::from_seconds(15.0, true),
     });
 
     //This is for the overlay
