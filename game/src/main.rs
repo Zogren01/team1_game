@@ -5,6 +5,7 @@ use bevy::{prelude::*, window::PresentMode};
 use bevy::render::camera::RenderTarget;
 
 
+
 //imports from local creates
 mod util;
 use crate::util::*;
@@ -16,6 +17,7 @@ mod ai;
 use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
+const START_TIME: f32=10.;
 
 struct Manager{
     room_number: i8,
@@ -61,6 +63,7 @@ fn main() {
         .add_system(
             move_player
                 .after(setup)
+                .after(show_timer)
                 .before(apply_collisions)
             )
         .add_system(
@@ -73,6 +76,7 @@ fn main() {
                 .before(apply_collisions)
         )
         .add_system(my_cursor_system)
+        .add_system(show_timer)
         //.add_system(calculate_sight)
         //.add_system(attack)
         .run();
@@ -105,6 +109,11 @@ fn setup(
         time += 5.0;
     }
 
+    commands.insert_resource(Clock {
+        // create the repeating timer
+        timer: Timer::from_seconds(10.0, true),
+    });
+
     //This is for the overlay
     //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
     commands.spawn_bundle(SpriteBundle {
@@ -116,6 +125,29 @@ fn setup(
         transform: Transform::from_xyz(912., 500., 0.),
         ..default()
     });
+
+    
+    commands.spawn_bundle(
+        TextBundle::from_section(
+           "", 
+            TextStyle {
+                font_size: 100.0,
+                color: Color::WHITE,
+                font: asset_server.load("mrsmonster.ttf")
+            }
+        )
+    )
+    .insert(Style {
+        align_self: AlignSelf::FlexEnd,
+        position_type: PositionType::Absolute,
+        position: UiRect {
+            bottom: Val::Px(5.0),
+            right: Val::Px(15.0),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(ClockText);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
@@ -575,3 +607,23 @@ fn attack(
     }
 }
 */
+fn show_timer (time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
+    //create_timer(commands, asset_server, time);
+        clock.timer.tick(time.delta());
+        let mut time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
+        //println!("{}", time_remaining);
+        for mut text in &mut text {
+            if time_remaining > 0.0 {
+                text.sections[0].value= time_remaining.to_string();
+            }
+        if clock.timer.finished() {
+            println!("Resetting position");
+            let mut pt = player.single_mut();
+            pt.translation=Vec3::new(0.,64.,0.);
+        }
+        
+        
+    }
+        
+        
+    }
