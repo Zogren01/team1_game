@@ -12,6 +12,7 @@ pub struct Clock{
     pub timer: Timer,
 }
 
+/*
 impl Clock{
     pub fn new(t: Timer) -> Self {
         Self {
@@ -19,6 +20,7 @@ impl Clock{
          }
     }
 }
+*/
 
 #[derive(Component)]
 pub struct Velocity {

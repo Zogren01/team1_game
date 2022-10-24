@@ -538,7 +538,7 @@ fn move_player(
         pl.velocity.y = 8.;  
         change.y = 8.;
     }
-    //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
+    //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
     else{
         pl.velocity.y += GRAVITY* deltat;
         change.y = pl.velocity.y;
@@ -607,15 +607,23 @@ fn attack(
     }
 }
 */
-fn show_timer (time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
+
+//Press X to pause the timer, press c to unpause it
+fn show_timer (input: Res<Input<KeyCode>>, time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
     //create_timer(commands, asset_server, time);
         clock.timer.tick(time.delta());
-        let mut time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
+        let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
         //println!("{}", time_remaining);
         for mut text in &mut text {
             if time_remaining > 0.0 {
                 text.sections[0].value= time_remaining.to_string();
             }
+        if input.pressed(KeyCode::X){
+            clock.timer.pause();
+        }
+        if input.pressed(KeyCode::C){
+            clock.timer.unpause();
+        }
         if clock.timer.finished() {
             println!("Resetting position");
             let mut pt = player.single_mut();
