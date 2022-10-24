@@ -9,6 +9,18 @@ pub struct Line {
     pub obj_id: i8,
 }
 
+
+#[derive(Component)]
+pub struct Node {
+    pub position: Vec2,
+    pub node_id: i8,
+}
+
+
+#[derive(Component)]
+pub struct Graph {
+    pub node_list: Vec<Node>,
+}
 impl Line {
     pub fn new(s: Vec2, e: Vec2, i: i8) -> Self {
         Self {

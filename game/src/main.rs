@@ -2,6 +2,8 @@
 use bevy::app::AppExit;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
+use bevy::render::camera::RenderTarget;
+
 
 //imports from local creates
 mod util;
@@ -70,6 +72,7 @@ fn main() {
                 .after(move_player)
                 .before(apply_collisions)
         )
+        .add_system(my_cursor_system)
         //.add_system(calculate_sight)
         //.add_system(attack)
         .run();
@@ -376,6 +379,46 @@ fn apply_collisions(
         }  
     }
 }
+//used for debugging and finding tile coordinates, nothing else. Player start tile is considered (0,0) for sanity.
+fn my_cursor_system(
+    mouse_input: Res<Input<MouseButton>>,
+    // need to get window dimensions
+    wnds: Res<Windows>,
+    // query to get camera transform
+    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>
+) {
+    // get the camera info and transform
+    // assuming there is exactly one main camera entity, so query::single() is OK
+    let (camera, camera_transform) = q_camera.single();
+
+    // get the window that the camera is displaying to (or the primary window)
+    let wnd = if let RenderTarget::Window(id) = camera.target {
+        wnds.get(id).unwrap()
+    } else {
+        wnds.get_primary().unwrap()
+    };
+
+    // check if the cursor is inside the window and get its position
+    if let Some(screen_pos) = wnd.cursor_position() {
+        // get the size of the window
+        let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
+
+        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+
+        // matrix for undoing the projection and camera transform
+        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+
+        // use it to convert ndc to world-space coordinates
+        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+
+        // reduce it to a 2D value
+        let world_pos: Vec2 = world_pos.truncate();
+        if mouse_input.just_pressed(MouseButton::Left) {
+        eprintln!("World coords: {}/{}", (world_pos.x/32.).round(), ((world_pos.y/32.) - 1.).round());
+        }
+    }
+}
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
@@ -411,8 +454,8 @@ fn move_enemies(
         
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 7.;  
-            change.y = 7.;
+            enemy.velocity.y = 8.;  
+            change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
         else{
@@ -460,8 +503,8 @@ fn move_player(
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 7.;  
-        change.y = 7.;
+        pl.velocity.y = 8.;  
+        change.y = 8.;
     }
     //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
     else{
