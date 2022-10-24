@@ -19,20 +19,21 @@ use crate::ai::*;
 struct PopupTimer(Timer);
 const START_TIME: f32=15.;
 
-struct Manager{
+struct Manager {
     room_number: i8,
     wall_id: i8,
     enemy_id: i8,
 }
 
-
-fn create_level( 
+fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>){
-        for desc in level{
-            commands.spawn_bundle(SpriteBundle {
+    level: Vec<Descriptor>,
+) {
+    for desc in level {
+        commands
+            .spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(desc.width, desc.height)),
                     ..default()
@@ -43,8 +44,8 @@ fn create_level(
                 },
                 ..default()
             })
-            .insert(Object::new(0, desc.width, desc.height));
-        }
+            .insert(Object::new(0, desc.width, desc.height, desc.obj_type));
+    }
 }
 
 fn main() {
@@ -67,9 +68,8 @@ fn main() {
                 .before(apply_collisions)
             )
         .add_system(
-            update_positions
-                .after(apply_collisions)
-        )
+               update_positions
+                .after(apply_collisions))
         .add_system(
             move_enemies
                 .after(move_player)
@@ -165,7 +165,6 @@ fn setup(
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Player);
-    
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -183,7 +182,7 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Enemy);
 
-        commands
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -198,8 +197,8 @@ fn setup(
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Enemy);
-    
-        commands
+
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -217,8 +216,6 @@ fn setup(
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
-
-
 }
 
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
@@ -359,14 +356,13 @@ fn calculate_sight(
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject,&Transform), With<ActiveObject>>,
+    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
     objects: Query<(&Object, &Transform), With<Object>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
-){
+) {
     //loop through all objects that move
-    for (mut active, transform) in actives.iter_mut(){
-
+    for (mut active, transform) in actives.iter_mut() {
         for (o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
@@ -380,27 +376,32 @@ fn apply_collisions(
                 match coll_type {
                     Collision::Left => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Right => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                     }
                     Collision::Top => {
-                        if active.velocity.y < 0. {
-                            //if falling down
-                            active.velocity.y = 0.; //stop vertical velocity
-                            active.grounded = true;
-                        }
-                        active.projected_position.y = t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
-                        if o.id == 1 {
+                        if matches!(o.obj_type, ObjectType::Spike) {
                             //deal damage if the collision is with a spike
                             exit.send(AppExit);
+                        } else if !matches!(o.obj_type, ObjectType::Cobweb) {
+                            if active.velocity.y < 0. {
+                                //if falling down
+                                active.velocity.y = 0.; //stop vertical velocity
+                                active.grounded = true;
+                            }
+                            active.projected_position.y =
+                                t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                         }
                     }
                     Collision::Bottom => {
                         active.velocity.y = 0.;
-                        active.projected_position.y = t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.y =
+                            t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Inside => {
                         println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
@@ -408,7 +409,7 @@ fn apply_collisions(
                     }
                 }
             }
-        }  
+        }
     }
 }
 //used for debugging and finding tile coordinates, nothing else. Player start tile is considered (0,0) for sanity.
@@ -454,11 +455,11 @@ fn my_cursor_system(
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut player: Query<(&ActiveObject, &mut Transform),(With<Player>, Without<Object>),>,
+    mut player: Query<(&ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
-){
+) {
     //update position of active objects based on projected position from apply_collisions()
-    for (o, mut t) in actives.iter_mut(){
+    for (o, mut t) in actives.iter_mut() {
         t.translation = o.projected_position;
     }
     //update player position and camera position
@@ -468,7 +469,6 @@ fn update_positions(
 
     camera.translation.x = pt.translation.x;
     camera.translation.y = pt.translation.y;
-
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -476,25 +476,21 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Enemy>, Without<Object>),
-    >,
-){
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Object>)>,
+) {
     let deltat = time.delta_seconds();
-    for (mut enemy, mut et) in enemies.iter_mut(){
-        
+    for (mut enemy, mut et) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
             enemy.velocity.y = 8.;  
             change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
-        else{
-            enemy.velocity.y += GRAVITY* deltat;
+        else {
+            enemy.velocity.y += GRAVITY * deltat;
             change.y = enemy.velocity.y;
         }
-        //this holds the position the player will end up in if there is no collision 
+        //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
     }
@@ -503,10 +499,7 @@ fn move_enemies(
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Player>, Without<Object>),
-    >,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
 ) {
     let (mut pl, mut pt) = player.single_mut();
 
@@ -527,11 +520,11 @@ fn move_player(
     } else if pl.velocity.x > 0. {
         pl.velocity.x = pl.velocity.x - 20.;
     }
-    
+
     let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x * deltat;
-    //the reason that jump height was inconsistent was because this could only happen when on the ground, 
+    //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
@@ -543,7 +536,7 @@ fn move_player(
         pl.velocity.y += GRAVITY* deltat;
         change.y = pl.velocity.y;
     }
-    //this holds the position the player will end up in if there is no collision 
+    //this holds the position the player will end up in if there is no collision
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
     pl.grounded = false;
 }
