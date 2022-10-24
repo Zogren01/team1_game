@@ -17,7 +17,7 @@ mod ai;
 use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-const START_TIME: f32=10.;
+const START_TIME: f32=15.;
 
 struct Manager{
     room_number: i8,
@@ -111,7 +111,7 @@ fn setup(
 
     commands.insert_resource(Clock {
         // create the repeating timer
-        timer: Timer::from_seconds(15.0, true),
+        timer: Timer::from_seconds(START_TIME, true),
     });
 
     //This is for the overlay
