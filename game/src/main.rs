@@ -340,16 +340,17 @@ fn apply_collisions(
                             t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                     }
                     Collision::Top => {
-                        if active.velocity.y < 0. {
-                            //if falling down
-                            active.velocity.y = 0.; //stop vertical velocity
-                            active.grounded = true;
-                        }
-                        active.projected_position.y =
-                            t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                         if matches!(o.obj_type, ObjectType::Spike) {
                             //deal damage if the collision is with a spike
                             exit.send(AppExit);
+                        } else if !matches!(o.obj_type, ObjectType::Cobweb) {
+                            if active.velocity.y < 0. {
+                                //if falling down
+                                active.velocity.y = 0.; //stop vertical velocity
+                                active.grounded = true;
+                            }
+                            active.projected_position.y =
+                                t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                         }
                     }
                     Collision::Bottom => {
