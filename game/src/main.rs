@@ -61,15 +61,12 @@ fn main() {
         .add_startup_system(setup)
         //.add_system(show_popup)
         .add_system(apply_collisions)
-        .add_system(enemy_collisions)
         .add_system(
             move_player
                 .after(show_timer)
-                .before(apply_collisions)
-                .before(enemy_collisions),
+                .before(apply_collisions),
         )
         .add_system(update_positions.after(apply_collisions))
-        .add_system(update_positions.after(enemy_collisions))
         .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
