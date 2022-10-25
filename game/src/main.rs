@@ -27,11 +27,10 @@ fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>,
-) {
-    for desc in level {
-        commands
-            .spawn_bundle(SpriteBundle {
+    level: Vec<Descriptor>){
+        let mut id = 0;
+        for desc in level{
+            commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(desc.width, desc.height)),
                     ..default()
@@ -42,8 +41,9 @@ fn create_level(
                 },
                 ..default()
             })
-            .insert(Object::new(0, desc.width, desc.height, desc.obj_type));
-    }
+            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            id +=1;
+        }
 }
 
 fn main() {
@@ -61,7 +61,6 @@ fn main() {
         .add_system(apply_collisions)
         .add_system(
             move_player
-                .after(setup)
                 .after(show_timer)
                 .before(apply_collisions),
         )
@@ -69,7 +68,10 @@ fn main() {
         .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
-        //.add_system(calculate_sight)
+        .add_system(
+            calculate_sight
+                .after(update_positions)
+            )
         //.add_system(attack)
         .run();
 }
@@ -154,6 +156,7 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
+        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player);
 
     commands
@@ -170,7 +173,8 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
+        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -186,9 +190,10 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
-
-    commands
+        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
+    
+        commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -202,12 +207,14 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
+        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
-}
 
+}
+//we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
     let mut count = 1.0;
     for (mut timer, mut transform) in popup.iter_mut() {
@@ -220,108 +227,33 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 }
 
 fn calculate_sight(
-    time: Res<Time>,
-    player: Query<&Transform, With<Player>>,
-    objects: Query<(&Object, &Transform), With<Object>>,
-    input: Res<Input<KeyCode>>,
+    player: Query<(&Object,&Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Object,&Transform,&mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-    //TODO: make a struct for all of the sight lines for a given object
-    // hold a Vec containing lines
-    // hold a reference to the object
-    // loop through each of these when doing checks
-    let origin = player.single();
-    let x_pos = origin.translation.x;
-    let y_pos = origin.translation.y;
+    //store data for player and other enemies for later use
+    let mut others = Vec::new();
+    for (obj, tr, _en) in enemies.iter(){
+        let data = (*obj, *tr);
+        others.push(data);
+    }
+    let (obj, tr) = player.single();
+    others.push((*obj, *tr));
+    
+    let sight_distance = 300.0;
 
-    if input.pressed(KeyCode::Q) {
-        let sight_distance = 300.0;
+    for (_obj, tr, mut en) in enemies.iter_mut(){
+
+        let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
 
         for (o, t) in objects.iter() {
-            //v1 and v2 hold the endpoints for line of sight
-            let v1: Vec2;
-            let v2: Vec2;
-            //v3 is the third point for the two sides to be used for collision
-            let v3: Vec2;
-
-            if x_pos > t.translation.x {
-                if y_pos >= t.translation.y {
-                    //top left point
-                    v1 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom right point
-                    v2 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //top right point
-                    v3 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                } else {
-                    //top right point
-                    v1 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom left point
-                    v2 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //bottom right point
-                    v3 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                }
-            //MAYBE code for when y's are equal
-            } else {
-                if y_pos > t.translation.y {
-                    //top right point
-                    v1 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom left point
-                    v2 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //top left point
-                    v3 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                } else {
-                    //top left point
-                    v1 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom right point
-                    v2 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //bottom left point
-                    v3 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                }
-                //MAYBE code for when y's are equal
-            }
-            //MAYBE code for when x's are equal
-
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
+            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(x_pos, y_pos), v1, o.id);
-            let s2 = Line::new(Vec2::new(x_pos, y_pos), v2, o.id);
-            //MAYBE third line of sight to corner
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
 
             //track whether these are in range
             let mut in_range = false;
@@ -333,21 +265,48 @@ fn calculate_sight(
                 sight_lines.push(s2);
                 in_range = true;
             }
+            //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o.id);
-                let o2 = Line::new(v2, v3, o.id);
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
         }
-        determine_visibility(sight_lines, object_lines);
+        for (o, t) in others.iter(){
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
+            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
+            //generate lines of sight
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+
+            //track whether these are in range
+            let mut in_range = false;
+            if s1.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s1);
+                in_range = true;
+            }
+            if s2.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s2);
+                in_range = true;
+            }
+            //maybe add code to check the corner of objects
+            if in_range {
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
+                object_lines.push(o1);
+                object_lines.push(o2);
+            }
+        }
+        en.determine_visibility(sight_lines, object_lines);
     }
 }
+
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
-    objects: Query<(&Object, &Transform), With<Object>>,
+    mut actives: Query<(&mut ActiveObject,&Transform), With<ActiveObject>>,
+    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
@@ -377,6 +336,7 @@ fn apply_collisions(
                             active.projected_position.x =
                                 t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                         }
+                        ObjectType::Active => {}
                     },
                     Collision::Right => match o.obj_type {
                         ObjectType::Spike => {}
@@ -391,6 +351,7 @@ fn apply_collisions(
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                         }
+                        ObjectType::Active => {}
                     },
                     Collision::Top => {
                         match o.obj_type {
@@ -413,6 +374,7 @@ fn apply_collisions(
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
+                            ObjectType::Active => {}
                         }
                     }
                     Collision::Bottom => {
@@ -434,6 +396,7 @@ fn apply_collisions(
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
+                            ObjectType::Active => {}
                         }
                     }
                     Collision::Inside => {
@@ -492,7 +455,7 @@ fn my_cursor_system(
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut player: Query<(&ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
+    mut player: Query<(&ActiveObject, &mut Transform),With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
@@ -513,10 +476,17 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Object>)>,
-) {
+    mut enemies: Query<
+        (&mut ActiveObject, &Transform, &Enemy),
+        (With<Enemy>),
+    >,
+){
     let deltat = time.delta_seconds();
-    for (mut enemy, mut et) in enemies.iter_mut() {
+    for (mut enemy, et, e) in enemies.iter_mut(){
+        if input.just_pressed(KeyCode::K) {
+            println!("For enemy at position {}, {}", et.translation.x, et.translation.y);
+            e.check_visible_objects();
+        }
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
             enemy.velocity.y = 8.;
@@ -536,7 +506,10 @@ fn move_enemies(
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
+    mut player: Query<
+        (&mut ActiveObject, &mut Transform),
+        (With<Player>),
+    >,
 ) {
     let (mut pl, mut pt) = player.single_mut();
 
