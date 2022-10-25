@@ -64,24 +64,19 @@ fn main() {
         .add_system(enemy_collisions)
         .add_system(
             move_player
-                .after(setup)
                 .after(show_timer)
                 .before(apply_collisions)
-                .before(enemy_collisions)
-            )
-        .add_system(
-               update_positions
-                .after(apply_collisions)
-                .after(enemy_collisions))
-        .add_system(
-            move_enemies
-                .after(move_player)
-                .before(apply_collisions)
-                .before(enemy_collisions)
+                .before(enemy_collisions),
         )
+        .add_system(update_positions.after(apply_collisions))
+        .add_system(update_positions.after(enemy_collisions))
+        .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
-        //.add_system(calculate_sight)
+        .add_system(
+            calculate_sight
+                .after(update_positions)
+            )
         //.add_system(attack)
         .run();
 }
