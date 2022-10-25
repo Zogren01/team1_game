@@ -39,7 +39,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //right wall
         result.push(Descriptor::new(32., 1024., 1856., 496., ObjectType::Block));
         //first 1x2 wall on first floor
-        result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Cobweb));
+        result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Block));
         //second 1x2 wall on first floor
         result.push(Descriptor::new(32., 64., 576., 48., ObjectType::Cobweb));
         //2x3 ObjectType::Block on first floor
@@ -139,5 +139,3 @@ impl Object {
         }
     }
 }
-
-
