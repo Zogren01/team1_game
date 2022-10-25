@@ -13,6 +13,10 @@ use crate::active_util::*;
 
 mod ai;
 use crate::ai::*;
+
+mod line_of_sight;
+use crate::line_of_sight::*;
+
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
@@ -70,10 +74,8 @@ fn main() {
         )
         .add_system(update_positions.after(apply_collisions))
         .add_system(move_enemies.after(move_player).before(enemy_collisions))
-        .add_system(move_enemies.after(move_player).before(apply_collisions))
-     //   .add_system(move_enemies.after(move_player).before(enemy_collisions))
-        .add_system(my_cursor_system)
-        .add_system(show_timer)
+        //.add_system(my_cursor_system)
+        //.add_system(show_timer)
         .add_system(
             calculate_sight
                 .after(update_positions)
@@ -181,23 +183,6 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(75., 500., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
     
         commands
         .spawn_bundle(SpriteBundle {
@@ -258,8 +243,15 @@ fn calculate_sight(
             //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
             let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+            let d: Descriptor = Descriptor::new2(
+                o.width,
+                o.height,
+                t.translation.x,
+                t.translation.y,
+                o.obj_type,
+                o.id,);
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
 
             //track whether these are in range
             let mut in_range = false;
@@ -273,8 +265,8 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o);
-                let o2 = Line::new(v2, v3, o);
+                let o1 = Line::new(v1, v3, d);
+                let o2 = Line::new(v2, v3, d);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
@@ -282,9 +274,16 @@ fn calculate_sight(
         for (o, t) in others.iter(){
             //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
             let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
+            let d: Descriptor = Descriptor::new2(
+                o.width,
+                o.height,
+                t.translation.x,
+                t.translation.y,
+                o.obj_type,
+                o.id,);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
 
             //track whether these are in range
             let mut in_range = false;
@@ -298,8 +297,8 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o);
-                let o2 = Line::new(v2, v3, o);
+                let o1 = Line::new(v1, v3, d);
+                let o2 = Line::new(v2, v3, d);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }

@@ -28,26 +28,14 @@ impl Object{
 	}
 }
 
-impl Hash for Object{
-
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
-impl PartialEq for Object {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for Object {}
-
+#[derive(Copy, Clone)]
 pub struct Descriptor{
     pub width: f32,
     pub height: f32,
     pub x_pos: f32,
     pub y_pos: f32,
     pub obj_type: ObjectType,
+    pub id: i32,
 }
 impl Descriptor {
     fn new(w: f32, h: f32, x: f32, y: f32, t: ObjectType) -> Self {
@@ -57,9 +45,34 @@ impl Descriptor {
             x_pos: x,
             y_pos: y,
             obj_type: t,
+            //-50 is a meaningless value for Descriptors used in level creation
+            id: -50,
+        }
+    }
+    pub fn new2(w: f32, h: f32, x: f32, y: f32, t: ObjectType, i: i32) -> Self {
+        Self {
+            width: w,
+            height: h,
+            x_pos: x,
+            y_pos: y,
+            obj_type: t,
+            id: i,
         }
     }
 }
+
+impl Hash for Descriptor{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Descriptor {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Descriptor {}
 
 pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
