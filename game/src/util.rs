@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use std::hash::{Hash, Hasher};
 use std::cmp::Eq;
+use std::hash::{Hash, Hasher};
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
@@ -9,33 +9,49 @@ pub const GRAVITY: f32 = -20.;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
 
+pub const UMBRELLA_PRICE : i8 = 30;
+pub const JETPACK_PRICE: i8 = 70;
+
+pub const HEALTHBAR_SZ: Vec2 = Vec2::new(32.,6.);
+
 #[derive(Component, Copy, Clone)]
-pub struct Object{
-	pub id: i32,
+pub struct Object {
+    pub id: i32,
     pub width: f32,
     pub height: f32,
     pub obj_type: ObjectType,
 }
 
-impl Object{
-	pub fn new(i: i32, w: f32, h: f32, t: ObjectType) -> Self {
-		Self { 
+impl Object {
+    pub fn new(i: i32, w: f32, h: f32, t: ObjectType) -> Self {
+        Self {
             id: i,
             width: w,
             height: h,
             obj_type: t,
         }
-	}
+    }
 }
 
-#[derive(Copy, Clone)]
-pub struct Descriptor{
+impl Hash for Object {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Object {}
+
+pub struct Descriptor {
     pub width: f32,
     pub height: f32,
     pub x_pos: f32,
     pub y_pos: f32,
     pub obj_type: ObjectType,
-    pub id: i32,
 }
 impl Descriptor {
     fn new(w: f32, h: f32, x: f32, y: f32, t: ObjectType) -> Self {
@@ -45,34 +61,9 @@ impl Descriptor {
             x_pos: x,
             y_pos: y,
             obj_type: t,
-            //-50 is a meaningless value for Descriptors used in level creation
-            id: -50,
-        }
-    }
-    pub fn new2(w: f32, h: f32, x: f32, y: f32, t: ObjectType, i: i32) -> Self {
-        Self {
-            width: w,
-            height: h,
-            x_pos: x,
-            y_pos: y,
-            obj_type: t,
-            id: i,
         }
     }
 }
-
-impl Hash for Descriptor{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
-impl PartialEq for Descriptor {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for Descriptor {}
 
 pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
@@ -156,6 +147,11 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //right wall of room to left of enemy floor
         result.push(Descriptor::new(32., 288., 512., 864., ObjectType::Block));
     }
+    // shop platform spawns below level
+    result.push(Descriptor::new(250., 32., -150., -500., ObjectType::Block));
+    result.push(Descriptor::new(250., 32., 150., -500., ObjectType::Block));
+    result.push(Descriptor::new(25., 32., 0., -500., ObjectType::Block));
+
     return result;
 }
 
