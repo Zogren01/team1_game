@@ -388,13 +388,9 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                }
+                                active.velocity.y = 0.; //stop vertical velocity
                                 active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
                         }
