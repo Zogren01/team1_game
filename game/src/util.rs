@@ -41,7 +41,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //first 1x2 wall on first floor
         result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Block));
         //second 1x2 wall on first floor
-        result.push(Descriptor::new(32., 64., 576., 48., ObjectType::Cobweb));
+        result.push(Descriptor::new(32., 64., 576., 48., ObjectType::Block));
         //2x3 ObjectType::Block on first floor
         result.push(Descriptor::new(64., 92., 1040., 64., ObjectType::Block));
         //last 1x2 ObjectType::Block on first floor
