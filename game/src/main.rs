@@ -224,7 +224,7 @@ fn setup(
     create_level(commands, asset_server, texture_atlases, level);
 
 }
-
+//we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
     let mut count = 1.0;
     for (mut timer, mut transform) in popup.iter_mut() {

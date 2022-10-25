@@ -146,12 +146,12 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     return result;
 }
 
-#[derive(Debug)]
-
+#[derive(Debug, Copy, Clone)]
 pub enum ObjectType {
     Block,
     Spike,
     Cobweb,
+    Active,
 }
 
 
