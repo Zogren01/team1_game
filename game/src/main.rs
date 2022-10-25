@@ -59,6 +59,7 @@ fn main() {
         .add_startup_system(setup)
         //.add_system(show_popup)
         .add_system(apply_collisions)
+        .add_system(enemy_collisions)
         .add_system(
             move_player
                 .after(show_timer)
