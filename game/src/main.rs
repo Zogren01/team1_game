@@ -74,8 +74,8 @@ fn main() {
         )
         .add_system(update_positions.after(apply_collisions))
         .add_system(move_enemies.after(move_player).before(enemy_collisions))
-        //.add_system(my_cursor_system)
-        //.add_system(show_timer)
+        .add_system(my_cursor_system)
+        .add_system(show_timer)
         .add_system(
             calculate_sight
                 .after(update_positions)
