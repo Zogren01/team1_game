@@ -27,23 +27,49 @@ fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>){
-        let mut id = 0;
-        for desc in level{
-            commands.spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(desc.width, desc.height)),
+    level: Vec<Descriptor>,
+) {
+    let mut id = 0;
+    for desc in level {
+        let mut texture_path = "";
+        if !matches!(desc.obj_type, ObjectType::Block) {
+            if matches!(desc.obj_type, ObjectType::Cobweb) {
+                texture_path = "spiderweb.png";
+            } else if matches!(desc.obj_type, ObjectType::Spike) {
+                texture_path = "spike.png";
+            }
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    texture: asset_server.load(texture_path),
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
                     ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+        } else {
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
                     ..default()
-                },
-                ..default()
-            })
-            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            id +=1;
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
         }
+
+        id += 1;
+    }
 }
 
 fn main() {
@@ -59,19 +85,13 @@ fn main() {
         .add_startup_system(setup)
         //.add_system(show_popup)
         .add_system(apply_collisions)
-        .add_system(
-            move_player
-                .after(show_timer)
-                .before(apply_collisions),
-        )
+        .add_system(move_player.after(show_timer).before(apply_collisions))
         .add_system(update_positions.after(apply_collisions))
         .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
-        .add_system(
-            calculate_sight
-                .after(update_positions)
-            )
+        .add_system(calculate_sight.after(update_positions))
+        .add_system(item_shop)
         //.add_system(attack)
         .run();
 }
@@ -192,8 +212,8 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
-    
-        commands
+
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -212,7 +232,6 @@ fn setup(
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
-
 }
 //we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
@@ -227,30 +246,36 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 }
 
 fn calculate_sight(
-    player: Query<(&Object,&Transform), (With<ActiveObject>, With<Player>)>,
-    mut enemies: Query<(&Object,&Transform,&mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     //store data for player and other enemies for later use
     let mut others = Vec::new();
-    for (obj, tr, _en) in enemies.iter(){
+    for (obj, tr, _en) in enemies.iter() {
         let data = (*obj, *tr);
         others.push(data);
     }
     let (obj, tr) = player.single();
     others.push((*obj, *tr));
-    
+
     let sight_distance = 300.0;
 
-    for (_obj, tr, mut en) in enemies.iter_mut(){
-
+    for (_obj, tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
 
         for (o, t) in objects.iter() {
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
-            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
+            let (v1, v2, v3) = find_vertices(
+                pos.x,
+                pos.y,
+                t.translation.x,
+                t.translation.y,
+                o.width,
+                o.height,
+            );
             //generate lines of sight
             let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
             let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
@@ -273,9 +298,16 @@ fn calculate_sight(
                 object_lines.push(o2);
             }
         }
-        for (o, t) in others.iter(){
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
-            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
+        for (o, t) in others.iter() {
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
+            let (v1, v2, v3) = find_vertices(
+                pos.x,
+                pos.y,
+                t.translation.x,
+                t.translation.y,
+                o.width,
+                o.height,
+            );
             //generate lines of sight
             let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
             let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
@@ -305,7 +337,7 @@ fn calculate_sight(
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject,&Transform), With<ActiveObject>>,
+    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
@@ -467,7 +499,7 @@ fn my_cursor_system(
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut player: Query<(&ActiveObject, &mut Transform),With<Player>>,
+    mut player: Query<(&ActiveObject, &mut Transform), With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
@@ -488,15 +520,15 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<
-        (&mut ActiveObject, &Transform, &Enemy),
-        (With<Enemy>),
-    >,
-){
+    mut enemies: Query<(&mut ActiveObject, &Transform, &Enemy), (With<Enemy>)>,
+) {
     let deltat = time.delta_seconds();
-    for (mut enemy, et, e) in enemies.iter_mut(){
+    for (mut enemy, et, e) in enemies.iter_mut() {
         if input.just_pressed(KeyCode::K) {
-            println!("For enemy at position {}, {}", et.translation.x, et.translation.y);
+            println!(
+                "For enemy at position {}, {}",
+                et.translation.x, et.translation.y
+            );
             e.check_visible_objects();
         }
         let mut change = Vec2::splat(0.);
@@ -518,10 +550,7 @@ fn move_enemies(
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Player>),
-    >,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
 ) {
     let (mut pl, mut pt) = player.single_mut();
 
@@ -654,3 +683,5 @@ fn show_timer(
         }
     }
 }
+
+fn item_shop(input: Res<Input<KeyCode>>) {}
