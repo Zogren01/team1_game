@@ -1,10 +1,8 @@
 //imports from outside crates
 use bevy::app::AppExit;
+use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
-use bevy::render::camera::RenderTarget;
-
-
 
 //imports from local creates
 mod util;
@@ -17,7 +15,7 @@ mod ai;
 use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-const START_TIME: f32=15.;
+const START_TIME: f32 = 15.;
 
 struct Manager {
     room_number: i8,
@@ -65,16 +63,10 @@ fn main() {
             move_player
                 .after(setup)
                 .after(show_timer)
-                .before(apply_collisions)
-            )
-        .add_system(
-               update_positions
-                .after(apply_collisions))
-        .add_system(
-            move_enemies
-                .after(move_player)
-                .before(apply_collisions)
+                .before(apply_collisions),
         )
+        .add_system(update_positions.after(apply_collisions))
+        .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
         //.add_system(calculate_sight)
@@ -126,28 +118,26 @@ fn setup(
         ..default()
     });
 
-    
-    commands.spawn_bundle(
-        TextBundle::from_section(
-           "", 
+    commands
+        .spawn_bundle(TextBundle::from_section(
+            "",
             TextStyle {
                 font_size: 100.0,
                 color: Color::WHITE,
-                font: asset_server.load("mrsmonster.ttf")
-            }
-        )
-    )
-    .insert(Style {
-        align_self: AlignSelf::FlexEnd,
-        position_type: PositionType::Absolute,
-        position: UiRect {
-            bottom: Val::Px(5.0),
-            right: Val::Px(15.0),
+                font: asset_server.load("mrsmonster.ttf"),
+            },
+        ))
+        .insert(Style {
+            align_self: AlignSelf::FlexEnd,
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                bottom: Val::Px(5.0),
+                right: Val::Px(15.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
-    .insert(ClockText);
+        })
+        .insert(ClockText);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
@@ -461,7 +451,7 @@ fn my_cursor_system(
     // need to get window dimensions
     wnds: Res<Windows>,
     // query to get camera transform
-    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>
+    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>,
 ) {
     // get the camera info and transform
     // assuming there is exactly one main camera entity, so query::single() is OK
@@ -491,7 +481,11 @@ fn my_cursor_system(
         // reduce it to a 2D value
         let world_pos: Vec2 = world_pos.truncate();
         if mouse_input.just_pressed(MouseButton::Left) {
-        eprintln!("World coords: {}/{}", (world_pos.x/32.).round(), ((world_pos.y/32.) - 1.).round());
+            eprintln!(
+                "World coords: {}/{}",
+                (world_pos.x / 32.).round(),
+                ((world_pos.y / 32.) - 1.).round()
+            );
         }
     }
 }
@@ -525,7 +519,7 @@ fn move_enemies(
     for (mut enemy, mut et) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 8.;  
+            enemy.velocity.y = 8.;
             change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
@@ -571,12 +565,12 @@ fn move_player(
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 8.;  
+        pl.velocity.y = 8.;
         change.y = 8.;
     }
     //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
-    else{
-        pl.velocity.y += GRAVITY* deltat;
+    else {
+        pl.velocity.y += GRAVITY * deltat;
         change.y = pl.velocity.y;
     }
     //this holds the position the player will end up in if there is no collision
@@ -645,29 +639,33 @@ fn attack(
 */
 
 //Press X to pause the timer, press c to unpause it
-fn show_timer (input: Res<Input<KeyCode>>, time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
+fn show_timer(
+    input: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut player: Query<&mut Transform, With<Player>>,
+    mut clock: ResMut<Clock>,
+    mut text: Query<&mut Text, With<ClockText>>,
+) {
     //create_timer(commands, asset_server, time);
-        clock.timer.tick(time.delta());
-        let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
-        //println!("{}", time_remaining);
-        for mut text in &mut text {
-            if time_remaining > 0.0 {
-                text.sections[0].value= time_remaining.to_string();
-            }
-        if input.pressed(KeyCode::X){
+    clock.timer.tick(time.delta());
+    let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
+    //println!("{}", time_remaining);
+    for mut text in &mut text {
+        if time_remaining > 0.0 {
+            text.sections[0].value = time_remaining.to_string();
+        }
+        if input.pressed(KeyCode::X) {
             clock.timer.pause();
         }
-        if input.pressed(KeyCode::C){
+        if input.pressed(KeyCode::C) {
             clock.timer.unpause();
         }
         if clock.timer.finished() {
             println!("Resetting position");
             let mut pt = player.single_mut();
-            pt.translation=Vec3::new(0.,64.,0.);
+            pt.translation = Vec3::new(0., 64., 0.);
         }
-        
-        
     }
-        
-        
-    }
+}
