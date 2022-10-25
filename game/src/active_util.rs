@@ -3,6 +3,25 @@ use bevy::{prelude::*};
 pub const PLAYER_SPEED: f32 = 300.;
 pub const PLAYER_SZ: f32 = 32.;
 
+
+#[derive(Component)]
+pub struct ClockText;
+
+
+pub struct Clock{
+    pub timer: Timer,
+}
+
+/*
+impl Clock{
+    pub fn new(t: Timer) -> Self {
+        Self {
+            timer: t,
+         }
+    }
+}
+*/
+
 #[derive(Component)]
 pub struct Velocity {
 	pub velocity: Vec2,

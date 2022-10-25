@@ -4,7 +4,7 @@ pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
 
-pub const GRAVITY: f32 = -12.;
+pub const GRAVITY: f32 = -20.;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
 
@@ -139,3 +139,5 @@ impl Object {
         }
     }
 }
+
+
