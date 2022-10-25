@@ -380,6 +380,7 @@ fn apply_collisions(
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
                             }
+                            active.grounded = false;
                         }
                         ObjectType::Block => {
                             active.velocity.x = 0.;
@@ -393,6 +394,7 @@ fn apply_collisions(
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
                             }
+                            active.grounded = false;
                         }
                         ObjectType::Block => {
                             active.velocity.x = 0.;
@@ -409,8 +411,8 @@ fn apply_collisions(
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
-                                    active.grounded = true;
                                 }
+                                active.grounded = false;
                             }
                             ObjectType::Block => {
                                 if active.velocity.y < 0. {
@@ -431,6 +433,7 @@ fn apply_collisions(
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
                                 }
+                                active.grounded = false;
                             }
                             ObjectType::Block => {
                                 if active.velocity.y < 0. {
