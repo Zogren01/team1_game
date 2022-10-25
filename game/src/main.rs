@@ -33,6 +33,7 @@ fn create_level(
     for desc in level {
         let mut texture_path = "";
         if !matches!(desc.obj_type, ObjectType::Block) {
+            // conditionally render object textures
             if matches!(desc.obj_type, ObjectType::Cobweb) {
                 texture_path = "spiderweb.png";
             } else if matches!(desc.obj_type, ObjectType::Spike) {
@@ -91,7 +92,7 @@ fn main() {
         .add_system(my_cursor_system)
         .add_system(show_timer)
         .add_system(calculate_sight.after(update_positions))
-        .add_system(item_shop)
+        .add_system(item_shop.before(show_timer))
         //.add_system(attack)
         .run();
 }
@@ -177,7 +178,7 @@ fn setup(
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Player);
+        .insert(Player::new());
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -684,4 +685,28 @@ fn show_timer(
     }
 }
 
-fn item_shop(input: Res<Input<KeyCode>>) {}
+fn item_shop(
+    input: Res<Input<KeyCode>>,
+    mut player: Query<&mut Transform, With<Player>>,
+    mut clock: ResMut<Clock>,
+) {
+    let mut pt = player.single_mut();
+    if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
+        print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
+        clock.timer.pause();
+        pt.translation = Vec3::new(0., -475., 0.);
+    } else if pt.translation.y <= -400. {
+        if input.just_pressed(KeyCode::I) {
+            pt.translation = Vec3::new(0., 64., 0.);
+            clock.timer.unpause();
+        }
+        if input.pressed(KeyCode::B) {
+            if pt.translation.x <= -25. {
+                print!("UMBRELLA PURCHASED!");
+            } else if pt.translation.x >= 25. {
+                print!("JETPACK PURCHASED!");
+            }
+            print!("\n PRESS I TO RETURN!");
+        }
+    }
+}
