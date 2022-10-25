@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-
+use std::hash::{Hash, Hasher};
+use std::cmp::Eq;
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
@@ -8,7 +9,40 @@ pub const GRAVITY: f32 = -20.;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
 
-pub struct Descriptor {
+#[derive(Component, Copy, Clone)]
+pub struct Object{
+	pub id: i32,
+    pub width: f32,
+    pub height: f32,
+    pub obj_type: ObjectType,
+}
+
+impl Object{
+	pub fn new(i: i32, w: f32, h: f32, t: ObjectType) -> Self {
+		Self { 
+            id: i,
+            width: w,
+            height: h,
+            obj_type: t,
+        }
+	}
+}
+
+impl Hash for Object{
+
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Object {}
+
+pub struct Descriptor{
     pub width: f32,
     pub height: f32,
     pub x_pos: f32,
@@ -39,7 +73,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //right wall
         result.push(Descriptor::new(32., 1024., 1856., 496., ObjectType::Block));
         //first 1x2 wall on first floor
-        result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Cobweb));
+        result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Block));
         //second 1x2 wall on first floor
         result.push(Descriptor::new(32., 64., 576., 48., ObjectType::Cobweb));
         //2x3 ObjectType::Block on first floor
@@ -112,32 +146,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     return result;
 }
 
-#[derive(Debug)]
-
+#[derive(Debug, Copy, Clone)]
 pub enum ObjectType {
     Block,
     Spike,
     Cobweb,
+    Active,
 }
-
-#[derive(Component)]
-
-pub struct Object {
-    pub id: i8,
-    pub width: f32,
-    pub height: f32,
-    pub obj_type: ObjectType,
-}
-
-impl Object {
-    pub fn new(i: i8, w: f32, h: f32, t: ObjectType) -> Self {
-        Self {
-            id: i,
-            width: w,
-            height: h,
-            obj_type: t,
-        }
-    }
-}
-
-

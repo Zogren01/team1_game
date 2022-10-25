@@ -1,10 +1,8 @@
 //imports from outside crates
 use bevy::app::AppExit;
+use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
-use bevy::render::camera::RenderTarget;
-
-
 
 //imports from local creates
 mod util;
@@ -17,7 +15,7 @@ mod ai;
 use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-const START_TIME: f32=15.;
+const START_TIME: f32 = 15.;
 
 struct Manager {
     room_number: i8,
@@ -29,11 +27,10 @@ fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>,
-) {
-    for desc in level {
-        commands
-            .spawn_bundle(SpriteBundle {
+    level: Vec<Descriptor>){
+        let mut id = 0;
+        for desc in level{
+            commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(desc.width, desc.height)),
                     ..default()
@@ -44,8 +41,9 @@ fn create_level(
                 },
                 ..default()
             })
-            .insert(Object::new(0, desc.width, desc.height, desc.obj_type));
-    }
+            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            id +=1;
+        }
 }
 
 fn main() {
@@ -122,28 +120,26 @@ fn setup(
         ..default()
     });
 
-    
-    commands.spawn_bundle(
-        TextBundle::from_section(
-           "", 
+    commands
+        .spawn_bundle(TextBundle::from_section(
+            "",
             TextStyle {
                 font_size: 100.0,
                 color: Color::WHITE,
-                font: asset_server.load("mrsmonster.ttf")
-            }
-        )
-    )
-    .insert(Style {
-        align_self: AlignSelf::FlexEnd,
-        position_type: PositionType::Absolute,
-        position: UiRect {
-            bottom: Val::Px(5.0),
-            right: Val::Px(15.0),
+                font: asset_server.load("mrsmonster.ttf"),
+            },
+        ))
+        .insert(Style {
+            align_self: AlignSelf::FlexEnd,
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                bottom: Val::Px(5.0),
+                right: Val::Px(15.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
-    .insert(ClockText);
+        })
+        .insert(ClockText);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
@@ -160,6 +156,7 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
+        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player);
 
     commands
@@ -176,7 +173,8 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
+        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -192,9 +190,10 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
-
-    commands
+        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
+    
+        commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -208,12 +207,14 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Enemy);
+        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
-}
 
+}
+//we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
     let mut count = 1.0;
     for (mut timer, mut transform) in popup.iter_mut() {
@@ -226,108 +227,33 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 }
 
 fn calculate_sight(
-    time: Res<Time>,
-    player: Query<&Transform, With<Player>>,
-    objects: Query<(&Object, &Transform), With<Object>>,
-    input: Res<Input<KeyCode>>,
+    player: Query<(&Object,&Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Object,&Transform,&mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-    //TODO: make a struct for all of the sight lines for a given object
-    // hold a Vec containing lines
-    // hold a reference to the object
-    // loop through each of these when doing checks
-    let origin = player.single();
-    let x_pos = origin.translation.x;
-    let y_pos = origin.translation.y;
+    //store data for player and other enemies for later use
+    let mut others = Vec::new();
+    for (obj, tr, _en) in enemies.iter(){
+        let data = (*obj, *tr);
+        others.push(data);
+    }
+    let (obj, tr) = player.single();
+    others.push((*obj, *tr));
+    
+    let sight_distance = 300.0;
 
-    if input.pressed(KeyCode::Q) {
-        let sight_distance = 300.0;
+    for (_obj, tr, mut en) in enemies.iter_mut(){
+
+        let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
 
         for (o, t) in objects.iter() {
-            //v1 and v2 hold the endpoints for line of sight
-            let v1: Vec2;
-            let v2: Vec2;
-            //v3 is the third point for the two sides to be used for collision
-            let v3: Vec2;
-
-            if x_pos > t.translation.x {
-                if y_pos >= t.translation.y {
-                    //top left point
-                    v1 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom right point
-                    v2 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //top right point
-                    v3 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                } else {
-                    //top right point
-                    v1 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom left point
-                    v2 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //bottom right point
-                    v3 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                }
-            //MAYBE code for when y's are equal
-            } else {
-                if y_pos > t.translation.y {
-                    //top right point
-                    v1 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom left point
-                    v2 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //top left point
-                    v3 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                } else {
-                    //top left point
-                    v1 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y + o.height / 2.,
-                    );
-                    //bottom right point
-                    v2 = Vec2::new(
-                        t.translation.x + o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                    //bottom left point
-                    v3 = Vec2::new(
-                        t.translation.x - o.width / 2.,
-                        t.translation.y - o.height / 2.,
-                    );
-                }
-                //MAYBE code for when y's are equal
-            }
-            //MAYBE code for when x's are equal
-
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
+            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(x_pos, y_pos), v1, o.id);
-            let s2 = Line::new(Vec2::new(x_pos, y_pos), v2, o.id);
-            //MAYBE third line of sight to corner
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
 
             //track whether these are in range
             let mut in_range = false;
@@ -339,21 +265,48 @@ fn calculate_sight(
                 sight_lines.push(s2);
                 in_range = true;
             }
+            //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o.id);
-                let o2 = Line::new(v2, v3, o.id);
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
         }
-        determine_visibility(sight_lines, object_lines);
+        for (o, t) in others.iter(){
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
+            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
+            //generate lines of sight
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+
+            //track whether these are in range
+            let mut in_range = false;
+            if s1.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s1);
+                in_range = true;
+            }
+            if s2.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(s2);
+                in_range = true;
+            }
+            //maybe add code to check the corner of objects
+            if in_range {
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
+                object_lines.push(o1);
+                object_lines.push(o2);
+            }
+        }
+        en.determine_visibility(sight_lines, object_lines);
     }
 }
+
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
-    objects: Query<(&Object, &Transform), With<Object>>,
+    mut actives: Query<(&mut ActiveObject,&Transform), With<ActiveObject>>,
+    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
@@ -370,34 +323,81 @@ fn apply_collisions(
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
                 match coll_type {
-                    Collision::Left => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x =
-                            t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
-                    }
-                    Collision::Right => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x =
-                            t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
-                    }
-                    Collision::Top => {
-                        if matches!(o.obj_type, ObjectType::Spike) {
-                            //deal damage if the collision is with a spike
-                            exit.send(AppExit);
-                        } else if !matches!(o.obj_type, ObjectType::Cobweb) {
-                            if active.velocity.y < 0. {
-                                //if falling down
-                                active.velocity.y = 0.; //stop vertical velocity
-                                active.grounded = true;
+                    Collision::Left => match o.obj_type {
+                        ObjectType::Spike => {}
+                        ObjectType::Cobweb => {
+                            if active.velocity.x != 0. {
+                                active.velocity.x /= 2.;
                             }
-                            active.projected_position.y =
-                                t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                            active.grounded = false;
+                        }
+                        ObjectType::Block => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Active => {}
+                    },
+                    Collision::Right => match o.obj_type {
+                        ObjectType::Spike => {}
+                        ObjectType::Cobweb => {
+                            if active.velocity.x != 0. {
+                                active.velocity.x /= 2.;
+                            }
+                            active.grounded = false;
+                        }
+                        ObjectType::Block => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Active => {}
+                    },
+                    Collision::Top => {
+                        match o.obj_type {
+                            ObjectType::Spike => {
+                                exit.send(AppExit);
+                            }
+                            ObjectType::Cobweb => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y /= 2.; //stop vertical velocity
+                                }
+                                active.grounded = false;
+                            }
+                            ObjectType::Block => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y = 0.; //stop vertical velocity
+                                    active.grounded = true;
+                                }
+                                active.projected_position.y =
+                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                            }
+                            ObjectType::Active => {}
                         }
                     }
                     Collision::Bottom => {
-                        active.velocity.y = 0.;
-                        active.projected_position.y =
-                            t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        match o.obj_type {
+                            ObjectType::Spike => {}
+                            ObjectType::Cobweb => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y /= 2.; //stop vertical velocity
+                                }
+                                active.grounded = false;
+                            }
+                            ObjectType::Block => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y = 0.; //stop vertical velocity
+                                    active.grounded = true;
+                                }
+                                active.projected_position.y =
+                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                            }
+                            ObjectType::Active => {}
+                        }
                     }
                     Collision::Inside => {
                         println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
@@ -466,7 +466,7 @@ fn my_cursor_system(
     // need to get window dimensions
     wnds: Res<Windows>,
     // query to get camera transform
-    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>
+    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>,
 ) {
     // get the camera info and transform
     // assuming there is exactly one main camera entity, so query::single() is OK
@@ -496,14 +496,18 @@ fn my_cursor_system(
         // reduce it to a 2D value
         let world_pos: Vec2 = world_pos.truncate();
         if mouse_input.just_pressed(MouseButton::Left) {
-        eprintln!("World coords: {}/{}", (world_pos.x/32.).round(), ((world_pos.y/32.) - 1.).round());
+            eprintln!(
+                "World coords: {}/{}",
+                (world_pos.x / 32.).round(),
+                ((world_pos.y / 32.) - 1.).round()
+            );
         }
     }
 }
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut player: Query<(&ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
+    mut player: Query<(&ActiveObject, &mut Transform),With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
@@ -524,13 +528,20 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Object>)>,
-) {
+    mut enemies: Query<
+        (&mut ActiveObject, &Transform, &Enemy),
+        (With<Enemy>),
+    >,
+){
     let deltat = time.delta_seconds();
-    for (mut enemy, mut et) in enemies.iter_mut() {
+    for (mut enemy, et, e) in enemies.iter_mut(){
+        if input.just_pressed(KeyCode::K) {
+            println!("For enemy at position {}, {}", et.translation.x, et.translation.y);
+            e.check_visible_objects();
+        }
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 8.;  
+            enemy.velocity.y = 8.;
             change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
@@ -547,7 +558,10 @@ fn move_enemies(
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<Object>)>,
+    mut player: Query<
+        (&mut ActiveObject, &mut Transform),
+        (With<Player>),
+    >,
 ) {
     let (mut pl, mut pt) = player.single_mut();
 
@@ -576,12 +590,12 @@ fn move_player(
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 8.;  
+        pl.velocity.y = 8.;
         change.y = 8.;
     }
     //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
-    else{
-        pl.velocity.y += GRAVITY* deltat;
+    else {
+        pl.velocity.y += GRAVITY * deltat;
         change.y = pl.velocity.y;
     }
     //this holds the position the player will end up in if there is no collision
@@ -650,29 +664,33 @@ fn attack(
 */
 
 //Press X to pause the timer, press c to unpause it
-fn show_timer (input: Res<Input<KeyCode>>, time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
+fn show_timer(
+    input: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut player: Query<&mut Transform, With<Player>>,
+    mut clock: ResMut<Clock>,
+    mut text: Query<&mut Text, With<ClockText>>,
+) {
     //create_timer(commands, asset_server, time);
-        clock.timer.tick(time.delta());
-        let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
-        //println!("{}", time_remaining);
-        for mut text in &mut text {
-            if time_remaining > 0.0 {
-                text.sections[0].value= time_remaining.to_string();
-            }
-        if input.pressed(KeyCode::X){
+    clock.timer.tick(time.delta());
+    let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
+    //println!("{}", time_remaining);
+    for mut text in &mut text {
+        if time_remaining > 0.0 {
+            text.sections[0].value = time_remaining.to_string();
+        }
+        if input.pressed(KeyCode::X) {
             clock.timer.pause();
         }
-        if input.pressed(KeyCode::C){
+        if input.pressed(KeyCode::C) {
             clock.timer.unpause();
         }
         if clock.timer.finished() {
             println!("Resetting position");
             let mut pt = player.single_mut();
-            pt.translation=Vec3::new(0.,64.,0.);
+            pt.translation = Vec3::new(0., 64., 0.);
         }
-        
-        
     }
-        
-        
-    }
+}
