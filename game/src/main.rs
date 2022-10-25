@@ -175,7 +175,7 @@ fn setup(
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(75., 100., 700.),
+                translation: Vec3::new(75., 50., 700.),
                 ..default()
             },
             ..default()
@@ -192,7 +192,7 @@ fn setup(
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(500., 100., 700.),
+                translation: Vec3::new(500., 50., 700.),
                 ..default()
             },
             ..default()
@@ -303,7 +303,7 @@ fn calculate_sight(
                 object_lines.push(o2);
             }
         }
-        en.determine_visibility(sight_lines, object_lines);
+        en.determine_visibility(sight_lines, object_lines, obj.height);
     }
 }
 
@@ -530,26 +530,38 @@ fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut enemies: Query<
-        (&mut ActiveObject, &Transform, &Enemy),
+        (&mut ActiveObject, &Transform, &mut Enemy),
         (With<Enemy>),
     >,
 ){
     let deltat = time.delta_seconds();
-    for (mut enemy, et, e) in enemies.iter_mut(){
+    for (mut enemy, et, mut e) in enemies.iter_mut(){
         if input.just_pressed(KeyCode::K) {
             println!("For enemy at position {}, {}", et.translation.x, et.translation.y);
             e.check_visible_objects();
         }
         let mut change = Vec2::splat(0.);
-        if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 8.;
-            change.y = 8.;
+        //need argument to let enemy know about collisions that have occured
+        e.decide_motion(&et.translation);
+        //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
+        match e.next_move{
+            Motion::Left => {
+                //replace with enemy speed later
+                if enemy.velocity.x > -PLAYER_SPEED {
+                    enemy.velocity.x = enemy.velocity.x - 20.;
+                }
+            }
+            Motion::Right => {
+                if enemy.velocity.x < PLAYER_SPEED {
+                    enemy.velocity.x = enemy.velocity.x + 20.;
+                }
+            }
+            Motion::Jump => {}
+            Motion::Idle => {}
         }
-        //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
-        else {
-            enemy.velocity.y += GRAVITY * deltat;
-            change.y = enemy.velocity.y;
-        }
+        enemy.velocity.y += GRAVITY * deltat;
+        change.y = enemy.velocity.y;
+        change.x = enemy.velocity.x * deltat;
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
