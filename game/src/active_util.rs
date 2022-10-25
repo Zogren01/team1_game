@@ -1,4 +1,5 @@
-use bevy::{prelude::*};
+use bevy::prelude::*;
+use crate::util::*;
 
 pub const PLAYER_SPEED: f32 = 300.;
 pub const PLAYER_SZ: f32 = 32.;
@@ -47,6 +48,3 @@ impl ActiveObject {
 #[derive(Component)]
 pub struct Player;
 
-
-#[derive(Component)]
-pub struct Enemy;

@@ -1,5 +1,6 @@
-use bevy::{prelude::*};
-
+use bevy::prelude::*;
+use std::hash::{Hash, Hasher};
+use std::cmp::Eq;
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
@@ -7,6 +8,37 @@ pub const WIN_H: f32 = 720.;
 pub const GRAVITY: f32 = -12.;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
+
+#[derive(Component, Copy, Clone)]
+pub struct Object{
+	pub id: i32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl Object{
+	pub fn new(i: i32, w: f32, h: f32,) -> Self {
+		Self { 
+            id: i,
+            width: w,
+            height: h,
+        }
+	}
+}
+
+impl Hash for Object{
+
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Object {}
 
 pub struct Descriptor{
     pub width: f32,
@@ -110,19 +142,4 @@ pub fn get_level(id: i8) -> Vec<Descriptor>{
     return result;
 }
 
-#[derive(Component)]
-pub struct Object{
-	pub id: i8,
-    pub width: f32,
-    pub height: f32,
-}
 
-impl Object{
-	pub fn new(i: i8, w: f32, h: f32,) -> Self {
-		Self { 
-            id: i,
-            width: w,
-            height: h,
-        }
-	}
-}
