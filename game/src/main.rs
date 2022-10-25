@@ -370,6 +370,9 @@ fn apply_collisions(
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
                             }
+                            if active.velocity.y != 0. && active.velocity.y < 5. {
+                                active.velocity.y /= 2.;
+                            }
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -383,6 +386,9 @@ fn apply_collisions(
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
+                            }
+                            if active.velocity.y != 0. && active.velocity.y < 5. {
+                                active.velocity.y /= 2.;
                             }
                             active.grounded = false;
                         }
@@ -401,6 +407,9 @@ fn apply_collisions(
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
+                                }
+                                if active.velocity.y != 0. && active.velocity.y < 5. {
+                                    active.velocity.y /= 2.;
                                 }
                                 active.grounded = false;
                             }
@@ -422,6 +431,9 @@ fn apply_collisions(
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
+                                }
+                                if active.velocity.y != 0. && active.velocity.y < 5. {
+                                    active.velocity.y /= 2.;
                                 }
                                 active.grounded = false;
                             }
