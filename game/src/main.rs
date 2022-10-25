@@ -58,16 +58,20 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         //.add_system(show_popup)
-        .add_system(apply_collisions)
         .add_system(enemy_collisions)
+        .add_system(apply_collisions.after(enemy_collisions))
+     //   .add_system(enemy_collisions)
         .add_system(
             move_player
                 .after(show_timer)
+                .before(enemy_collisions)
                 .before(apply_collisions),
+          //      .before(enemy_collisions),
         )
         .add_system(update_positions.after(apply_collisions))
-        .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(move_enemies.after(move_player).before(enemy_collisions))
+        .add_system(move_enemies.after(move_player).before(apply_collisions))
+     //   .add_system(move_enemies.after(move_player).before(enemy_collisions))
         .add_system(my_cursor_system)
         .add_system(show_timer)
         .add_system(
@@ -390,13 +394,9 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                }
+                                active.velocity.y = 0.; //stop vertical velocity
                                 active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
                         }
@@ -445,7 +445,7 @@ fn enemy_collisions(
                     Collision::Top => {
                         if active.velocity.y < 0. {
                             active.velocity.y = 0.;
-                            active.grounded = true;
+                            active.grounded = false;
                         }
                         active.projected_position.y = t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
                     }
