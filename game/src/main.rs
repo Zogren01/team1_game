@@ -2,6 +2,9 @@
 use bevy::app::AppExit;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
+use bevy::render::camera::RenderTarget;
+
+
 
 //imports from local creates
 mod util;
@@ -14,15 +17,15 @@ mod ai;
 use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
+const START_TIME: f32=15.;
 
-struct Manager{
+struct Manager {
     room_number: i8,
     wall_id: i8,
     enemy_id: i8,
 }
 
-
-fn create_level( 
+fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -40,7 +43,7 @@ fn create_level(
                 },
                 ..default()
             })
-            .insert(Object::new(id, desc.width, desc.height));
+            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             id +=1;
         }
 }
@@ -60,17 +63,19 @@ fn main() {
         .add_system(apply_collisions)
         .add_system(
             move_player
+                .after(show_timer)
                 .before(apply_collisions)
             )
         .add_system(
-            update_positions
-                .after(apply_collisions)
-        )
+               update_positions
+                .after(apply_collisions))
         .add_system(
             move_enemies
                 .after(move_player)
                 .before(apply_collisions)
         )
+        .add_system(my_cursor_system)
+        .add_system(show_timer)
         .add_system(
             calculate_sight
                 .after(update_positions)
@@ -106,6 +111,11 @@ fn setup(
         time += 5.0;
     }
 
+    commands.insert_resource(Clock {
+        // create the repeating timer
+        timer: Timer::from_seconds(START_TIME, true),
+    });
+
     //This is for the overlay
     //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
     commands.spawn_bundle(SpriteBundle {
@@ -117,6 +127,29 @@ fn setup(
         transform: Transform::from_xyz(912., 500., 0.),
         ..default()
     });
+
+    
+    commands.spawn_bundle(
+        TextBundle::from_section(
+           "", 
+            TextStyle {
+                font_size: 100.0,
+                color: Color::WHITE,
+                font: asset_server.load("mrsmonster.ttf")
+            }
+        )
+    )
+    .insert(Style {
+        align_self: AlignSelf::FlexEnd,
+        position_type: PositionType::Absolute,
+        position: UiRect {
+            bottom: Val::Px(5.0),
+            right: Val::Px(15.0),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(ClockText);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     commands
@@ -133,9 +166,8 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ))
+        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player);
-    
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -151,10 +183,10 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ))
+        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
 
-        commands
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -168,7 +200,7 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ))
+        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
     
         commands
@@ -185,7 +217,7 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ))
+        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
@@ -287,10 +319,9 @@ fn apply_collisions(
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
-){
+) {
     //loop through all objects that move
-    for (mut active, transform) in actives.iter_mut(){
-
+    for (mut active, transform) in actives.iter_mut() {
         for (o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
@@ -304,27 +335,32 @@ fn apply_collisions(
                 match coll_type {
                     Collision::Left => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Right => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                     }
                     Collision::Top => {
-                        if active.velocity.y < 0. {
-                            //if falling down
-                            active.velocity.y = 0.; //stop vertical velocity
-                            active.grounded = true;
-                        }
-                        active.projected_position.y = t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
-                        if o.id == 1 {
+                        if matches!(o.obj_type, ObjectType::Spike) {
                             //deal damage if the collision is with a spike
                             exit.send(AppExit);
+                        } else if !matches!(o.obj_type, ObjectType::Cobweb) {
+                            if active.velocity.y < 0. {
+                                //if falling down
+                                active.velocity.y = 0.; //stop vertical velocity
+                                active.grounded = true;
+                            }
+                            active.projected_position.y =
+                                t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                         }
                     }
                     Collision::Bottom => {
                         active.velocity.y = 0.;
-                        active.projected_position.y = t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.y =
+                            t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Inside => {
                         println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
@@ -332,7 +368,47 @@ fn apply_collisions(
                     }
                 }
             }
-        }  
+        }
+    }
+}
+//used for debugging and finding tile coordinates, nothing else. Player start tile is considered (0,0) for sanity.
+fn my_cursor_system(
+    mouse_input: Res<Input<MouseButton>>,
+    // need to get window dimensions
+    wnds: Res<Windows>,
+    // query to get camera transform
+    q_camera: Query<(&Camera, &GlobalTransform), With<Camera>>
+) {
+    // get the camera info and transform
+    // assuming there is exactly one main camera entity, so query::single() is OK
+    let (camera, camera_transform) = q_camera.single();
+
+    // get the window that the camera is displaying to (or the primary window)
+    let wnd = if let RenderTarget::Window(id) = camera.target {
+        wnds.get(id).unwrap()
+    } else {
+        wnds.get_primary().unwrap()
+    };
+
+    // check if the cursor is inside the window and get its position
+    if let Some(screen_pos) = wnd.cursor_position() {
+        // get the size of the window
+        let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
+
+        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+
+        // matrix for undoing the projection and camera transform
+        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+
+        // use it to convert ndc to world-space coordinates
+        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+
+        // reduce it to a 2D value
+        let world_pos: Vec2 = world_pos.truncate();
+        if mouse_input.just_pressed(MouseButton::Left) {
+        eprintln!("World coords: {}/{}", (world_pos.x/32.).round(), ((world_pos.y/32.) - 1.).round());
+        }
     }
 }
 
@@ -340,9 +416,9 @@ fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
     mut player: Query<(&ActiveObject, &mut Transform),With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
-){
+) {
     //update position of active objects based on projected position from apply_collisions()
-    for (o, mut t) in actives.iter_mut(){
+    for (o, mut t) in actives.iter_mut() {
         t.translation = o.projected_position;
     }
     //update player position and camera position
@@ -352,7 +428,6 @@ fn update_positions(
 
     camera.translation.x = pt.translation.x;
     camera.translation.y = pt.translation.y;
-
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -373,15 +448,15 @@ fn move_enemies(
         }
         let mut change = Vec2::splat(0.);
         if input.pressed(KeyCode::J) && enemy.grounded {
-            enemy.velocity.y = 7.;  
-            change.y = 7.;
+            enemy.velocity.y = 8.;  
+            change.y = 8.;
         }
         //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
-        else{
-            enemy.velocity.y += GRAVITY* deltat;
+        else {
+            enemy.velocity.y += GRAVITY * deltat;
             change.y = enemy.velocity.y;
         }
-        //this holds the position the player will end up in if there is no collision 
+        //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
     }
@@ -414,23 +489,23 @@ fn move_player(
     } else if pl.velocity.x > 0. {
         pl.velocity.x = pl.velocity.x - 20.;
     }
-    
+
     let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x * deltat;
-    //the reason that jump height was inconsistent was because this could only happen when on the ground, 
+    //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
     if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 7.;  
-        change.y = 7.;
+        pl.velocity.y = 8.;  
+        change.y = 8.;
     }
-    //if the palyer did not just jump, add gravity to move them downward (collision for gounded found later)
+    //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
     else{
         pl.velocity.y += GRAVITY* deltat;
         change.y = pl.velocity.y;
     }
-    //this holds the position the player will end up in if there is no collision 
+    //this holds the position the player will end up in if there is no collision
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
     pl.grounded = false;
 }
@@ -494,3 +569,31 @@ fn attack(
     }
 }
 */
+
+//Press X to pause the timer, press c to unpause it
+fn show_timer (input: Res<Input<KeyCode>>, time: Res<Time>, mut commands: Commands, asset_server: Res<AssetServer>, mut player: Query<&mut Transform, With<Player>>, mut clock: ResMut<Clock>, mut text: Query<&mut Text, With<ClockText>>,) {
+    //create_timer(commands, asset_server, time);
+        clock.timer.tick(time.delta());
+        let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
+        //println!("{}", time_remaining);
+        for mut text in &mut text {
+            if time_remaining > 0.0 {
+                text.sections[0].value= time_remaining.to_string();
+            }
+        if input.pressed(KeyCode::X){
+            clock.timer.pause();
+        }
+        if input.pressed(KeyCode::C){
+            clock.timer.unpause();
+        }
+        if clock.timer.finished() {
+            println!("Resetting position");
+            let mut pt = player.single_mut();
+            pt.translation=Vec3::new(0.,64.,0.);
+        }
+        
+        
+    }
+        
+        
+    }
