@@ -61,19 +61,23 @@ fn main() {
         .add_startup_system(setup)
         //.add_system(show_popup)
         .add_system(apply_collisions)
+        .add_system(enemy_collisions)
         .add_system(
             move_player
                 .after(setup)
                 .after(show_timer)
                 .before(apply_collisions)
+                .before(enemy_collisions)
             )
         .add_system(
                update_positions
-                .after(apply_collisions))
+                .after(apply_collisions)
+                .after(enemy_collisions))
         .add_system(
             move_enemies
                 .after(move_player)
                 .before(apply_collisions)
+                .before(enemy_collisions)
         )
         .add_system(my_cursor_system)
         .add_system(show_timer)
@@ -412,6 +416,58 @@ fn apply_collisions(
         }
     }
 }
+
+fn enemy_collisions(
+    mut actives: Query<
+        (&mut ActiveObject,&Transform),
+        (With<Player>, Without<Enemy>),
+        >,
+    mut enemies: Query<
+        (&mut ActiveObject, &mut Transform),
+        (With<Enemy>, Without<Player>),
+        >,
+    mut exit: EventWriter<AppExit>,
+){
+    for (mut active, transform) in actives.iter_mut(){
+
+        for (o, t) in enemies.iter() {
+            let res = bevy::sprite::collide_aabb::collide(
+                active.projected_position,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                t.translation,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+            );
+            if res.is_some() {
+                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                match coll_type {
+                    Collision::Left => {
+                        active.velocity.x = 0.;
+                        active.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
+                    }
+                    Collision::Right => {
+                        active.velocity.x = 0.;
+                        active.projected_position.x = t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                    }
+                    Collision::Top => {
+                        if active.velocity.y < 0. {
+                            active.velocity.y = 0.;
+                            active.grounded = true;
+                        }
+                        active.projected_position.y = t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                    }
+                    Collision::Bottom => {
+                        active.velocity.y = 0.;
+                        active.projected_position.y = t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
+                    }
+                    Collision::Inside => {
+                        active.velocity = Vec2::new(0., 0.);
+                    }
+                }
+            }
+        }  
+    }
+}
+
 //used for debugging and finding tile coordinates, nothing else. Player start tile is considered (0,0) for sanity.
 fn my_cursor_system(
     mouse_input: Res<Input<MouseButton>>,
