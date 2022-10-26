@@ -13,10 +13,6 @@ use crate::active_util::*;
 
 mod ai;
 use crate::ai::*;
-
-mod line_of_sight;
-use crate::line_of_sight::*;
-
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
@@ -31,23 +27,50 @@ fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>){
-        let mut id = 0;
-        for desc in level{
-            commands.spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(desc.width, desc.height)),
+    level: Vec<Descriptor>,
+) {
+    let mut id = 0;
+    for desc in level {
+        let mut texture_path = "";
+        if !matches!(desc.obj_type, ObjectType::Block) {
+            // conditionally render object textures
+            if matches!(desc.obj_type, ObjectType::Cobweb) {
+                texture_path = "spiderweb.png";
+            } else if matches!(desc.obj_type, ObjectType::Spike) {
+                texture_path = "spike.png";
+            }
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    texture: asset_server.load(texture_path),
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
                     ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+        } else {
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
                     ..default()
-                },
-                ..default()
-            })
-            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            id +=1;
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
         }
+
+        id += 1;
+    }
 }
 
 fn main() {
@@ -62,24 +85,14 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         //.add_system(show_popup)
-        .add_system(enemy_collisions)
-        .add_system(apply_collisions.after(enemy_collisions))
-     //   .add_system(enemy_collisions)
-        .add_system(
-            move_player
-                .after(show_timer)
-                .before(enemy_collisions)
-                .before(apply_collisions),
-          //      .before(enemy_collisions),
-        )
+        .add_system(apply_collisions)
+        .add_system(move_player.after(show_gui).before(apply_collisions))
         .add_system(update_positions.after(apply_collisions))
-        .add_system(move_enemies.after(move_player).before(enemy_collisions))
+        .add_system(move_enemies.after(move_player).before(apply_collisions))
         .add_system(my_cursor_system)
-        .add_system(show_timer)
-        .add_system(
-            calculate_sight
-                .after(update_positions)
-            )
+        .add_system(show_gui)
+        .add_system(calculate_sight.after(update_positions))
+        .add_system(item_shop.before(show_gui))
         //.add_system(attack)
         .run();
 }
@@ -98,6 +111,7 @@ fn setup(
         "gio.png",
         "zach.png",
     ];
+
     commands.spawn_bundle(Camera2dBundle::default());
     let mut time: f32 = 0.0;
     for image in images {
@@ -148,8 +162,55 @@ fn setup(
             ..default()
         })
         .insert(ClockText);
+    
+    //spawn creditText
+    commands
+    .spawn_bundle(TextBundle::from_section(
+        "",
+        TextStyle {
+            font_size: 100.0,
+            color: Color::YELLOW,
+            font: asset_server.load("mrsmonster.ttf"),
+        },
+    ))
+    .insert(Style {
+        align_self: AlignSelf::FlexEnd,
+        position_type: PositionType::Absolute,
+        position: UiRect {
+            bottom: Val::Px(5.0),
+            left: Val::Px(15.0),
+            ..default()
+        },
+        ..default()
+    })
+        .insert(CreditText);
+
+    //spawn healthbar
+    commands
+    .spawn_bundle(TextBundle::from_section(
+        "100",
+        TextStyle {
+            font_size: 100.0,
+            color: Color::RED,
+            font: asset_server.load("mrsmonster.ttf"),
+        },
+    ))
+    .insert(Style {
+        align_self: AlignSelf::FlexEnd,
+        position_type: PositionType::Absolute,
+        position: UiRect {
+            left: Val::Px(15.0),
+            ..default()
+        },
+        ..default()
+    })
+        .insert(HealthBar);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
+    let pt = Transform {
+        translation: Vec3::new(0., 64., 900.),
+        ..default()
+    };
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -157,15 +218,13 @@ fn setup(
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
-            transform: Transform {
-                translation: Vec3::new(0., 64., 900.),
-                ..default()
-            },
+            transform: pt,
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Player);
+        .insert(Player::new());
+
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -183,8 +242,25 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
-    
-        commands
+
+    commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                color: Color::RED,
+                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(75., 500., 700.),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(ActiveObject::new(100, 25))
+        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Enemy::new());
+
+    commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::RED,
@@ -203,7 +279,6 @@ fn setup(
     //improved code to spawn in all walls of a level
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
-
 }
 //we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
@@ -218,40 +293,39 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 }
 
 fn calculate_sight(
-    player: Query<(&Object,&Transform), (With<ActiveObject>, With<Player>)>,
-    mut enemies: Query<(&Object,&Transform,&mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     //store data for player and other enemies for later use
     let mut others = Vec::new();
-    for (obj, tr, _en) in enemies.iter(){
+    for (obj, tr, _en) in enemies.iter() {
         let data = (*obj, *tr);
         others.push(data);
     }
     let (obj, tr) = player.single();
     others.push((*obj, *tr));
-    
+
     let sight_distance = 300.0;
 
-    for (_obj, tr, mut en) in enemies.iter_mut(){
-
+    for (_obj, tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
 
         for (o, t) in objects.iter() {
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
-            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
-            //generate lines of sight
-            let d: Descriptor = Descriptor::new2(
-                o.width,
-                o.height,
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
+            let (v1, v2, v3) = find_vertices(
+                pos.x,
+                pos.y,
                 t.translation.x,
                 t.translation.y,
-                o.obj_type,
-                o.id,);
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
+                o.width,
+                o.height,
+            );
+            //generate lines of sight
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
 
             //track whether these are in range
             let mut in_range = false;
@@ -265,25 +339,25 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, d);
-                let o2 = Line::new(v2, v3, d);
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
         }
-        for (o, t) in others.iter(){
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner 
-            let (v1, v2, v3) = find_vertices(pos.x, pos.y, t.translation.x, t.translation.y, o.width, o.height);
-            let d: Descriptor = Descriptor::new2(
-                o.width,
-                o.height,
+        for (o, t) in others.iter() {
+            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
+            let (v1, v2, v3) = find_vertices(
+                pos.x,
+                pos.y,
                 t.translation.x,
                 t.translation.y,
-                o.obj_type,
-                o.id,);
+                o.width,
+                o.height,
+            );
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
 
             //track whether these are in range
             let mut in_range = false;
@@ -297,8 +371,8 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, d);
-                let o2 = Line::new(v2, v3, d);
+                let o1 = Line::new(v1, v3, o);
+                let o2 = Line::new(v2, v3, o);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
@@ -310,7 +384,7 @@ fn calculate_sight(
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject,&Transform), With<ActiveObject>>,
+    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
@@ -334,6 +408,9 @@ fn apply_collisions(
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
                             }
+                            if active.velocity.y != 0. && active.velocity.y < 5. {
+                                active.velocity.y /= 2.;
+                            }
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -348,6 +425,9 @@ fn apply_collisions(
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
+                            }
+                            if active.velocity.y != 0. && active.velocity.y < 5. {
+                                active.velocity.y /= 2.;
                             }
                             active.grounded = false;
                         }
@@ -367,6 +447,9 @@ fn apply_collisions(
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
+                                }
+                                if active.velocity.y != 0. && active.velocity.y < 5. {
+                                    active.velocity.y /= 2.;
                                 }
                                 active.grounded = false;
                             }
@@ -390,12 +473,19 @@ fn apply_collisions(
                                     //if falling down
                                     active.velocity.y /= 2.; //stop vertical velocity
                                 }
+                                if active.velocity.y != 0. && active.velocity.y < 5. {
+                                    active.velocity.y /= 2.;
+                                }
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
-                                active.velocity.y = 0.; //stop vertical velocity
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y = 0.; //stop vertical velocity
+                                    active.grounded = true;
+                                }
                                 active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
                         }
@@ -409,58 +499,6 @@ fn apply_collisions(
         }
     }
 }
-
-fn enemy_collisions(
-    mut actives: Query<
-        (&mut ActiveObject,&Transform),
-        (With<Player>, Without<Enemy>),
-        >,
-    mut enemies: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Enemy>, Without<Player>),
-        >,
-    mut exit: EventWriter<AppExit>,
-){
-    for (mut active, transform) in actives.iter_mut(){
-
-        for (o, t) in enemies.iter() {
-            let res = bevy::sprite::collide_aabb::collide(
-                active.projected_position,
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
-                t.translation,
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
-            );
-            if res.is_some() {
-                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                match coll_type {
-                    Collision::Left => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
-                    }
-                    Collision::Right => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
-                    }
-                    Collision::Top => {
-                        if active.velocity.y < 0. {
-                            active.velocity.y = 0.;
-                            active.grounded = false;
-                        }
-                        active.projected_position.y = t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
-                    }
-                    Collision::Bottom => {
-                        active.velocity.y = 0.;
-                        active.projected_position.y = t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
-                    }
-                    Collision::Inside => {
-                        active.velocity = Vec2::new(0., 0.);
-                    }
-                }
-            }
-        }  
-    }
-}
-
 //used for debugging and finding tile coordinates, nothing else. Player start tile is considered (0,0) for sanity.
 fn my_cursor_system(
     mouse_input: Res<Input<MouseButton>>,
@@ -508,7 +546,7 @@ fn my_cursor_system(
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut player: Query<(&ActiveObject, &mut Transform),With<Player>>,
+    mut player: Query<(&ActiveObject, &mut Transform), With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
@@ -537,7 +575,10 @@ fn move_enemies(
     let deltat = time.delta_seconds();
     for (mut enemy, et, mut e) in enemies.iter_mut(){
         if input.just_pressed(KeyCode::K) {
-            println!("For enemy at position {}, {}", et.translation.x, et.translation.y);
+            println!(
+                "For enemy at position {}, {}",
+                et.translation.x, et.translation.y
+            );
             e.check_visible_objects();
         }
         let mut change = Vec2::splat(0.);
@@ -565,16 +606,15 @@ fn move_enemies(
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
+
+        
     }
 }
 
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Player>),
-    >,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
 ) {
     let (mut pl, mut pt) = player.single_mut();
 
@@ -677,20 +717,24 @@ fn attack(
 */
 
 //Press X to pause the timer, press c to unpause it
-fn show_timer(
+fn show_gui(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut player: Query<&mut Transform, With<Player>>,
+    mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
     mut clock: ResMut<Clock>,
-    mut text: Query<&mut Text, With<ClockText>>,
+    mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>, Without<HealthBar>)>,
+    mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
+    mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
 ) {
+    let (mut p, mut pt)= player.single_mut();
     //create_timer(commands, asset_server, time);
     clock.timer.tick(time.delta());
     let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
     //println!("{}", time_remaining);
     for mut text in &mut text {
+       
         if time_remaining > 0.0 {
             text.sections[0].value = time_remaining.to_string();
         }
@@ -702,8 +746,47 @@ fn show_timer(
         }
         if clock.timer.finished() {
             println!("Resetting position");
-            let mut pt = player.single_mut();
             pt.translation = Vec3::new(0., 64., 0.);
+        }
+    }
+
+    for mut text in &mut credit_text {
+        text.sections[0].value= p.credits.to_string();
+    }
+
+    for mut text in &mut healthbar {
+
+        text.sections[0].value=p.health.to_string();
+    }
+}
+
+fn item_shop(
+    input: Res<Input<KeyCode>>,
+    mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
+    mut clock: ResMut<Clock>,
+) {
+    let (mut p, mut pt)= player.single_mut();
+    if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
+        print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
+        clock.timer.pause();
+        pt.translation = Vec3::new(0., -475., 0.);
+    } else if pt.translation.y <= -400. {
+        if input.just_pressed(KeyCode::I) {
+            pt.translation = Vec3::new(0., 64., 0.);
+            clock.timer.unpause();
+        }
+        if input.just_pressed(KeyCode::B) {
+            
+            if pt.translation.x <= -25. && p.credits >= UMBRELLA_PRICE  { //IF TRY TO BUY UMBRELLA
+                p.credits-=UMBRELLA_PRICE;
+                p.item = ItemType::Umbrella;
+                print!("UMBRELLA PURCHASED!");
+            } else if pt.translation.x >= 25. && p.credits >= JETPACK_PRICE { //IF TRY TO BUY JETPACK
+                p.credits-=JETPACK_PRICE;
+                p.item = ItemType::Jetpack;
+                print!("JETPACK PURCHASED!");
+            }
+            print!("\n PRESS I TO RETURN!");
         }
     }
 }

@@ -1,17 +1,18 @@
-use bevy::prelude::*;
 use crate::util::*;
+use bevy::prelude::*;
 
 pub const PLAYER_SPEED: f32 = 300.;
 pub const PLAYER_SZ: f32 = 32.;
 
-
 #[derive(Component)]
 pub struct ClockText;
+#[derive(Component)]
+pub struct CreditText;
 
-
-pub struct Clock{
+pub struct Clock {
     pub timer: Timer,
 }
+
 
 /*
 impl Clock{
@@ -24,13 +25,18 @@ impl Clock{
 */
 
 #[derive(Component)]
+pub struct HealthBar;
+
+#[derive(Component)]
 pub struct Velocity {
-	pub velocity: Vec2,
+    pub velocity: Vec2,
 }
 impl Velocity {
-	pub fn new() -> Self {
-		Self { velocity: Vec2::splat(0.) }
-	}
+    pub fn new() -> Self {
+        Self {
+            velocity: Vec2::splat(0.),
+        }
+    }
 }
 
 #[derive(Component)]
@@ -45,9 +51,9 @@ pub struct ActiveObject {
 }
 
 impl ActiveObject {
-    pub fn new(h: i32, d: i32) -> Self{
+    pub fn new(h: i32, d: i32) -> Self {
         Self {
-            grounded: false, 
+            grounded: false,
             facing_left: false,
             velocity: Vec2::splat(0.),
             max_health: h,
@@ -56,7 +62,7 @@ impl ActiveObject {
             projected_position: Vec3::splat(0.),
         }
     }
-    pub fn take_damage(&self, damage: i32){
+    pub fn take_damage(&self, damage: i32) {
         //implement taking damage
     }
     pub fn heal(&self, gain: i32) {
@@ -64,6 +70,26 @@ impl ActiveObject {
     }
 }
 
-#[derive(Component)]
-pub struct Player;
+pub enum ItemType {
+    None,
+    Jetpack,
+    Umbrella,
+}
 
+#[derive(Component)]
+pub struct Player {
+    pub credits: i8,
+    pub item: ItemType,
+    pub health: i8,
+}
+
+impl Player {
+    pub fn new() -> Self {
+        Self {
+            credits: 100,
+            item: ItemType::None,
+            health: 100,
+        }
+        
+    }
+}
