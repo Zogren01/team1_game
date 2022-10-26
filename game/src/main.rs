@@ -820,12 +820,45 @@ fn item_shop(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
     mut clock: ResMut<Clock>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     let (mut p, mut pt)= player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
         print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
         clock.timer.pause();
         pt.translation = Vec3::new(0., -475., 0.);
+
+        let mut id = 0;
+        commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(75., 75.)),
+                        ..default()
+                    },
+                    texture: asset_server.load("jetpack.png"),
+                    transform: Transform {
+                        translation: Vec3::new(150., -400., 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                 .insert(Object::new(id, 50., 50., ObjectType::Active));
+        commands
+                 .spawn_bundle(SpriteBundle {
+                     sprite: Sprite {
+                         custom_size: Some(Vec2::new(75., 75.)),
+                         ..default()
+                     },
+                     texture: asset_server.load("umbrella.png"),
+                     transform: Transform {
+                         translation: Vec3::new(-150., -400., 2.),
+                         ..default()
+                     },
+                     ..default()
+                 })
+                  .insert(Object::new(id, 50., 50., ObjectType::Active));
     } else if pt.translation.y <= -400. {
         if input.just_pressed(KeyCode::I) {
             pt.translation = Vec3::new(0., 64., 0.);
