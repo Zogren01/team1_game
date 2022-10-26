@@ -93,7 +93,6 @@ fn main() {
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
         .add_system(item_shop.before(show_gui))
-        .add_system(show_health)
         //.add_system(attack)
         .run();
 }
@@ -112,6 +111,7 @@ fn setup(
         "gio.png",
         "zach.png",
     ];
+
     commands.spawn_bundle(Camera2dBundle::default());
     let mut time: f32 = 0.0;
     for image in images {
@@ -185,7 +185,32 @@ fn setup(
     })
         .insert(CreditText);
 
+    //spawn healthbar
+    commands
+    .spawn_bundle(TextBundle::from_section(
+        "100",
+        TextStyle {
+            font_size: 100.0,
+            color: Color::RED,
+            font: asset_server.load("mrsmonster.ttf"),
+        },
+    ))
+    .insert(Style {
+        align_self: AlignSelf::FlexEnd,
+        position_type: PositionType::Absolute,
+        position: UiRect {
+            left: Val::Px(15.0),
+            ..default()
+        },
+        ..default()
+    })
+        .insert(HealthBar);
+
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
+    let pt = Transform {
+        translation: Vec3::new(0., 64., 900.),
+        ..default()
+    };
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -193,15 +218,13 @@ fn setup(
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
-            transform: Transform {
-                translation: Vec3::new(0., 64., 900.),
-                ..default()
-            },
+            transform: pt,
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player::new());
+
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -686,8 +709,9 @@ fn show_gui(
     asset_server: Res<AssetServer>,
     mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
     mut clock: ResMut<Clock>,
-    mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>)>,
-    mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>)>,
+    mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>, Without<HealthBar>)>,
+    mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
+    mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
 ) {
     let (mut p, mut pt)= player.single_mut();
     //create_timer(commands, asset_server, time);
@@ -713,6 +737,11 @@ fn show_gui(
 
     for mut text in &mut credit_text {
         text.sections[0].value= p.credits.to_string();
+    }
+
+    for mut text in &mut healthbar {
+
+        text.sections[0].value=p.health.to_string();
     }
 }
 
@@ -745,48 +774,4 @@ fn item_shop(
             print!("\n PRESS I TO RETURN!");
         }
     }
-}
-
-fn show_health (
-    mut commands: Commands,
-    player: Query<(&mut Player, &mut Transform), (With<Player>, Without<Enemy>)>,
-    enemies: Query<(&mut Enemy, &mut Transform), (With<Enemy>, Without<Player>)>,
-)
-{
-    
-    // for (en, tr) in enemies.iter() {
-    //     commands.spawn_bundle(SpriteBundle {
-    //       sprite: Sprite {
-    //           custom_size: Some(HEALTHBAR_SZ),
-    //           color: Color::RED,
-    //           ..default()
-    //       },
-          
-    //       transform: Transform {
-    //           translation: Vec3::new(tr.translation.x, tr.translation.y - 10., 5.),
-    //           ..default()
-    //       },
-    //       ..default()
-    //   })
-    //   .insert(HealthBar)
-    //   .
-
-    // let (pl, ) in enemies.iter() {
-    //     commands.spawn_bundle(SpriteBundle {
-    //       sprite: Sprite {
-    //           custom_size: Some(HEALTHBAR_SZ),
-    //           color: Color::RED,
-    //           ..default()
-    //       },
-          
-    //       transform: Transform {
-    //           translation: Vec3::new(tr.translation.x, tr.translation.y - 10., 5.),
-    //           ..default()
-    //       },
-    //       ..default()
-    //   })
-    //   }
-      
-   // let (obj, tr) = player.single();
-
 }

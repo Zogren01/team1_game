@@ -90,5 +90,6 @@ impl Player {
             item: ItemType::None,
             health: 100,
         }
+        
     }
 }

@@ -12,7 +12,7 @@ pub const TILE_SIZE: f32 = 32.;
 pub const UMBRELLA_PRICE : i8 = 30;
 pub const JETPACK_PRICE: i8 = 70;
 
-pub const HEALTHBAR_SZ: Vec2 = Vec2::new(32.,6.);
+pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50.,6.);
 
 #[derive(Component, Copy, Clone)]
 pub struct Object {
