@@ -323,9 +323,10 @@ fn calculate_sight(
                 o.width,
                 o.height,
             );
+            let d = Descriptor::new2(o.width, o.height, t.translation.x, t.translation.y, o.obj_type, o.id);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
 
             //track whether these are in range
             let mut in_range = false;
@@ -339,8 +340,8 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o);
-                let o2 = Line::new(v2, v3, o);
+                let o1 = Line::new(v1, v3, d);
+                let o2 = Line::new(v2, v3, d);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
@@ -355,9 +356,10 @@ fn calculate_sight(
                 o.width,
                 o.height,
             );
+            let d = Descriptor::new2(o.width, o.height, t.translation.x, t.translation.y, o.obj_type, o.id);
             //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, o);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, o);
+            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
+            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
 
             //track whether these are in range
             let mut in_range = false;
@@ -371,8 +373,8 @@ fn calculate_sight(
             }
             //maybe add code to check the corner of objects
             if in_range {
-                let o1 = Line::new(v1, v3, o);
-                let o2 = Line::new(v2, v3, o);
+                let o1 = Line::new(v1, v3, d);
+                let o2 = Line::new(v2, v3, d);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
@@ -485,7 +487,7 @@ fn apply_collisions(
                                     active.grounded = true;
                                 }
                                 active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
                         }
