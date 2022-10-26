@@ -7,7 +7,7 @@ pub struct Line {
     pub start: Vec2,
     pub end: Vec2,
     //pub obj: i32,
-    pub obj: Object,
+    pub obj: Descriptor,
 }
 
 
@@ -47,11 +47,11 @@ impl Graph {
 }
 
 impl Line {
-    pub fn new(s: Vec2, e: Vec2, o: &Object) -> Self {
+    pub fn new(s: Vec2, e: Vec2, d: Descriptor) -> Self {
         Self {
             start: s,
             end: e,
-            obj: *o,
+            obj: d,
         }
 
     }
