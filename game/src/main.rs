@@ -95,7 +95,7 @@ fn main() {
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
         .add_system(item_shop.before(show_gui))
-        //.add_system(attack)
+        .add_system(attack)
         .run();
 }
 
@@ -712,26 +712,31 @@ fn move_player(
     pl.grounded = false;
 }
 
-/*
+
 fn attack(
     input: Res<Input<KeyCode>>,
     mut player: Query<
-        (&mut Player, &mut Transform, &mut Velocity),
-        (With<Player>, Without<Object>),
+        (&mut ActiveObject, &mut Transform),
+        (With<Player>),
+        //(Without<Object>),
     >,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
-    let (pl, pt, pv) = player.single_mut();
-    if input.just_pressed(KeyCode::P) {
+    let (pl, pt) = player.single_mut();
+    //if input.just_pressed(KeyCode::P) {
+    if input.just_pressed(KeyCode::P){
         let mut hitbox_pos;
         if input.pressed(KeyCode::S) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
-        } else if pv.velocity.y != 0. {
+        }
+        if input.pressed(KeyCode::W) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
-        } else if !pl.facing_left {
+        }
+        if input.pressed(KeyCode::D) {
             hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
-        } else {
+        } 
+        else {
             hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
         }
         for (_o, t) in objects.iter() {
@@ -770,7 +775,7 @@ fn attack(
         }
     }
 }
-*/
+
 
 //Press X to pause the timer, press c to unpause it
 fn show_gui(
