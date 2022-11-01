@@ -90,9 +90,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         let mut y = 0.;
         //main floor
         for i in 0..29{
-            result.push(Descriptor::new(64., 32., x, 0., ObjectType::Block));
-            x = x+64.;
-        }
+        result.push(Descriptor::new(64., 32., x, 0., ObjectType::Block));
+        x = x+64.;
+         }
         //main floor
         //result.push(Descriptor::new(1856., 32., 912., 0., ObjectType::Block));
         //ceiling
@@ -100,7 +100,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left wall
         result.push(Descriptor::new(32., 1024., -32., 496., ObjectType::Block));
         //right wall
-        result.push(Descriptor::new(32., 1024., 1856., 496., ObjectType::Block));
+        result.push(Descriptor::new(32., 1024., 1856., 496., ObjectType::Item));
         //first 1x2 wall on first floor
         result.push(Descriptor::new(32., 64., 192., 48., ObjectType::Block));
         //second 1x2 wall on first floor
@@ -168,14 +168,40 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //1x1 in rooom to left of enemy floor
         result.push(Descriptor::new(32., 32., 448., 736., ObjectType::Block));
         //1x1 on right side of wall in room to left of enemy floor
-        result.push(Descriptor::new(32., 32., 320., 862., ObjectType::Block));
+        result.push(Descriptor::new(32., 32., 320., 832., ObjectType::Block));
         //right wall of room to left of enemy floor
         result.push(Descriptor::new(32., 288., 512., 864., ObjectType::Block));
+
+        result.push(Descriptor::new(32., 96., 224., 224., ObjectType::Block));
+
+        result.push(Descriptor::new(32., 192., 288., 816., ObjectType::Block));
+
+        result.push(Descriptor::new(32., 32., 256., 800., ObjectType::Block));
+
+        result.push(Descriptor::new(32., 32., 1440., 384., ObjectType::Block));
+
+        result.push(Descriptor::new(32., 32., 0., -864., ObjectType::Block));
     }
+    
     // shop platform spawns below level
-    result.push(Descriptor::new(250., 32., -150., -500., ObjectType::Block));
-    result.push(Descriptor::new(250., 32., 150., -500., ObjectType::Block));
-    result.push(Descriptor::new(25., 32., 0., -500., ObjectType::Block));
+    result.push(Descriptor::new(1024., 32., 0., -1024., ObjectType::Block));// shop box code start
+    result.push(Descriptor::new(1024., 32., 0., -672., ObjectType::Block));
+    result.push(Descriptor::new(32., 384., 512., -848., ObjectType::Block));
+    result.push(Descriptor::new(32., 384., -512., -848., ObjectType::Block));// shop box code end
+
+    result.push(Descriptor::new(256., 32., 384., -928., ObjectType::Block));// platform to hold umbrella 
+    result.push(Descriptor::new(256., 32., -384., -928., ObjectType::Block));// platform to hold another item
+    result.push(Descriptor::new(256., 32., 0., -832., ObjectType::Block));// platform to hold jet pack
+
+    result.push(Descriptor::new(32., 32., -384., -896., ObjectType::UmbrellaItem));// placeholders for landmarker items start
+    result.push(Descriptor::new(32., 32., 384., -896., ObjectType::Item));// Eventually you can buy the items through these boxes
+    result.push(Descriptor::new(32., 32., 0., -800., ObjectType::JetpackItem));// placeholders for landmaker items end 
+      
+
+
+
+        
+    
 
     return result;
 }
@@ -186,4 +212,7 @@ pub enum ObjectType {
     Spike,
     Cobweb,
     Active,
+    Item,
+    UmbrellaItem,
+    JetpackItem,
 }
