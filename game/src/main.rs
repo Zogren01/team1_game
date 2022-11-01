@@ -1,8 +1,10 @@
 //imports from outside crates
 use bevy::app::AppExit;
+use bevy::asset;
 use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
 use bevy::{prelude::*, window::PresentMode};
+use bevy::time::FixedTimestep;
 
 //imports from local creates
 mod util;
@@ -16,6 +18,7 @@ use crate::ai::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
+const RUNTIME: f64 = 1./45.;
 
 struct Manager {
     room_number: i8,
@@ -38,6 +41,54 @@ fn create_level(
                 texture_path = "spiderweb.png";
             } else if matches!(desc.obj_type, ObjectType::Spike) {
                 texture_path = "spike.png";
+            }
+            else if matches!(desc.obj_type, ObjectType::Item){
+                commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            }
+            else if matches!(desc.obj_type, ObjectType::UmbrellaItem){
+                commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::PURPLE,
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            }
+            else if matches!(desc.obj_type, ObjectType::JetpackItem){
+                commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GRAY,
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             }
             commands
                 .spawn_bundle(SpriteBundle {
@@ -84,18 +135,41 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
-        .add_system(enemy_collisions)
-        .add_system(apply_collisions.after(enemy_collisions))
+        
+        
      //   .add_system(enemy_collisions)
         //.add_system(show_popup)
+
+        // .add_system_set(
+        //     SystemSet::new()
+        //         .with_run_criteria(FixedTimestep::step(RUNTIME))
+        //         .with_system(move_player)
+        //         .with_system(update_positions)
+        //         .with_system(enemy_collisions)
+        //         .with_system(apply_collisions)
+        //         .with_system(move_enemies)
+                
+
+        //  )
+        //         .add_system(calculate_sight)
+        //         .add_system(my_cursor_system)
+        //         .add_system(show_gui)
+        //         .add_system(item_shop)
+
         .add_system(move_player.after(show_gui).before(enemy_collisions).before(apply_collisions))
+        .add_system(enemy_collisions)
+        .add_system(apply_collisions.after(enemy_collisions))
+        
         .add_system(update_positions.after(apply_collisions))
         .add_system(move_enemies.after(move_player).before(enemy_collisions).before(apply_collisions))
         .add_system(my_cursor_system)
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
         .add_system(item_shop.before(show_gui))
-        //.add_system(attack)
+        //.add_system(attack.after(item_shop))
+        
+        
+        .add_system(attack)
         .run();
 }
 
@@ -134,15 +208,15 @@ fn setup(
 
     //This is for the overlay
     //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
-    commands.spawn_bundle(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(1920.0, 1080.0)),
-            ..default()
-        },
-        texture: asset_server.load("Room_1.png"),
-        transform: Transform::from_xyz(912., 500., 0.),
-        ..default()
-    });
+    // commands.spawn_bundle(SpriteBundle {
+    //     sprite: Sprite {
+    //         custom_size: Some(Vec2::new(1920.0, 1080.0)),
+    //         ..default()
+    //     },
+    //     texture: asset_server.load("Room_1.png"),
+    //     transform: Transform::from_xyz(912., 500., 0.),
+    //     ..default()
+    // });
 
     commands
         .spawn_bundle(TextBundle::from_section(
@@ -210,7 +284,7 @@ fn setup(
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     let pt = Transform {
-        translation: Vec3::new(0., 64., 900.),
+        translation: Vec3::new(0., -1000., 900.),
         ..default()
     };
     commands
@@ -279,9 +353,11 @@ fn setup(
         .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new());
     //improved code to spawn in all walls of a level
+    
     let mut level = get_level(1);
     create_level(commands, asset_server, texture_atlases, level);
 }
+
 //we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
     let mut count = 1.0;
@@ -390,6 +466,7 @@ fn calculate_sight(
 fn apply_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
+    input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
@@ -407,7 +484,10 @@ fn apply_collisions(
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
                 match coll_type {
                     Collision::Left => match o.obj_type {
+                        ObjectType::JetpackItem => {}
+                        ObjectType::UmbrellaItem => {}
                         ObjectType::Spike => {}
+                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -425,7 +505,10 @@ fn apply_collisions(
                         ObjectType::Active => {}
                     },
                     Collision::Right => match o.obj_type {
+                        ObjectType::JetpackItem => {}
+                        ObjectType::UmbrellaItem => {}
                         ObjectType::Spike => {}
+                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -444,9 +527,12 @@ fn apply_collisions(
                     },
                     Collision::Top => {
                         match o.obj_type {
+                            ObjectType::JetpackItem => {}
+                            ObjectType::UmbrellaItem => {}
                             ObjectType::Spike => {
                                 exit.send(AppExit);
                             }
+                            ObjectType::Item => {}
                             ObjectType::Cobweb => {
                                 if active.velocity.y < 0. {
                                     //if falling down
@@ -471,7 +557,10 @@ fn apply_collisions(
                     }
                     Collision::Bottom => {
                         match o.obj_type {
+                            ObjectType::JetpackItem => {}
+                            ObjectType::UmbrellaItem => {}
                             ObjectType::Spike => {}
+                            ObjectType::Item => {}
                             ObjectType::Cobweb => {
                                 if active.velocity.y < 0. {
                                     //if falling down
@@ -483,11 +572,7 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                }
+                                active.velocity.y = 0.;
                                 active.projected_position.y =
                                     t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
@@ -495,8 +580,23 @@ fn apply_collisions(
                         }
                     }
                     Collision::Inside => {
-                        println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);
+                        match o.obj_type {
+                            ObjectType::JetpackItem => {}
+                            ObjectType::UmbrellaItem => {}
+
+
+                            ObjectType::Spike => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);}
+                            ObjectType::Item => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);}
+                            ObjectType::Cobweb => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);}
+                            ObjectType::Block => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);}
+                            ObjectType::Active => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);}
+
+                        }
                     }
                 }
             }
@@ -594,7 +694,7 @@ fn my_cursor_system(
             eprintln!(
                 "World coords: {}/{}",
                 (world_pos.x / 32.).round(),
-                ((world_pos.y / 32.) - 1.).round()
+                ((world_pos.y / 32.)).round()
             );
         }
     }
@@ -698,7 +798,7 @@ fn move_player(
     //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
-    if input.pressed(KeyCode::Space) && pl.grounded {
+    if input.just_pressed(KeyCode::Space) && pl.grounded {
         pl.velocity.y = 8.;
         change.y = 8.;
     }
@@ -712,28 +812,26 @@ fn move_player(
     pl.grounded = false;
 }
 
-/*
+
 fn attack(
     input: Res<Input<KeyCode>>,
-    mut player: Query<
-        (&mut Player, &mut Transform, &mut Velocity),
-        (With<Player>, Without<Object>),
-    >,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
+
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
-    let (pl, pt, pv) = player.single_mut();
+    let (pl, pt) = player.single_mut();
     if input.just_pressed(KeyCode::P) {
         let mut hitbox_pos;
         if input.pressed(KeyCode::S) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
-        } else if pv.velocity.y != 0. {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
-        } else if !pl.facing_left {
-            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);// DOWN
+        } else if input.pressed(KeyCode::W) {
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
+        } else if input.pressed(KeyCode::D){
+            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
         } else {
-            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
-        }
+            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
+    }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -770,7 +868,8 @@ fn attack(
         }
     }
 }
-*/
+
+
 
 //Press X to pause the timer, press c to unpause it
 fn show_gui(
@@ -786,7 +885,13 @@ fn show_gui(
 ) {
     let (mut p, mut pt)= player.single_mut();
     //create_timer(commands, asset_server, time);
-    clock.timer.tick(time.delta());
+    if pt.translation.y < -400.{
+        clock.timer.pause();
+    }
+    else{
+        clock.timer.tick(time.delta());  
+    }
+   
     let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
     //println!("{}", time_remaining);
     for mut text in &mut text {
@@ -831,18 +936,18 @@ fn item_shop(
             pt.translation = Vec3::new(0., 64., 0.);
             clock.timer.unpause();
         }
-        if input.just_pressed(KeyCode::B) {
+        // if input.just_pressed(KeyCode::B) {
             
-            if pt.translation.x <= -25. && p.credits >= UMBRELLA_PRICE  { //IF TRY TO BUY UMBRELLA
-                p.credits-=UMBRELLA_PRICE;
-                p.item = ItemType::Umbrella;
-                print!("UMBRELLA PURCHASED!");
-            } else if pt.translation.x >= 25. && p.credits >= JETPACK_PRICE { //IF TRY TO BUY JETPACK
-                p.credits-=JETPACK_PRICE;
-                p.item = ItemType::Jetpack;
-                print!("JETPACK PURCHASED!");
-            }
-            print!("\n PRESS I TO RETURN!");
-        }
+        //     if p.credits >= UMBRELLA_PRICE  { //IF TRY TO BUY UMBRELLA
+        //         p.credits-=UMBRELLA_PRICE;
+        //         p.item = ItemType::Umbrella;
+        //         print!("UMBRELLA PURCHASED!");
+        //     } else if p.credits >= JETPACK_PRICE { //IF TRY TO BUY JETPACK
+        //         p.credits-=JETPACK_PRICE;
+        //         p.item = ItemType::Jetpack;
+        //         print!("JETPACK PURCHASED!");
+        //     }
+        //     print!("\n PRESS I TO RETURN!");
+        // }
     }
 }
