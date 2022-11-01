@@ -165,10 +165,7 @@ fn main() {
         .add_system(my_cursor_system)
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
-        .add_system(item_shop.before(show_gui))
-        //.add_system(attack.after(item_shop))
-        
-        
+        .add_system(item_shop.before(show_gui)
         .add_system(attack)
         .run();
 }
@@ -815,23 +812,32 @@ fn move_player(
 
 fn attack(
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
 
+    mut player: Query<
+        (&mut ActiveObject, &mut Transform),
+        (With<Player>),
+        //(Without<Object>),
+    >,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
-    if input.just_pressed(KeyCode::P) {
+
+    if input.just_pressed(KeyCode::P){
         let mut hitbox_pos;
         if input.pressed(KeyCode::S) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);// DOWN
-        } else if input.pressed(KeyCode::W) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
-        } else if input.pressed(KeyCode::D){
-            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
-        } else {
-            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
-    }
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
+        }
+        if input.pressed(KeyCode::W) {
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
+        }
+        if input.pressed(KeyCode::D) {
+            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+        } 
+        else {
+            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
+        }
+
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -868,7 +874,6 @@ fn attack(
         }
     }
 }
-
 
 
 //Press X to pause the timer, press c to unpause it
@@ -937,33 +942,34 @@ fn item_shop(
 
         let mut id = 0;
         commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(75., 75.)),
-                ..default()
-            },
-            texture: asset_server.load("jetpack.png"),
-            transform: Transform {
-                translation: Vec3::new(150., -400., 2.),
-                ..default()
-            },
-            ..default()
-        })
-         .insert(Object::new(id, 50., 50., ObjectType::Active));
-commands
-         .spawn_bundle(SpriteBundle {
-             sprite: Sprite {
-                 custom_size: Some(Vec2::new(75., 75.)),
-                 ..default()
-             },
-             texture: asset_server.load("umbrella.png"),
-             transform: Transform {
-                 translation: Vec3::new(-150., -400., 2.),
-                 ..default()
-             },
-             ..default()
-         })
-          .insert(Object::new(id, 50., 50., ObjectType::Active));
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(75., 75.)),
+                        ..default()
+                    },
+                    texture: asset_server.load("jetpack.png"),
+                    transform: Transform {
+                        translation: Vec3::new(150., -400., 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                 .insert(Object::new(id, 50., 50., ObjectType::Active));
+        commands
+                 .spawn_bundle(SpriteBundle {
+                     sprite: Sprite {
+                         custom_size: Some(Vec2::new(75., 75.)),
+                         ..default()
+                     },
+                     texture: asset_server.load("umbrella.png"),
+                     transform: Transform {
+                         translation: Vec3::new(-150., -400., 2.),
+                         ..default()
+                     },
+                     ..default()
+                 })
+                  .insert(Object::new(id, 50., 50., ObjectType::Active));
+
     } else if pt.translation.y <= -400. {
         if input.just_pressed(KeyCode::I) {
             pt.translation = Vec3::new(0., 64., 0.);
