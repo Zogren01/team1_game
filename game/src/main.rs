@@ -165,7 +165,7 @@ fn main() {
         .add_system(my_cursor_system)
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
-        .add_system(item_shop.before(show_gui)
+        .add_system(item_shop.before(show_gui))
         .add_system(attack)
         .run();
 }
@@ -812,32 +812,23 @@ fn move_player(
 
 fn attack(
     input: Res<Input<KeyCode>>,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
 
-    mut player: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Player>),
-        //(Without<Object>),
-    >,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
-
-    if input.just_pressed(KeyCode::P){
+    if input.just_pressed(KeyCode::P) {
         let mut hitbox_pos;
         if input.pressed(KeyCode::S) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
-        }
-        if input.pressed(KeyCode::W) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
-        }
-        if input.pressed(KeyCode::D) {
-            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
-        } 
-        else {
-            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
-        }
-
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);// DOWN
+        } else if input.pressed(KeyCode::W) {
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
+        } else if input.pressed(KeyCode::D){
+            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
+        } else {
+            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
+    }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -874,7 +865,6 @@ fn attack(
         }
     }
 }
-
 
 //Press X to pause the timer, press c to unpause it
 fn show_gui(
