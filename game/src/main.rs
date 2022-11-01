@@ -13,21 +13,20 @@ use crate::active_util::*;
 
 mod ai;
 use crate::ai::*;
+
+mod movement_mesh;
+use crate::movement_mesh::*;
+
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
-
-struct Manager {
-    room_number: i8,
-    wall_id: i8,
-    enemy_id: i8,
-}
 
 fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     level: Vec<Descriptor>,
+    mesh: Graph,
 ) {
     let mut id = 0;
     for desc in level {
@@ -70,6 +69,10 @@ fn create_level(
         }
 
         id += 1;
+    }
+    for v in mesh.vertices {
+        commands.spawn()
+            .insert(v);
     }
 }
 
@@ -134,6 +137,7 @@ fn setup(
 
     //This is for the overlay
     //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
+    /*
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(1920.0, 1080.0)),
@@ -143,6 +147,7 @@ fn setup(
         transform: Transform::from_xyz(912., 500., 0.),
         ..default()
     });
+    */
 
     commands
         .spawn_bundle(TextBundle::from_section(
@@ -227,60 +232,10 @@ fn setup(
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player::new());
 
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(75., 50., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(75., 500., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(500., 50., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
     //improved code to spawn in all walls of a level
-    let mut level = get_level(1);
-    create_level(commands, asset_server, texture_atlases, level);
+    let mut level = get_level(0);
+    let mesh = get_level_mesh(0);
+    create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 //we can probably add this as an event, to be used when the level id is outside of the possible range
 fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform)>) {
@@ -293,7 +248,7 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
         count += 1.0;
     }
 }
-
+//needs some serious refactoring
 fn calculate_sight(
     player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
     mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
@@ -641,21 +596,7 @@ fn move_enemies(
         //need argument to let enemy know about collisions that have occured
         e.decide_motion(&et.translation);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
-        match e.next_move{
-            Motion::Left => {
-                //replace with enemy speed later
-                if enemy.velocity.x > -PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x - 20.;
-                }
-            }
-            Motion::Right => {
-                if enemy.velocity.x < PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x + 20.;
-                }
-            }
-            Motion::Jump => {}
-            Motion::Idle => {}
-        }
+        
         enemy.velocity.y += GRAVITY * deltat;
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x * deltat;
