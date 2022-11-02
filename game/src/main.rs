@@ -265,7 +265,7 @@ fn setup(
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
     let pt = Transform {
-        translation: Vec3::new(0., 50., 900.),
+        translation: Vec3::new(0., -1000., 900.),
         ..default()
     };
     commands
@@ -298,7 +298,7 @@ fn setup(
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new(-50., 100.));
     //this variable can change based on what room the player is in
-    let mut level = get_level(0);
+    let mut level = get_level(1);
     let mesh = get_level_mesh(0);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }

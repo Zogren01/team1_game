@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub const MAX_VERT: usize = 100;
 #[derive(Copy, Clone)]
 pub struct Vertex{
     pub x: f32,
@@ -43,14 +44,14 @@ impl Edge{
 #[derive(Component, Clone)]
 pub struct Graph{
     pub vertices: Vec<Vertex>,
-    pub edges: [[Edge; 50]; 50],
+    pub edges: [[Edge; MAX_VERT]; MAX_VERT],
 }
 
 impl Graph{
     pub fn new() -> Self {
         Self{
             vertices: Vec::new(),
-            edges: [[Edge::new(Motion::Stop); 50];50],
+            edges: [[Edge::new(Motion::Stop); MAX_VERT];MAX_VERT],
         }
     }
 }
