@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 
-#[derive(Component, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct Vertex{
-    x: f32,
-    y: f32,
-    id: usize,
+    pub x: f32,
+    pub y: f32,
+    pub id: usize,
 }
 impl Vertex{
-    fn new(a: f32, b: f32, i: usize) -> Self{
+    pub fn new(a: f32, b: f32, i: usize) -> Self{
         Self{
             x: a,
             y: b,
@@ -16,7 +16,7 @@ impl Vertex{
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Motion{
     Left,
     Right,
@@ -40,6 +40,7 @@ impl Edge{
     }
 }
 
+#[derive(Component, Clone)]
 pub struct Graph{
     pub vertices: Vec<Vertex>,
     pub edges: [[Edge; 50]; 50],
@@ -59,8 +60,8 @@ pub fn get_level_mesh(id: i8) -> Graph{
     let mut graph = Graph::new();
     //level id for testing
     if id == 0{
-        graph.vertices.push(Vertex::new(-224., 0., 0));
-        graph.vertices.push(Vertex::new(256., 0., 1));
+        graph.vertices.push(Vertex::new(-224., 16., 0));
+        graph.vertices.push(Vertex::new(256., 16., 1));
         
         graph.edges[0][1] = Edge::new(Motion::Right);
         graph.edges[1][0] = Edge::new(Motion::Left);
