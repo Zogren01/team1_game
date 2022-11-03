@@ -22,17 +22,24 @@ impl Enemy{
             motion: Motion::Stop,
         }
     }
-    fn at_destination(&self, pos: Vec2) -> bool{
+    //updates enemy motion type if they are at or 
+    fn at_destination(&mut self, pos: Vec2){
         let x_diff = pos.x - self.next_vertex.x;
-        //will probably need to do something with the y position as well but idk what
-        //let y_diff = pos.y - self.next_vertex.y;
+        let y_diff = pos.y - self.next_vertex.y;
         //println!("target: {}",self.next_vertex.x);
         //println!("Current: {}", pos.x);
         //println!("Difference: {}", x_diff.abs());
-        if x_diff.abs() <= 32.{
-            return true;
+        //println!("target: {}",self.next_vertex.y);
+        //println!("Current: {}", pos.y);
+        //println!("Difference: {}", y_diff.abs());
+        if x_diff.abs() <= 1.{
+            if y_diff.abs() <= 1.  {
+                self.motion = Motion::Stop;
+            }
+            else {
+                self.motion = Motion::Fall;
+            }
         }
-        return false;
     }
     //for now, the target will be passed from the user
     fn choose_target(&mut self, target: usize){
@@ -51,8 +58,7 @@ impl Enemy{
         if self.next_vertex.id == 51{
             let seen_vertices = self.enemy_graph.vertices.len();
             if seen_vertices > 0{
-                let mut rng = rand::thread_rng();
-                start = rng.gen_range(0,seen_vertices);
+                start = 0;
             }
             else{
                 return;
@@ -70,20 +76,25 @@ impl Enemy{
             }
         }
         if found{
+            println!("travelling from {} to {}", start, self.next_vertex.id);
             self.motion = self.enemy_graph.edges[start][self.next_vertex.id].path;
             self.target_vertex = self.next_vertex.id;
         }
     }
     pub fn decide_motion(&mut self, pos: Vec2, target: usize)-> Motion{
-
-        if self.at_destination(pos) || self.motion == Motion::Stop{
-            
+        if self.target_vertex != 51{
+            self.at_destination(pos);
+        }
+        if self.motion == Motion::Stop{
+            if target == 1{
+                println!("target 1 selected");
+            }
             self.choose_target(target);
         }
         return self.motion;
     }
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
-        //this can definitely be done better
+
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
