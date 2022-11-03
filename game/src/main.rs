@@ -314,7 +314,7 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
         count += 1.0;
     }
 }
-//needs some serious refactoring
+
 fn calculate_sight(
     graph: Query<&Graph, With<Graph>>,
     player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
@@ -635,8 +635,6 @@ fn move_enemies(
 
         let mut change = Vec2::splat(0.);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
-        enemy.velocity.y += GRAVITY * deltat;
-        change.y = enemy.velocity.y;
         let mut target: usize = 51;
         if input.just_pressed(KeyCode::Key0){
             target = 0;
@@ -645,6 +643,9 @@ fn move_enemies(
             target = 1;
         }
         if input.just_pressed(KeyCode::Key2){
+            target = 2;
+        }
+        if input.just_pressed(KeyCode::Key9){
             println!("Verts seen by enemy:");
             for v in e.enemy_graph.vertices.iter_mut(){
                 println!("{}", v.id);
@@ -653,18 +654,35 @@ fn move_enemies(
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), target);
         match e.motion {
             Motion::Left=>{
-                enemy.velocity.x = -50.;
+                enemy.velocity.x = -100.;
+                enemy.velocity.y += GRAVITY * deltat;
             }
             Motion::Right=>{
-                enemy.velocity.x = 50.;
+                enemy.velocity.x = 100.;
+                enemy.velocity.y += GRAVITY * deltat;
             }
-            Motion::Jump=>{}
-            Motion::JumpRight=>{}
-            Motion::JumpLeft=>{}
+            Motion::Jump=>{
+                enemy.velocity.y = 8.;
+            }
+            Motion::JumpRight=>{
+                println!("Jumping right");
+                enemy.velocity.y = 8.;
+                e.motion = Motion::Right;
+            }
+            Motion::JumpLeft=>{
+                enemy.velocity.y = 8.;
+                e.motion = Motion::Left;
+            }
+            Motion::Fall=>{
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY * deltat;
+            }
             Motion::Stop=>{
                 enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY * deltat;
             }
         }
+        change.y = enemy.velocity.y;
         change.x = enemy.velocity.x * deltat;
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
