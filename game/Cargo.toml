@@ -8,8 +8,5 @@ edition = "2021"
 [dependencies]
 bevy = "0.8.1"
 sdl2 = "0.35.2"
-<<<<<<< Updated upstream
 rand = "0.7"
-=======
 iyes_loopless = "0.8"
->>>>>>> Stashed changes

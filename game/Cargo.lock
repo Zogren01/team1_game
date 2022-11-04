@@ -1435,11 +1435,8 @@ name = "game"
 version = "0.1.0"
 dependencies = [
  "bevy",
-<<<<<<< Updated upstream
- "rand",
-=======
  "iyes_loopless",
->>>>>>> Stashed changes
+ "rand",
  "sdl2",
 ]
 

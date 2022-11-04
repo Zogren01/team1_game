@@ -35,8 +35,6 @@ use crate::line_of_sight::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
-<<<<<<< Updated upstream
-=======
 const RUNTIME: f64 = 1./30.;
 
 struct Manager {
@@ -44,7 +42,6 @@ struct Manager {
     wall_id: i8,
     enemy_id: i8,
 }
->>>>>>> Stashed changes
 
 fn create_level(
     mut commands: Commands,
@@ -162,15 +159,6 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
-<<<<<<< Updated upstream
-        
-        .add_system(move_player.after(show_gui).before(enemy_collisions).before(apply_collisions))
-        .add_system(enemy_collisions)
-        .add_system(apply_collisions.after(enemy_collisions))
-        
-        .add_system(update_positions.after(apply_collisions))
-        .add_system(move_enemies.after(move_player).before(enemy_collisions).before(apply_collisions))
-=======
 
         .add_fixed_timestep(
             Duration::from_millis(17),
@@ -224,7 +212,6 @@ fn main() {
         // .add_system(item_shop.before(show_gui))
 
 
->>>>>>> Stashed changes
         .add_system(my_cursor_system)
         .add_system(show_gui)       
         .add_system(attack)
