@@ -1,7 +1,7 @@
 use crate::util::*;
 use bevy::prelude::*;
 
-pub const PLAYER_SPEED: f32 = 300.;
+pub const PLAYER_SPEED: f32 = 5.;
 pub const PLAYER_SZ: f32 = 32.;
 
 #[derive(Component)]
@@ -81,6 +81,8 @@ pub struct Player {
     pub credits: i8,
     pub item: ItemType,
     pub health: i8,
+    //temp variable
+    pub frames: i32,
 }
 
 impl Player {
@@ -89,6 +91,7 @@ impl Player {
             credits: 100,
             item: ItemType::None,
             health: 100,
+            frames: 0,
         }
         
     }
