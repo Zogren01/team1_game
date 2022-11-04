@@ -15,22 +15,23 @@ use crate::active_util::*;
 
 mod ai;
 use crate::ai::*;
+
+mod movement_mesh;
+use crate::movement_mesh::*;
+
+mod line_of_sight;
+use crate::line_of_sight::*;
+
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
-const RUNTIME: f64 = 1./45.;
-
-struct Manager {
-    room_number: i8,
-    wall_id: i8,
-    enemy_id: i8,
-}
 
 fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     level: Vec<Descriptor>,
+    mesh: Graph,
 ) {
     let mut id = 0;
     for desc in level {
@@ -122,6 +123,8 @@ fn create_level(
 
         id += 1;
     }
+    commands.spawn()
+        .insert(mesh);
 }
 
 fn main() {
@@ -136,26 +139,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         
-        
-     //   .add_system(enemy_collisions)
-        //.add_system(show_popup)
-
-        // .add_system_set(
-        //     SystemSet::new()
-        //         .with_run_criteria(FixedTimestep::step(RUNTIME))
-        //         .with_system(move_player)
-        //         .with_system(update_positions)
-        //         .with_system(enemy_collisions)
-        //         .with_system(apply_collisions)
-        //         .with_system(move_enemies)
-                
-
-        //  )
-        //         .add_system(calculate_sight)
-        //         .add_system(my_cursor_system)
-        //         .add_system(show_gui)
-        //         .add_system(item_shop)
-
         .add_system(move_player.after(show_gui).before(enemy_collisions).before(apply_collisions))
         .add_system(enemy_collisions)
         .add_system(apply_collisions.after(enemy_collisions))
@@ -204,16 +187,17 @@ fn setup(
     });
 
     //This is for the overlay
-    //Putting comments for every object so we know which is which. This is a bad idea for future levels but for now but it gets a basis going.
-    // commands.spawn_bundle(SpriteBundle {
-    //     sprite: Sprite {
-    //         custom_size: Some(Vec2::new(1920.0, 1080.0)),
-    //         ..default()
-    //     },
-    //     texture: asset_server.load("Room_1.png"),
-    //     transform: Transform::from_xyz(912., 500., 0.),
-    //     ..default()
-    // });
+    /*
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(1920.0, 1080.0)),
+            ..default()
+        },
+        texture: asset_server.load("Room_1.png"),
+        transform: Transform::from_xyz(912., 500., 0.),
+        ..default()
+    });
+    */
 
     commands
         .spawn_bundle(TextBundle::from_section(
@@ -297,62 +281,26 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Player::new());
-
-
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::RED,
+                color:Color::RED,
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(75., 50., 700.),
+                translation: Vec3::new(-50., 100., 5.),
                 ..default()
             },
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(75., 500., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(901, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(500., 50., 700.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(902, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new());
-    //improved code to spawn in all walls of a level
-    
+        .insert(Enemy::new(-50., 100.));
+    //this variable can change based on what room the player is in
     let mut level = get_level(1);
-    create_level(commands, asset_server, texture_atlases, level);
+    let mesh = get_level_mesh(0);
+    create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 
 //we can probably add this as an event, to be used when the level id is outside of the possible range
@@ -368,28 +316,22 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 }
 
 fn calculate_sight(
+    graph: Query<&Graph, With<Graph>>,
     player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
     mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-    //store data for player and other enemies for later use
-    let mut others = Vec::new();
-    for (obj, tr, _en) in enemies.iter() {
-        let data = (*obj, *tr);
-        others.push(data);
-    }
-    let (obj, tr) = player.single();
-    others.push((*obj, *tr));
 
-    let sight_distance = 300.0;
-
+    let sight_distance = 800.0;
+    
     for (_obj, tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
 
+        //add lines for objects to used to determine if an object is blocked form view
         for (o, t) in objects.iter() {
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
+            //v1 and v2 and v3 hold the three vertices visible to the player
             let (v1, v2, v3) = find_vertices(
                 pos.x,
                 pos.y,
@@ -398,63 +340,26 @@ fn calculate_sight(
                 o.width,
                 o.height,
             );
-            let d = Descriptor::new2(o.width, o.height, t.translation.x, t.translation.y, o.obj_type, o.id);
-            //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
-
-            //track whether these are in range
-            let mut in_range = false;
-            if s1.length_squared() < sight_distance * sight_distance {
-                sight_lines.push(s1);
-                in_range = true;
-            }
-            if s2.length_squared() < sight_distance * sight_distance {
-                sight_lines.push(s2);
-                in_range = true;
-            }
-            //maybe add code to check the corner of objects
-            if in_range {
-                let o1 = Line::new(v1, v3, d);
-                let o2 = Line::new(v2, v3, d);
+            //if the object is within range, add its lines to object lines so that they are checked for line of sight
+            let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
+            if l1.length_squared() < sight_distance * sight_distance {
+                let o1 = Line::new(v1, v3, 0);
+                let o2 = Line::new(v2, v3, 0);
                 object_lines.push(o1);
                 object_lines.push(o2);
             }
         }
-        for (o, t) in others.iter() {
-            //v1 and v2 hold the endpoints for line of sight, v3 holds the corner
-            let (v1, v2, v3) = find_vertices(
-                pos.x,
-                pos.y,
-                t.translation.x,
-                t.translation.y,
-                o.width,
-                o.height,
-            );
-            let d = Descriptor::new2(o.width, o.height, t.translation.x, t.translation.y, o.obj_type, o.id);
-            //generate lines of sight
-            let s1 = Line::new(Vec2::new(pos.x, pos.y), v1, d);
-            let s2 = Line::new(Vec2::new(pos.x, pos.y), v2, d);
+        let g = graph.single();
+        for vertex in &g.vertices {
 
-            //track whether these are in range
-            let mut in_range = false;
-            if s1.length_squared() < sight_distance * sight_distance {
-                sight_lines.push(s1);
-                in_range = true;
-            }
-            if s2.length_squared() < sight_distance * sight_distance {
-                sight_lines.push(s2);
-                in_range = true;
-            }
-            //maybe add code to check the corner of objects
-            if in_range {
-                let o1 = Line::new(v1, v3, d);
-                let o2 = Line::new(v2, v3, d);
-                object_lines.push(o1);
-                object_lines.push(o2);
+            let sight_line = Line::new(Vec2::new(pos.x, pos.y), Vec2::new(vertex.x, vertex.y), vertex.id);
+            if sight_line.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(sight_line);
             }
         }
-        en.determine_visibility(sight_lines, object_lines, obj.height);
+        //cloning the graph for each enemy is expensive but I don't know how to avoid it
+        //copmuter fan go brrrr
+        en.update_sight(sight_lines, object_lines, g.clone());
     }
 }
 
@@ -727,33 +632,56 @@ fn move_enemies(
 ){
     let deltat = time.delta_seconds();
     for (mut enemy, et, mut e) in enemies.iter_mut(){
-        if input.just_pressed(KeyCode::K) {
-            println!(
-                "For enemy at position {}, {}",
-                et.translation.x, et.translation.y
-            );
-            e.check_visible_objects();
-        }
+
         let mut change = Vec2::splat(0.);
-        //need argument to let enemy know about collisions that have occured
-        e.decide_motion(&et.translation);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
-        match e.next_move{
-            Motion::Left => {
-                //replace with enemy speed later
-                if enemy.velocity.x > -PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x - 20.;
-                }
-            }
-            Motion::Right => {
-                if enemy.velocity.x < PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x + 20.;
-                }
-            }
-            Motion::Jump => {}
-            Motion::Idle => {}
+        let mut target: usize = 51;
+        if input.just_pressed(KeyCode::Key0){
+            target = 0;
         }
-        enemy.velocity.y += GRAVITY * deltat;
+        if input.just_pressed(KeyCode::Key1){
+            target = 1;
+        }
+        if input.just_pressed(KeyCode::Key2){
+            target = 2;
+        }
+        if input.just_pressed(KeyCode::Key9){
+            println!("Verts seen by enemy:");
+            for v in e.enemy_graph.vertices.iter_mut(){
+                println!("{}", v.id);
+            }
+        }
+        e.decide_motion(Vec2::new(et.translation.x, et.translation.y), target);
+        match e.motion {
+            Motion::Left=>{
+                enemy.velocity.x = -100.;
+                enemy.velocity.y += GRAVITY * deltat;
+            }
+            Motion::Right=>{
+                enemy.velocity.x = 100.;
+                enemy.velocity.y += GRAVITY * deltat;
+            }
+            Motion::Jump=>{
+                enemy.velocity.y = 8.;
+            }
+            Motion::JumpRight=>{
+                println!("Jumping right");
+                enemy.velocity.y = 8.;
+                e.motion = Motion::Right;
+            }
+            Motion::JumpLeft=>{
+                enemy.velocity.y = 8.;
+                e.motion = Motion::Left;
+            }
+            Motion::Fall=>{
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY * deltat;
+            }
+            Motion::Stop=>{
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY * deltat;
+            }
+        }
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x * deltat;
         //this holds the position the player will end up in if there is no collision

@@ -81,8 +81,11 @@ impl Descriptor {
 
 pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
-    
-
+    //smaller map for testing AI stuff
+    if id == 0 {
+        result.push(Descriptor::new(512., 32., 16., 0., ObjectType::Block));
+        result.push(Descriptor::new(32., 64., 256., 48., ObjectType::Block));
+    }
     if id == 1 {
         let mut x = 16.;
         let mut y = 0.;
@@ -90,7 +93,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         for i in 0..29{
         result.push(Descriptor::new(64., 32., x, 0., ObjectType::Block));
         x = x+64.;
-         }
+        }
         //main floor
         //result.push(Descriptor::new(1856., 32., 912., 0., ObjectType::Block));
         //ceiling
