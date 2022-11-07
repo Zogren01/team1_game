@@ -213,6 +213,8 @@ pub enum ObjectType {
     Spike,
     Cobweb,
     Active,
+    Enemy, //enemy and player types will be necessary for enemy line of sight
+    Player,
     Item,
     UmbrellaItem,
     JetpackItem,

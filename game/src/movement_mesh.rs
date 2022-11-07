@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-pub const MAX_VERT: usize = 100;
+pub const MAX_VERT: usize = 50;
 #[derive(Copy, Clone)]
 pub struct Vertex{
     pub x: f32,
@@ -72,7 +72,7 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.edges[2][1] = Edge::new(Motion::Left);
     }
     if id == 1{
-        
+
     }
     return graph;
 }

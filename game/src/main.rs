@@ -24,7 +24,7 @@ use crate::line_of_sight::*;
 
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-const START_TIME: f32 = 15.;
+const START_TIME: f32 = 100.;
 
 fn create_level(
     mut commands: Commands,
@@ -145,7 +145,7 @@ fn main() {
         
         .add_system(update_positions.after(apply_collisions))
         .add_system(move_enemies.after(move_player).before(enemy_collisions).before(apply_collisions))
-        .add_system(my_cursor_system)
+        //.add_system(my_cursor_system)
         .add_system(show_gui)
         .add_system(calculate_sight.after(update_positions))
         .add_system(item_shop.before(show_gui))
@@ -296,9 +296,9 @@ fn setup(
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new(-50., 100.));
+        .insert(Enemy::new(-50., 100., 0));
     //this variable can change based on what room the player is in
-    let mut level = get_level(1);
+    let mut level = get_level(0);
     let mesh = get_level_mesh(0);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
@@ -317,14 +317,14 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 
 fn calculate_sight(
     graph: Query<&Graph, With<Graph>>,
-    player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
-    mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
-    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
+    //player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    objects: Query<(&Object, &Transform), With<Object>>,
 ) {
 
     let sight_distance = 800.0;
     
-    for (_obj, tr, mut en) in enemies.iter_mut() {
+    for (tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
         let mut object_lines = Vec::new();
@@ -332,22 +332,44 @@ fn calculate_sight(
         //add lines for objects to used to determine if an object is blocked form view
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
-            let (v1, v2, v3) = find_vertices(
-                pos.x,
-                pos.y,
-                t.translation.x,
-                t.translation.y,
-                o.width,
-                o.height,
-            );
-            //if the object is within range, add its lines to object lines so that they are checked for line of sight
-            let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
-            if l1.length_squared() < sight_distance * sight_distance {
-                let o1 = Line::new(v1, v3, 0);
-                let o2 = Line::new(v2, v3, 0);
-                object_lines.push(o1);
-                object_lines.push(o2);
+            match o.obj_type{
+                ObjectType::Block | ObjectType::Spike=> {
+                    //blocks and spikes are the only two objects that block line of sight
+                    let (v1, v2, v3) = find_vertices(
+                        pos.x,
+                        pos.y,
+                        t.translation.x,
+                        t.translation.y,
+                        o.width,
+                        o.height,
+                    );
+                    //if the object is within range, add its lines to object lines so that they are checked for line of sight
+                    let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
+                    if l1.length_squared() < sight_distance * sight_distance {
+                        let o1 = Line::new(v1, v3, 0);
+                        let o2 = Line::new(v2, v3, 0);
+                        object_lines.push(o1);
+                        object_lines.push(o2);
+                    }
+                    //spikes might need to be added in a different way so enemy can use them
+                }
+                ObjectType::Cobweb => {
+                    //cobwebs are "transparent", might need to be added to enemies code to utilize them
+                }
+                ObjectType::Active => {
+                    //this type might be useless
+                }
+                ObjectType::Enemy => {
+
+                }
+                ObjectType::Player => {
+
+                }
+                ObjectType::Item => {}
+                ObjectType::UmbrellaItem => {}
+                ObjectType::JetpackItem => {}
             }
+            
         }
         let g = graph.single();
         for vertex in &g.vertices {
@@ -405,6 +427,8 @@ fn apply_collisions(
                                 t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                         }
                         ObjectType::Active => {}
+                        ObjectType::Enemy => {}
+                        ObjectType::Player => {}
                     },
                     Collision::Right => match o.obj_type {
                         ObjectType::JetpackItem => {}
@@ -426,6 +450,8 @@ fn apply_collisions(
                                 t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                         }
                         ObjectType::Active => {}
+                        ObjectType::Enemy => {}
+                        ObjectType::Player => {}
                     },
                     Collision::Top => {
                         match o.obj_type {
@@ -455,6 +481,8 @@ fn apply_collisions(
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
+                            ObjectType::Enemy => {}
+                            ObjectType::Player => {}
                         }
                     }
                     Collision::Bottom => {
@@ -479,6 +507,8 @@ fn apply_collisions(
                                     t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
+                            ObjectType::Enemy => {}
+                            ObjectType::Player => {}
                         }
                     }
                     Collision::Inside => {
@@ -497,7 +527,8 @@ fn apply_collisions(
                             active.velocity = Vec2::new(0., 0.);}
                             ObjectType::Active => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);}
-
+                            ObjectType::Enemy => {}
+                            ObjectType::Player => {}
                         }
                     }
                 }
@@ -627,7 +658,7 @@ fn move_enemies(
     input: Res<Input<KeyCode>>,
     mut enemies: Query<
         (&mut ActiveObject, &Transform, &mut Enemy),
-        (With<Enemy>),
+        With<Enemy>,
     >,
 ){
     let deltat = time.delta_seconds();
@@ -673,11 +704,7 @@ fn move_enemies(
                 enemy.velocity.y = 8.;
                 e.motion = Motion::Left;
             }
-            Motion::Fall=>{
-                enemy.velocity.x = 0.;
-                enemy.velocity.y += GRAVITY * deltat;
-            }
-            Motion::Stop=>{
+            Motion::Fall | Motion::Stop=>{
                 enemy.velocity.x = 0.;
                 enemy.velocity.y += GRAVITY * deltat;
             }
@@ -741,7 +768,6 @@ fn move_player(
 fn attack(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
-
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
@@ -752,11 +778,14 @@ fn attack(
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);// DOWN
         } else if input.pressed(KeyCode::W) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
-        } else if input.pressed(KeyCode::D){
-            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
         } else {
-            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
-    }
+            if pl.facing_left {
+                hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
+            }
+            else {
+                hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
+            } 
+        }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -893,18 +922,5 @@ fn item_shop(
             pt.translation = Vec3::new(0., 64., 0.);
             clock.timer.unpause();
         }
-        // if input.just_pressed(KeyCode::B) {
-            
-        //     if p.credits >= UMBRELLA_PRICE  { //IF TRY TO BUY UMBRELLA
-        //         p.credits-=UMBRELLA_PRICE;
-        //         p.item = ItemType::Umbrella;
-        //         print!("UMBRELLA PURCHASED!");
-        //     } else if p.credits >= JETPACK_PRICE { //IF TRY TO BUY JETPACK
-        //         p.credits-=JETPACK_PRICE;
-        //         p.item = ItemType::Jetpack;
-        //         print!("JETPACK PURCHASED!");
-        //     }
-        //     print!("\n PRESS I TO RETURN!");
-        // }
     }
 }

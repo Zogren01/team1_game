@@ -2,39 +2,95 @@ use bevy::{prelude::*};
 use crate::movement_mesh::*;
 use crate::line_of_sight::*;
 use rand::Rng;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 
+
+#[derive(Clone)]
+pub struct Path {
+    vertices: Vec<usize>,
+    weight: usize,
+}
+impl Path {
+    pub fn new() -> Self{
+        Self{
+            vertices: Vec::new(),
+            weight: usize::MAX,
+        } 
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct State {
+    cost: usize,
+    position: usize,
+}
+
+// The priority queue depends on `Ord`.
+// Explicitly implement the trait so the queue becomes a min-heap
+// instead of a max-heap.
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.position.cmp(&other.position))
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 #[derive(Component)]
 pub struct Enemy{
-    pub enemy_graph: Graph,
-    pub next_vertex: Vertex, //the next vertex for the enemy to reach
-    //some variable "path" to track the enemies target path
+    pub enemy_graph: Graph, 
+    pub next_vertex: usize,
+    pub current_vertex: usize,
     pub target_vertex: usize, //the end goal of the enemies motion, usize is used because next vertex can be used to check the position
+    pub path: Path,
+    pub index_in_path: usize,
     pub motion: Motion,
 }
 
 impl Enemy{
-    pub fn new(x: f32, y: f32) -> Self {
+    pub fn new(x: f32, y: f32, v: usize) -> Self {
         Self{
             enemy_graph: Graph::new(),
-            next_vertex: Vertex::new(x, y, 51),
+            next_vertex: 51,
+            current_vertex: v,
             target_vertex: 51,
+            path: Path::new(),
+            index_in_path: 0,
             motion: Motion::Stop,
         }
     }
     //updates enemy motion type if they are at or 
     fn at_destination(&mut self, pos: Vec2){
-        let x_diff = pos.x - self.next_vertex.x;
-        let y_diff = pos.y - self.next_vertex.y;
-        //println!("target: {}",self.next_vertex.x);
-        //println!("Current: {}", pos.x);
-        //println!("Difference: {}", x_diff.abs());
-        //println!("target: {}",self.next_vertex.y);
-        //println!("Current: {}", pos.y);
-        //println!("Difference: {}", y_diff.abs());
+        let mut found: bool = false;
+        let mut x_diff = f32::MAX;
+        let mut y_diff = f32::MAX;
+        for v in self.enemy_graph.vertices.iter_mut() {
+            if v.id == self.next_vertex {
+                x_diff = pos.x - v.x;
+                y_diff = pos.y - v.y;
+            }
+        }
         if x_diff.abs() <= 1.{
             if y_diff.abs() <= 1.  {
-                self.motion = Motion::Stop;
+                self.current_vertex = self.next_vertex;
+                if self.next_vertex != self.target_vertex{
+                    self.index_in_path += 1;
+                    self.next_vertex = self.path.vertices[self.index_in_path];
+                    self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
+                }
+                else{
+                    self.motion = Motion::Stop;
+                }
             }
             else {
                 self.motion = Motion::Fall;
@@ -48,51 +104,75 @@ impl Enemy{
         a list (or some other structure) of what vertices must be traversed will be created
         this will be called every time a destination is reached, or the target should be changed
         */
+        
+        self.target_vertex = target;
+        self.path = self.shortest_path();
+        self.index_in_path = 0;
+        println!("Distance from {} to {} is: {}", self.current_vertex, self.target_vertex, self.path.weight);
+        for v in self.path.vertices.iter_mut(){
+            println!("{}", v);
+        }
 
-        //51 is a placeholder for when an enemy is spawned in (maybe spawn in with a first vertex?)
-        let start: usize;
-        if target == 51{
-            self.motion = Motion::Stop;
-            return;
-        }
-        if self.next_vertex.id == 51{
-            let seen_vertices = self.enemy_graph.vertices.len();
-            if seen_vertices > 0{
-                start = 0;
-            }
-            else{
-                return;
-            }
-        }
-        else{
-            start = self.next_vertex.id;
-        }
-        let mut found = false;
-        for vertex in self.enemy_graph.vertices.iter_mut(){
-            if vertex.id == target{
-                found = true;
-                self.next_vertex = *vertex;
-                break;
-            }
-        }
-        if found{
-            println!("travelling from {} to {}", start, self.next_vertex.id);
-            self.motion = self.enemy_graph.edges[start][self.next_vertex.id].path;
-            self.target_vertex = self.next_vertex.id;
-        }
+        self.next_vertex = self.path.vertices[self.index_in_path];
+        self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
+        println!("Next vertex is: {}", self.next_vertex);
     }
     pub fn decide_motion(&mut self, pos: Vec2, target: usize)-> Motion{
-        if self.target_vertex != 51{
-            self.at_destination(pos);
-        }
-        if self.motion == Motion::Stop{
-            if target == 1{
-                println!("target 1 selected");
-            }
+        if target != 51{
             self.choose_target(target);
         }
+        self.at_destination(pos);
         return self.motion;
     }
+    fn shortest_path(&mut self) -> Path {
+        // dist[node] = current shortest distance from `start` to `node`
+        let mut result = Path::new();
+        let mut dist: Vec<Path> = vec!(Path::new(); MAX_VERT);
+    
+        let mut heap = BinaryHeap::new();
+    
+        // We're at `start`, with a zero cost
+        //dist[self.current_vertex] = 0;
+        heap.push(State { cost: 0, position: self.current_vertex });
+    
+        // Examine the frontier with lower cost nodes first (min-heap)
+        while let Some(State { cost, position }) = heap.pop() {
+            // Alternatively we could have continued to find all shortest paths
+            if position == self.target_vertex { return dist[position].clone(); }
+    
+            // Important as we may have already found a better way
+            if cost > dist[position].weight { continue; }
+    
+            // For each node we can reach, see if we can find a way with
+            // a lower cost going through this node
+            let mut index: usize = 0;
+            //let mut prev: usize = 0;
+            for edge in &self.enemy_graph.edges[position] {
+                match edge.path {
+                    Motion::Left | Motion::Right | Motion::Jump |
+                    Motion::JumpRight | Motion::JumpLeft | Motion::Fall => {
+
+                        //replace 1 with edge weight
+                        let next = State { cost: cost + 1, position: index };
+    
+                        // If so, add it to the frontier and continue
+                        if next.cost < dist[next.position].weight {
+                            heap.push(next);
+                            // Relaxation, we have now found a better way
+                            dist[next.position].weight = next.cost;
+                            dist[next.position].vertices = dist[position].vertices.clone();
+                            dist[next.position].vertices.push(next.position);
+                        }
+    
+                    }
+                    Motion::Stop => {} 
+                }
+                index += 1;
+            }
+        }
+        return result;
+    }
+
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
 
         for l in sight.iter() {
