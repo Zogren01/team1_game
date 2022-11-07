@@ -2,9 +2,19 @@
 use bevy::app::AppExit;
 use bevy::asset;
 use bevy::render::camera::RenderTarget;
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::sprite::collide_aabb::Collision;
+use bevy::ui::update;
 use bevy::{prelude::*, window::PresentMode};
 use bevy::time::FixedTimestep;
+use bevy::utils::*;
+
+use iyes_loopless::prelude::*;
+
+//use sdl2::libc::ENOTEMPTY;
+
+
+
 
 //imports from local creates
 mod util;
@@ -25,6 +35,13 @@ use crate::line_of_sight::*;
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
+const RUNTIME: f64 = 1./30.;
+
+struct Manager {
+    room_number: i8,
+    wall_id: i8,
+    enemy_id: i8,
+}
 
 fn create_level(
     mut commands: Commands,
@@ -63,10 +80,11 @@ fn create_level(
                 commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::PURPLE,
+                        //color: Color::PURPLE,
                         custom_size: Some(Vec2::new(desc.width, desc.height)),
                         ..default()
                     },
+                    texture: asset_server.load("umbrella.png"),
                     transform: Transform {
                         translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                         ..default()
@@ -79,10 +97,11 @@ fn create_level(
                 commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::GRAY,
+                        //color: Color::GRAY,
                         custom_size: Some(Vec2::new(desc.width, desc.height)),
                         ..default()
                     },
+                    texture: asset_server.load("jetpack.png"),
                     transform: Transform {
                         translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                         ..default()
@@ -137,18 +156,58 @@ fn main() {
             ..default()
         })
         .add_plugins(DefaultPlugins)
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
+
+        .add_fixed_timestep(
+            Duration::from_millis(17),
+            // we need to give it a string name, to refer to it
+            "my_fixed_update",
+        )
+
+.add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            move_player
+         )
+        .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            apply_collisions.after(move_player)
+         )
+         .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            update_positions.after(apply_collisions)
+         )
         
-        .add_system(move_player.after(show_gui).before(enemy_collisions).before(apply_collisions))
-        .add_system(enemy_collisions)
-        .add_system(apply_collisions.after(enemy_collisions))
-        
-        .add_system(update_positions.after(apply_collisions))
-        .add_system(move_enemies.after(move_player).before(enemy_collisions).before(apply_collisions))
+         
+         .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            enemy_collisions.after(update_positions)
+         )
+         .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            move_enemies.after(enemy_collisions)
+         )
+         .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            calculate_sight.after(move_enemies)
+         )
+
+
+
+        // .add_system(enemy_collisions.after(update_positions))
+        // .add_system(move_enemies.after(update_positions))
+        // .add_system(calculate_sight.after(update_positions))
+        // .add_system(item_shop.before(show_gui))
+        .add_system(item_shop)
         .add_system(my_cursor_system)
-        .add_system(show_gui)
-        .add_system(calculate_sight.after(update_positions))
-        .add_system(item_shop.before(show_gui))
+        .add_system(show_gui)       
         .add_system(attack)
         .run();
 }
@@ -450,6 +509,10 @@ fn apply_collisions(
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
+                                    
+                                }
+                                else if active.velocity.y == 0.{
+                                    print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
@@ -477,6 +540,8 @@ fn apply_collisions(
                                 active.velocity.y = 0.;
                                 active.projected_position.y =
                                     t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+
+                                    
                             }
                             ObjectType::Active => {}
                         }
@@ -695,43 +760,53 @@ fn move_enemies(
 fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
+    mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>)>,
+    mut exit: EventWriter<AppExit>,
 ) {
-    let (mut pl, mut pt) = player.single_mut();
-
+    let (mut pl, mut pt, mut p) = player.single_mut();
+    p.frames += 1;
     if input.pressed(KeyCode::A) {
         pl.facing_left = true;
         if pl.velocity.x > -PLAYER_SPEED {
-            pl.velocity.x = pl.velocity.x - 20.;
+            pl.velocity.x = pl.velocity.x - 1.;
         }
     } else if pl.velocity.x < 0. {
-        pl.velocity.x = pl.velocity.x + 20.;
+        pl.velocity.x = pl.velocity.x + 1.;
     }
 
     if input.pressed(KeyCode::D) {
         pl.facing_left = false;
         if pl.velocity.x < PLAYER_SPEED {
-            pl.velocity.x = pl.velocity.x + 20.;
+            pl.velocity.x = pl.velocity.x + 1.;
         }
     } else if pl.velocity.x > 0. {
-        pl.velocity.x = pl.velocity.x - 20.;
+        pl.velocity.x = pl.velocity.x - 1.;
     }
 
-    let deltat = time.delta_seconds();
+    //let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
-    change.x = pl.velocity.x * deltat;
+    change.x = pl.velocity.x;
+
+
     //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
-    if input.just_pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 8.;
-        change.y = 8.;
+
+    if input.pressed(KeyCode::Space) && pl.grounded {
+        pl.velocity.y = 10.;
+        change.y = 10.;
     }
     //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
-    else {
-        pl.velocity.y += GRAVITY * deltat;
+    else if pl.grounded {
+        pl.velocity.y += 0.0;
         change.y = pl.velocity.y;
     }
+    else if !(pl.grounded) {
+        //print!("Applying Gravity");
+        pl.velocity.y += GRAVITY;
+        change.y = pl.velocity.y;
+    }
+
     //this holds the position the player will end up in if there is no collision
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
     pl.grounded = false;
