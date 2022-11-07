@@ -166,42 +166,37 @@ fn main() {
             "my_fixed_update",
         )
 
-
-
-        .add_fixed_timestep_system(
+.add_fixed_timestep_system(
             "my_fixed_update", 0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
             move_player
          )
-         .add_fixed_timestep_system(
+        .add_fixed_timestep_system(
             "my_fixed_update", 0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            apply_collisions
+            apply_collisions.after(move_player)
          )
          .add_fixed_timestep_system(
             "my_fixed_update", 0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            update_positions
+            update_positions.after(apply_collisions)
+         )
+        
+         
+         .add_fixed_timestep_system(
+            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            enemy_collisions.after(update_positions)
          )
          .add_fixed_timestep_system(
             "my_fixed_update", 0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            enemy_collisions
+            move_enemies.after(enemy_collisions)
          )
          .add_fixed_timestep_system(
             "my_fixed_update", 0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            move_enemies
-         )
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
-            // it can be a conditional system!
-            calculate_sight
-         )
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
-            // it can be a conditional system!
-            item_shop
+            calculate_sight.after(move_enemies)
          )
 
 
@@ -210,8 +205,7 @@ fn main() {
         // .add_system(move_enemies.after(update_positions))
         // .add_system(calculate_sight.after(update_positions))
         // .add_system(item_shop.before(show_gui))
-
-
+        .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)       
         .add_system(attack)
@@ -515,6 +509,10 @@ fn apply_collisions(
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
+                                    
+                                }
+                                else if active.velocity.y == 0.{
+                                    print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
@@ -542,6 +540,8 @@ fn apply_collisions(
                                 active.velocity.y = 0.;
                                 active.projected_position.y =
                                     t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+
+                                    
                             }
                             ObjectType::Active => {}
                         }
@@ -761,6 +761,7 @@ fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>)>,
+    mut exit: EventWriter<AppExit>,
 ) {
     let (mut pl, mut pt, mut p) = player.single_mut();
     p.frames += 1;
@@ -785,24 +786,27 @@ fn move_player(
     //let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
+
+
     //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
-    if input.just_pressed(KeyCode::Space) && pl.grounded {
+
+    if input.pressed(KeyCode::Space) && pl.grounded {
         pl.velocity.y = 10.;
         change.y = 10.;
     }
     //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
-    else {
+    else if pl.grounded {
+        pl.velocity.y += 0.0;
+        change.y = pl.velocity.y;
+    }
+    else if !(pl.grounded) {
+        //print!("Applying Gravity");
         pl.velocity.y += GRAVITY;
         change.y = pl.velocity.y;
     }
-    if pl.velocity.y != GRAVITY{
-        println!("{}",p.frames);
-    }
-    else{
-        p.frames= 0;
-    }
+
     //this holds the position the player will end up in if there is no collision
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
     pl.grounded = false;
