@@ -1,7 +1,7 @@
 use crate::util::*;
 use bevy::prelude::*;
 
-pub const PLAYER_SPEED: f32 = 300.;
+pub const PLAYER_SPEED: f32 = 5.;
 pub const PLAYER_SZ: f32 = 32.;
 
 #[derive(Component)]
@@ -12,7 +12,6 @@ pub struct CreditText;
 pub struct Clock {
     pub timer: Timer,
 }
-
 
 /*
 impl Clock{
@@ -46,7 +45,6 @@ pub struct ActiveObject {
     pub velocity: Vec2,
     pub max_health: i32,
     pub health: i32,
-    pub damage: i32,
     pub projected_position: Vec3,
 }
 
@@ -58,12 +56,12 @@ impl ActiveObject {
             velocity: Vec2::splat(0.),
             max_health: h,
             health: h,
-            damage: d,
             projected_position: Vec3::splat(0.),
         }
     }
-    pub fn take_damage(&self, damage: i32) {
+    pub fn take_damage(&mut self, damage: i32) {
         //implement taking damage
+        self.health -= damage;
     }
     pub fn heal(&self, gain: i32) {
         //implement healing
@@ -81,6 +79,8 @@ pub struct Player {
     pub credits: i8,
     pub item: ItemType,
     pub health: i8,
+    //temp variable
+    pub frames: i32,
 }
 
 impl Player {
@@ -89,7 +89,7 @@ impl Player {
             credits: 100,
             item: ItemType::None,
             health: 100,
+            frames: 0,
         }
-        
     }
 }
