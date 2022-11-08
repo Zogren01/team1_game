@@ -1,20 +1,17 @@
 //imports from outside crates
 use bevy::app::AppExit;
 use bevy::asset;
-use bevy::render::camera::RenderTarget;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
-use bevy::ui::update;
-use bevy::{prelude::*, window::PresentMode};
 use bevy::time::FixedTimestep;
+use bevy::ui::update;
 use bevy::utils::*;
+use bevy::{prelude::*, window::PresentMode};
 
 use iyes_loopless::prelude::*;
 
 //use sdl2::libc::ENOTEMPTY;
-
-
-
 
 //imports from local creates
 mod util;
@@ -32,10 +29,13 @@ use crate::movement_mesh::*;
 mod line_of_sight;
 use crate::line_of_sight::*;
 
+mod physics;
+use crate::physics::*;
+
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 const START_TIME: f32 = 15.;
-const RUNTIME: f64 = 1./30.;
+const RUNTIME: f64 = 1. / 30.;
 
 struct Manager {
     room_number: i8,
@@ -59,56 +59,67 @@ fn create_level(
                 texture_path = "spiderweb.png";
             } else if matches!(desc.obj_type, ObjectType::Spike) {
                 texture_path = "spike.png";
-            }
-            else if matches!(desc.obj_type, ObjectType::Item){
+            } else if matches!(desc.obj_type, ObjectType::Item) {
                 commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            }
-            else if matches!(desc.obj_type, ObjectType::UmbrellaItem){
+                    })
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            } else if matches!(desc.obj_type, ObjectType::UmbrellaItem) {
                 commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        //color: Color::PURPLE,
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            //color: Color::PURPLE,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        texture: asset_server.load("umbrella.png"),
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    texture: asset_server.load("umbrella.png"),
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            }
-            else if matches!(desc.obj_type, ObjectType::JetpackItem){
+                    })
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            } else if matches!(desc.obj_type, ObjectType::JetpackItem) {
                 commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        //color: Color::GRAY,
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            //color: Color::GRAY,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        texture: asset_server.load("jetpack.png"),
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    texture: asset_server.load("jetpack.png"),
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                    })
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            } else if matches!(desc.obj_type, ObjectType::Breakable) {
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    ..default()
-                })
-                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+                    })
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             }
             commands
                 .spawn_bundle(SpriteBundle {
@@ -142,8 +153,7 @@ fn create_level(
 
         id += 1;
     }
-    commands.spawn()
-        .insert(mesh);
+    commands.spawn().insert(mesh);
 }
 
 fn main() {
@@ -159,56 +169,68 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_startup_system(setup)
-
         .add_fixed_timestep(
             Duration::from_millis(17),
             // we need to give it a string name, to refer to it
             "my_fixed_update",
         )
-
-.add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
-            // it can be a conditional system!
-            move_player
-         )
         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            apply_collisions.after(move_player)
-         )
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            move_player,
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            update_positions.after(apply_collisions)
-         )
-        
-         
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            apply_collisions.after(move_player),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            enemy_collisions.after(update_positions)
-         )
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            update_positions.after(apply_collisions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            move_enemies.after(enemy_collisions)
-         )
-         .add_fixed_timestep_system(
-            "my_fixed_update", 0, // fixed timestep name, sub-stage index
+            enemy_collisions.after(update_positions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            calculate_sight.after(move_enemies)
-         )
-
-
-
+            move_enemies.after(enemy_collisions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            calculate_sight.after(move_enemies),
+        )
         // .add_system(enemy_collisions.after(update_positions))
         // .add_system(move_enemies.after(update_positions))
         // .add_system(calculate_sight.after(update_positions))
         // .add_system(item_shop.before(show_gui))
         .add_system(item_shop)
         .add_system(my_cursor_system)
-        .add_system(show_gui)       
+        .add_system(show_gui)
         .add_system(attack)
+        .add_system(shoot)
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            projectile_active_collision.after(shoot),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            projectile_collisions.after(projectile_active_collision),
+        )
         .run();
 }
 
@@ -278,48 +300,48 @@ fn setup(
             ..default()
         })
         .insert(ClockText);
-    
+
     //spawn creditText
     commands
-    .spawn_bundle(TextBundle::from_section(
-        "",
-        TextStyle {
-            font_size: 100.0,
-            color: Color::YELLOW,
-            font: asset_server.load("mrsmonster.ttf"),
-        },
-    ))
-    .insert(Style {
-        align_self: AlignSelf::FlexEnd,
-        position_type: PositionType::Absolute,
-        position: UiRect {
-            bottom: Val::Px(5.0),
-            left: Val::Px(15.0),
+        .spawn_bundle(TextBundle::from_section(
+            "",
+            TextStyle {
+                font_size: 100.0,
+                color: Color::YELLOW,
+                font: asset_server.load("mrsmonster.ttf"),
+            },
+        ))
+        .insert(Style {
+            align_self: AlignSelf::FlexEnd,
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                bottom: Val::Px(5.0),
+                left: Val::Px(15.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
+        })
         .insert(CreditText);
 
     //spawn healthbar
     commands
-    .spawn_bundle(TextBundle::from_section(
-        "100",
-        TextStyle {
-            font_size: 100.0,
-            color: Color::RED,
-            font: asset_server.load("mrsmonster.ttf"),
-        },
-    ))
-    .insert(Style {
-        align_self: AlignSelf::FlexEnd,
-        position_type: PositionType::Absolute,
-        position: UiRect {
-            left: Val::Px(15.0),
+        .spawn_bundle(TextBundle::from_section(
+            "100",
+            TextStyle {
+                font_size: 100.0,
+                color: Color::RED,
+                font: asset_server.load("mrsmonster.ttf"),
+            },
+        ))
+        .insert(Style {
+            align_self: AlignSelf::FlexEnd,
+            position_type: PositionType::Absolute,
+            position: UiRect {
+                left: Val::Px(15.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
+        })
         .insert(HealthBar);
 
     //Player(spawns slightly above origin now, starting tile of map centered on origin.)
@@ -343,7 +365,7 @@ fn setup(
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color:Color::RED,
+                color: Color::RED,
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
@@ -380,9 +402,8 @@ fn calculate_sight(
     mut enemies: Query<(&Object, &Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-
     let sight_distance = 800.0;
-    
+
     for (_obj, tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
@@ -410,8 +431,11 @@ fn calculate_sight(
         }
         let g = graph.single();
         for vertex in &g.vertices {
-
-            let sight_line = Line::new(Vec2::new(pos.x, pos.y), Vec2::new(vertex.x, vertex.y), vertex.id);
+            let sight_line = Line::new(
+                Vec2::new(pos.x, pos.y),
+                Vec2::new(vertex.x, vertex.y),
+                vertex.id,
+            );
             if sight_line.length_squared() < sight_distance * sight_distance {
                 sight_lines.push(sight_line);
             }
@@ -449,12 +473,13 @@ fn apply_collisions(
                         ObjectType::UmbrellaItem => {}
                         ObjectType::Spike => {}
                         ObjectType::Item => {}
+                        ObjectType::Bullet => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x /= 2.;
+                                active.velocity.x = 2.;
                             }
                             if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y /= 2.;
+                                active.velocity.y = 2.;
                             }
                             active.grounded = false;
                         }
@@ -464,18 +489,24 @@ fn apply_collisions(
                                 t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                         }
                         ObjectType::Active => {}
+                        ObjectType::Breakable => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                        }
                     },
                     Collision::Right => match o.obj_type {
                         ObjectType::JetpackItem => {}
+                        ObjectType::Bullet => {}
                         ObjectType::UmbrellaItem => {}
                         ObjectType::Spike => {}
                         ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x /= 2.;
+                                active.velocity.x = 2.;
                             }
                             if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y /= 2.;
+                                active.velocity.y = 2.;
                             }
                             active.grounded = false;
                         }
@@ -485,10 +516,16 @@ fn apply_collisions(
                                 t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                         }
                         ObjectType::Active => {}
+                        ObjectType::Breakable => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                        }
                     },
                     Collision::Top => {
                         match o.obj_type {
                             ObjectType::JetpackItem => {}
+                            ObjectType::Bullet => {}
                             ObjectType::UmbrellaItem => {}
                             ObjectType::Spike => {
                                 exit.send(AppExit);
@@ -497,10 +534,10 @@ fn apply_collisions(
                             ObjectType::Cobweb => {
                                 if active.velocity.y < 0. {
                                     //if falling down
-                                    active.velocity.y /= 2.; //stop vertical velocity
+                                    active.velocity.y = 2.; //stop vertical velocity
                                 }
                                 if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y /= 2.;
+                                    active.velocity.y = 2.;
                                 }
                                 active.grounded = false;
                             }
@@ -509,30 +546,40 @@ fn apply_collisions(
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
-                                    
-                                }
-                                else if active.velocity.y == 0.{
+                                } else if active.velocity.y == 0. {
                                     print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
+                            ObjectType::Breakable => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y = 0.; //stop vertical velocity
+                                    active.grounded = true;
+                                } else if active.velocity.y == 0. {
+                                    print!("Collided but isnt moving")
+                                }
+                                active.projected_position.y =
+                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                            }
                         }
                     }
                     Collision::Bottom => {
                         match o.obj_type {
                             ObjectType::JetpackItem => {}
                             ObjectType::UmbrellaItem => {}
+                            ObjectType::Bullet => {}
                             ObjectType::Spike => {}
                             ObjectType::Item => {}
                             ObjectType::Cobweb => {
                                 if active.velocity.y < 0. {
                                     //if falling down
-                                    active.velocity.y /= 2.; //stop vertical velocity
+                                    active.velocity.y = 2.; //stop vertical velocity
                                 }
                                 if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y /= 2.;
+                                    active.velocity.y = 2.;
                                 }
                                 active.grounded = false;
                             }
@@ -540,31 +587,42 @@ fn apply_collisions(
                                 active.velocity.y = 0.;
                                 active.projected_position.y =
                                     t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-
-                                    
                             }
                             ObjectType::Active => {}
+                            ObjectType::Breakable => {
+                                active.velocity.y = 0.;
+                                active.projected_position.y =
+                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                            }
                         }
                     }
-                    Collision::Inside => {
-                        match o.obj_type {
-                            ObjectType::JetpackItem => {}
-                            ObjectType::UmbrellaItem => {}
+                    Collision::Inside => match o.obj_type {
+                        ObjectType::JetpackItem => {}
+                        ObjectType::UmbrellaItem => {}
+                        ObjectType::Bullet => {}
 
-
-                            ObjectType::Spike => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);}
-                            ObjectType::Item => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);}
-                            ObjectType::Cobweb => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);}
-                            ObjectType::Block => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);}
-                            ObjectType::Active => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);}
-
+                        ObjectType::Spike => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
                         }
-                    }
+                        ObjectType::Item => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Cobweb => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Block => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Active => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Breakable => {}
+                    },
                 }
             }
         }
@@ -572,18 +630,11 @@ fn apply_collisions(
 }
 
 fn enemy_collisions(
-    mut actives: Query<
-        (&mut ActiveObject,&Transform),
-        (With<Player>, Without<Enemy>),
-        >,
-    mut enemies: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Enemy>, Without<Player>),
-        >,
+    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
     mut exit: EventWriter<AppExit>,
-){
-    for (mut active, transform) in actives.iter_mut(){
-
+) {
+    for (mut active, transform) in actives.iter_mut() {
         for (o, t) in enemies.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
@@ -596,29 +647,33 @@ fn enemy_collisions(
                 match coll_type {
                     Collision::Left => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Right => {
                         active.velocity.x = 0.;
-                        active.projected_position.x = t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                        active.projected_position.x =
+                            t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
                     }
                     Collision::Top => {
                         if active.velocity.y < 0. {
                             active.velocity.y = 0.;
                             active.grounded = false;
                         }
-                        active.projected_position.y = t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                        active.projected_position.y =
+                            t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
                     }
                     Collision::Bottom => {
                         active.velocity.y = 0.;
-                        active.projected_position.y = t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
+                        active.projected_position.y =
+                            t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
                     }
                     Collision::Inside => {
                         active.velocity = Vec2::new(0., 0.);
                     }
                 }
             }
-        }  
+        }
     }
 }
 
@@ -661,7 +716,7 @@ fn my_cursor_system(
             eprintln!(
                 "World coords: {}/{}",
                 (world_pos.x / 32.).round(),
-                ((world_pos.y / 32.)).round()
+                (world_pos.y / 32.).round()
             );
         }
     }
@@ -690,59 +745,55 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<
-        (&mut ActiveObject, &Transform, &mut Enemy),
-        (With<Enemy>),
-    >,
-){
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>)>,
+) {
     let deltat = time.delta_seconds();
-    for (mut enemy, et, mut e) in enemies.iter_mut(){
-
+    for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
         let mut target: usize = 51;
-        if input.just_pressed(KeyCode::Key0){
+        if input.just_pressed(KeyCode::Key0) {
             target = 0;
         }
-        if input.just_pressed(KeyCode::Key1){
+        if input.just_pressed(KeyCode::Key1) {
             target = 1;
         }
-        if input.just_pressed(KeyCode::Key2){
+        if input.just_pressed(KeyCode::Key2) {
             target = 2;
         }
-        if input.just_pressed(KeyCode::Key9){
+        if input.just_pressed(KeyCode::Key9) {
             println!("Verts seen by enemy:");
-            for v in e.enemy_graph.vertices.iter_mut(){
+            for v in e.enemy_graph.vertices.iter_mut() {
                 println!("{}", v.id);
             }
         }
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), target);
         match e.motion {
-            Motion::Left=>{
+            Motion::Left => {
                 enemy.velocity.x = -100.;
                 enemy.velocity.y += GRAVITY * deltat;
             }
-            Motion::Right=>{
+            Motion::Right => {
                 enemy.velocity.x = 100.;
                 enemy.velocity.y += GRAVITY * deltat;
             }
-            Motion::Jump=>{
+            Motion::Jump => {
                 enemy.velocity.y = 8.;
             }
-            Motion::JumpRight=>{
+            Motion::JumpRight => {
                 println!("Jumping right");
                 enemy.velocity.y = 8.;
                 e.motion = Motion::Right;
             }
-            Motion::JumpLeft=>{
+            Motion::JumpLeft => {
                 enemy.velocity.y = 8.;
                 e.motion = Motion::Left;
             }
-            Motion::Fall=>{
+            Motion::Fall => {
                 enemy.velocity.x = 0.;
                 enemy.velocity.y += GRAVITY * deltat;
             }
-            Motion::Stop=>{
+            Motion::Stop => {
                 enemy.velocity.x = 0.;
                 enemy.velocity.y += GRAVITY * deltat;
             }
@@ -752,8 +803,6 @@ fn move_enemies(
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
-
-        
     }
 }
 
@@ -787,7 +836,6 @@ fn move_player(
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
 
-
     //the reason that jump height was inconsistent was because this could only happen when on the ground,
     //and it was multiplied by deltat, so faster framerate meant shorter jump
     //this code does fix the issue, but might create a new one (yay...)
@@ -800,8 +848,7 @@ fn move_player(
     else if pl.grounded {
         pl.velocity.y += 0.0;
         change.y = pl.velocity.y;
-    }
-    else if !(pl.grounded) {
+    } else if !(pl.grounded) {
         //print!("Applying Gravity");
         pl.velocity.y += GRAVITY;
         change.y = pl.velocity.y;
@@ -811,7 +858,6 @@ fn move_player(
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
     pl.grounded = false;
 }
-
 
 fn attack(
     input: Res<Input<KeyCode>>,
@@ -824,14 +870,18 @@ fn attack(
     if input.just_pressed(KeyCode::P) {
         let mut hitbox_pos;
         if input.pressed(KeyCode::S) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);// DOWN
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
+        // DOWN
         } else if input.pressed(KeyCode::W) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
-        } else if input.pressed(KeyCode::D){
-            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
+        // UP
+        } else if input.pressed(KeyCode::D) {
+            hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+        // RIGHT
         } else {
-            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
-    }
+            hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
+            //LEFT
+        }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -881,19 +931,17 @@ fn show_gui(
     mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
     mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
 ) {
-    let (mut p, mut pt)= player.single_mut();
+    let (mut p, mut pt) = player.single_mut();
     //create_timer(commands, asset_server, time);
-    if pt.translation.y < -400.{
+    if pt.translation.y < -400. {
         clock.timer.pause();
+    } else {
+        clock.timer.tick(time.delta());
     }
-    else{
-        clock.timer.tick(time.delta());  
-    }
-   
+
     let time_remaining = (START_TIME - clock.timer.elapsed_secs()).round();
     //println!("{}", time_remaining);
     for mut text in &mut text {
-       
         if time_remaining > 0.0 {
             text.sections[0].value = time_remaining.to_string();
         }
@@ -910,12 +958,11 @@ fn show_gui(
     }
 
     for mut text in &mut credit_text {
-        text.sections[0].value= p.credits.to_string();
+        text.sections[0].value = p.credits.to_string();
     }
 
     for mut text in &mut healthbar {
-
-        text.sections[0].value=p.health.to_string();
+        text.sections[0].value = p.health.to_string();
     }
 }
 
@@ -927,7 +974,7 @@ fn item_shop(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
-    let (mut p, mut pt)= player.single_mut();
+    let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
         print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
         clock.timer.pause();
@@ -935,41 +982,40 @@ fn item_shop(
 
         let mut id = 0;
         commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(75., 75.)),
-                        ..default()
-                    },
-                    texture: asset_server.load("jetpack.png"),
-                    transform: Transform {
-                        translation: Vec3::new(150., -400., 2.),
-                        ..default()
-                    },
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(75., 75.)),
                     ..default()
-                })
-                 .insert(Object::new(id, 50., 50., ObjectType::Active));
+                },
+                texture: asset_server.load("jetpack.png"),
+                transform: Transform {
+                    translation: Vec3::new(150., -400., 2.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Object::new(id, 50., 50., ObjectType::Active));
         commands
-                 .spawn_bundle(SpriteBundle {
-                     sprite: Sprite {
-                         custom_size: Some(Vec2::new(75., 75.)),
-                         ..default()
-                     },
-                     texture: asset_server.load("umbrella.png"),
-                     transform: Transform {
-                         translation: Vec3::new(-150., -400., 2.),
-                         ..default()
-                     },
-                     ..default()
-                 })
-                  .insert(Object::new(id, 50., 50., ObjectType::Active));
-
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(75., 75.)),
+                    ..default()
+                },
+                texture: asset_server.load("umbrella.png"),
+                transform: Transform {
+                    translation: Vec3::new(-150., -400., 2.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Object::new(id, 50., 50., ObjectType::Active));
     } else if pt.translation.y <= -400. {
         if input.just_pressed(KeyCode::I) {
             pt.translation = Vec3::new(0., 64., 0.);
             clock.timer.unpause();
         }
         // if input.just_pressed(KeyCode::B) {
-            
+
         //     if p.credits >= UMBRELLA_PRICE  { //IF TRY TO BUY UMBRELLA
         //         p.credits-=UMBRELLA_PRICE;
         //         p.item = ItemType::Umbrella;
