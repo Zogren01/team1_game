@@ -370,14 +370,14 @@ fn setup(
                 ..default()
             },
             transform: Transform {
-                translation: Vec3::new(-50., 100., 5.),
+                translation: Vec3::new(-50., 600., 5.),
                 ..default()
             },
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new(-50., 100., 0));
+        .insert(Enemy::new(0));
     //this variable can change based on what room the player is in
     let mut level = get_level(0);
     let mesh = get_level_mesh(0);
@@ -432,6 +432,12 @@ fn calculate_sight(
                         object_lines.push(o2);
                     }
                     //spikes might need to be added in a different way so enemy can use them
+                }
+                ObjectType::Bullet => {
+                    //enemy will avoid these
+                }
+                ObjectType::Breakable => {
+                    //enemy could use these to harm player
                 }
                 ObjectType::Cobweb => {
                     //cobwebs are "transparent", might need to be added to enemies code to utilize them

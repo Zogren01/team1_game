@@ -58,7 +58,7 @@ pub struct Enemy{
 }
 
 impl Enemy{
-    pub fn new(x: f32, y: f32, v: usize) -> Self {
+    pub fn new(v: usize) -> Self {
         Self{
             enemy_graph: Graph::new(),
             next_vertex: 51,

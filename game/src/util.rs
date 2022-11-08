@@ -82,7 +82,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
     //smaller map for testing AI stuff
     if id == 0 {
-        //result.push(Descriptor::new(512., 32., 16., 0., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 8., 2., ObjectType::Block));
         result.push(Descriptor::new(16., 1., 0.5, 0., ObjectType::Block));
     }
     if id == 1 {
