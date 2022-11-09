@@ -100,15 +100,16 @@ pub fn projectile_collisions(
                 // let entity_o = o_e.id(); // id of object
                 if matches!(o_o.obj_type, ObjectType::Breakable) {
                     commands.entity(o_e).despawn();
-                    for i in 1..10 {
+                    for i in 1..6 {
                         let mut rng = rand::thread_rng();
                         let p_xvel = (i as f32 - 5.) / 2.;
                         let p_yvel = rng.gen_range(3, 6);
+                        let sz = o_o.height / rng.gen_range(8, 12) as f32;
                         commands
                             .spawn_bundle(SpriteBundle {
                                 sprite: Sprite {
                                     color: Color::BLACK,
-                                    custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                                    custom_size: Some(Vec2::new(sz, sz)),
                                     ..default()
                                 },
                                 transform: Transform {
