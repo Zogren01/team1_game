@@ -13,7 +13,6 @@ pub struct Clock {
     pub timer: Timer,
 }
 
-
 /*
 impl Clock{
     pub fn new(t: Timer) -> Self {
@@ -46,7 +45,6 @@ pub struct ActiveObject {
     pub velocity: Vec2,
     pub max_health: i32,
     pub health: i32,
-    pub damage: i32,
     pub projected_position: Vec3,
 }
 
@@ -58,12 +56,12 @@ impl ActiveObject {
             velocity: Vec2::splat(0.),
             max_health: h,
             health: h,
-            damage: d,
             projected_position: Vec3::splat(0.),
         }
     }
-    pub fn take_damage(&self, damage: i32) {
+    pub fn take_damage(&mut self, damage: i32) {
         //implement taking damage
+        self.health -= damage;
     }
     pub fn heal(&self, gain: i32) {
         //implement healing
@@ -93,6 +91,5 @@ impl Player {
             health: 100,
             frames: 0,
         }
-        
     }
 }
