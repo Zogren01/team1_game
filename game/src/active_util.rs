@@ -80,7 +80,6 @@ pub struct Player {
     pub item: ItemType,
     pub health: i8,
     //temp variable
-    pub frames: i32,
 }
 
 impl Player {
@@ -89,7 +88,6 @@ impl Player {
             credits: 100,
             item: ItemType::None,
             health: 100,
-            frames: 0,
         }
     }
 }

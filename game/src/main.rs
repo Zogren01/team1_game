@@ -204,7 +204,7 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            move_enemies.after(enemy_collisions),
+            move_enemies,
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -221,6 +221,8 @@ fn main() {
         .add_system(show_gui)
         .add_system(attack)
         .add_system(shoot)
+
+
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
@@ -796,12 +798,9 @@ fn update_positions(
 fn move_enemies(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<
-        (&mut ActiveObject, &Transform, &mut Enemy),
-        With<Enemy>,
-    >,
-){
-    let deltat = time.delta_seconds();
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>)>,
+) {
+
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
@@ -824,32 +823,37 @@ fn move_enemies(
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), target);
         match e.motion {
             Motion::Left => {
-                enemy.velocity.x = -100.;
-                enemy.velocity.y += GRAVITY * deltat;
+                enemy.velocity.x = -2.;
+                enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
-                enemy.velocity.x = 100.;
-                enemy.velocity.y += GRAVITY * deltat;
+                enemy.velocity.x = 2.;
+                enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
-                enemy.velocity.y = 8.;
+                enemy.velocity.y = 10.;
             }
             Motion::JumpRight => {
                 println!("Jumping right");
-                enemy.velocity.y = 8.;
+                enemy.velocity.y = 10.;
                 e.motion = Motion::Right;
             }
             Motion::JumpLeft => {
-                enemy.velocity.y = 8.;
+                enemy.velocity.y = 10.;
                 e.motion = Motion::Left;
             }
-            Motion::Fall | Motion::Stop=>{
+            Motion::Fall => {
                 enemy.velocity.x = 0.;
-                enemy.velocity.y += GRAVITY * deltat;
+                enemy.velocity.y += GRAVITY;
+            }
+            Motion::Stop => {
+
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY;
             }
         }
         change.y = enemy.velocity.y;
-        change.x = enemy.velocity.x * deltat;
+        change.x = enemy.velocity.x;
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
@@ -863,7 +867,6 @@ fn move_player(
     mut exit: EventWriter<AppExit>,
 ) {
     let (mut pl, mut pt, mut p) = player.single_mut();
-    p.frames += 1;
     if input.pressed(KeyCode::A) {
         pl.facing_left = true;
         if pl.velocity.x > -PLAYER_SPEED {
