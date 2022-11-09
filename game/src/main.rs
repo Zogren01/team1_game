@@ -1028,6 +1028,20 @@ fn item_shop(
 ) {
     let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
+         commands
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
+                    color: Color::YELLOW,
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(50., -625., 2.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Object::new(1, PLAYER_SZ, PLAYER_SZ, ObjectType::Breakable));
         print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
         clock.timer.pause();
         pt.translation = Vec3::new(0., -475., 0.);
