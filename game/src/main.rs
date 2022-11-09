@@ -110,9 +110,11 @@ fn create_level(
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
+                            color: Color::BLACK,
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
+                     //   texture: asset_server.load("explosiveBarrel.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
@@ -230,6 +232,12 @@ fn main() {
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
             projectile_collisions.after(projectile_active_collision),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            despawn_broken_objects.after(projectile_collisions),
         )
         .run();
 }
@@ -844,7 +852,7 @@ fn move_player(
         pl.velocity.y = 10.;
         change.y = 10.;
     }
-    //if the player did not just jump, add gravity to move them downward (collision for gounded found later)
+    //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
         change.y = pl.velocity.y;

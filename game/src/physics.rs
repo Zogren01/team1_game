@@ -34,6 +34,19 @@ impl Projectile {
     // }
 }
 
+#[derive(Component)]
+pub struct BrokenObj {
+    lifespan: Timer,
+}
+
+impl BrokenObj {
+    pub fn new(lifespan: Timer) -> Self {
+        Self {
+            lifespan: lifespan,
+        }
+    }
+}
+
 pub fn shoot(
     input: Res<Input<KeyCode>>,
     mut commands: Commands,
@@ -97,6 +110,7 @@ pub fn projectile_collisions(
             );
 
             if res.is_some() {
+                let mut time: f32 = 10.0;
                 // let entity_o = o_e.id(); // id of object
                 if matches!(o_o.obj_type, ObjectType::Breakable) {
                     commands.entity(o_e).despawn();
@@ -126,7 +140,8 @@ pub fn projectile_collisions(
                             .insert(Projectile::new(
                                 Vec2::new(p_xvel, p_yvel as f32),
                                 ProjType::BrokenObj,
-                            ));
+                            ))
+                            .insert(BrokenObj::new(Timer::from_seconds(time, false)));
                     }
                 }
                 if matches!(pro_o.proj_type, ProjType::Projectile) {
@@ -154,6 +169,19 @@ pub fn projectile_collisions(
                     }
                 }
             }
+        }
+    }
+}
+
+pub fn despawn_broken_objects(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut brokenObjects: Query<(&mut BrokenObj, Entity),Without<Object>>,
+) {
+    for (mut obj, entity) in brokenObjects.iter_mut() {
+        obj.lifespan.tick(time.delta());
+        if obj.lifespan.finished() {
+            commands.entity(entity).despawn();
         }
     }
 }
