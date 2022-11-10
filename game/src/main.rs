@@ -114,7 +114,7 @@ fn create_level(
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                     //   texture: asset_server.load("explosiveBarrel.png"),
+                        //   texture: asset_server.load("explosiveBarrel.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
@@ -221,8 +221,6 @@ fn main() {
         .add_system(show_gui)
         .add_system(attack)
         .add_system(shoot)
-
-
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
@@ -389,7 +387,7 @@ fn setup(
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new(0));
     //this variable can change based on what room the player is in
-    let mut level = get_level(0);
+    let mut level = get_level(1);
     let mesh = get_level_mesh(0);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
@@ -413,7 +411,7 @@ fn calculate_sight(
     objects: Query<(&Object, &Transform), With<Object>>,
 ) {
     let sight_distance = 800.0;
-    
+
     for (tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
@@ -422,8 +420,8 @@ fn calculate_sight(
         //add lines for objects to used to determine if an object is blocked form view
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
-            match o.obj_type{
-                ObjectType::Block | ObjectType::Spike=> {
+            match o.obj_type {
+                ObjectType::Block | ObjectType::Spike => {
                     //blocks and spikes are the only two objects that block line of sight
                     let (v1, v2, v3) = find_vertices(
                         pos.x,
@@ -455,17 +453,12 @@ fn calculate_sight(
                 ObjectType::Active => {
                     //this type might be useless
                 }
-                ObjectType::Enemy => {
-
-                }
-                ObjectType::Player => {
-
-                }
+                ObjectType::Enemy => {}
+                ObjectType::Player => {}
                 ObjectType::Item => {}
                 ObjectType::UmbrellaItem => {}
                 ObjectType::JetpackItem => {}
             }
-            
         }
         let g = graph.single();
         for vertex in &g.vertices {
@@ -601,7 +594,7 @@ fn apply_collisions(
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
                                 } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")   
+                                    print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
@@ -636,7 +629,7 @@ fn apply_collisions(
                             ObjectType::Breakable => {
                                 active.velocity.y = 0.;
                                 active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;    
+                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                             }
                             ObjectType::Enemy => {}
                             ObjectType::Player => {}
@@ -646,16 +639,26 @@ fn apply_collisions(
                         ObjectType::JetpackItem => {}
                         ObjectType::UmbrellaItem => {}
                         ObjectType::Bullet => {}
-                        ObjectType::Spike => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Item => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Cobweb => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Block => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Active => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
+                        ObjectType::Spike => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Item => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Cobweb => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Block => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Active => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
                         ObjectType::Item => {
                             println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);
@@ -800,7 +803,6 @@ fn move_enemies(
     input: Res<Input<KeyCode>>,
     mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>)>,
 ) {
-
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
@@ -847,7 +849,6 @@ fn move_enemies(
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Stop => {
-
                 enemy.velocity.x = 0.;
                 enemy.velocity.y += GRAVITY;
             }
@@ -925,14 +926,16 @@ fn attack(
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
         // DOWN
         } else if input.pressed(KeyCode::W) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
+        // UP
         } else {
             if pl.facing_left {
-                hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
+                hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
+            //LEFT
+            } else {
+                hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+                // RIGHT
             }
-            else {
-                hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
-            } 
         }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
@@ -1028,20 +1031,6 @@ fn item_shop(
 ) {
     let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
-         commands
-            .spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                    color: Color::YELLOW,
-                    ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(50., -625., 2.),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(Object::new(1, PLAYER_SZ, PLAYER_SZ, ObjectType::Breakable));
         print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
         clock.timer.pause();
         pt.translation = Vec3::new(0., -475., 0.);
