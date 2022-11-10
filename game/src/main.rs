@@ -127,9 +127,10 @@ fn create_level(
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        color: Color::RED,
                         ..default()
                     },
-                    texture: asset_server.load(texture_path),
+                    // texture: asset_server.load(texture_path),
                     transform: Transform {
                         translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                         ..default()
@@ -498,6 +499,9 @@ fn apply_collisions(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                if (matches!(o.obj_type, ObjectType::Cobweb)) {
+                    println!("{:?}", coll_type);
+                }
                 match coll_type {
                     Collision::Left => match o.obj_type {
                         ObjectType::JetpackItem => {}
@@ -507,11 +511,10 @@ fn apply_collisions(
                         ObjectType::Bullet => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x = 2.;
+                                active.velocity.x /= 2.;
                             }
-                            if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y = 2.;
-                            }
+                            active.velocity.y = -2.;
+
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -536,11 +539,9 @@ fn apply_collisions(
                         ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x = 2.;
+                                active.velocity.x /= 2.;
                             }
-                            if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y = 2.;
-                            }
+                            active.velocity.y = -2.;
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -567,13 +568,11 @@ fn apply_collisions(
                             }
                             ObjectType::Item => {}
                             ObjectType::Cobweb => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 2.; //stop vertical velocity
+                                if active.velocity.x != 0. {
+                                    active.velocity.x /= 2.;
                                 }
-                                if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y = 2.;
-                                }
+                                active.velocity.y = -2.;
+
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
@@ -603,38 +602,34 @@ fn apply_collisions(
                             ObjectType::Player => {}
                         }
                     }
-                    Collision::Bottom => {
-                        match o.obj_type {
-                            ObjectType::JetpackItem => {}
-                            ObjectType::UmbrellaItem => {}
-                            ObjectType::Bullet => {}
-                            ObjectType::Spike => {}
-                            ObjectType::Item => {}
-                            ObjectType::Cobweb => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 2.; //stop vertical velocity
-                                }
-                                if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y = 2.;
-                                }
-                                active.grounded = false;
+                    Collision::Bottom => match o.obj_type {
+                        ObjectType::JetpackItem => {}
+                        ObjectType::UmbrellaItem => {}
+                        ObjectType::Bullet => {}
+                        ObjectType::Spike => {}
+                        ObjectType::Item => {}
+                        ObjectType::Cobweb => {
+                            if active.velocity.x != 0. {
+                                active.velocity.x /= 2.;
                             }
-                            ObjectType::Block => {
-                                active.velocity.y = 0.;
-                                active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-                            }
-                            ObjectType::Active => {}
-                            ObjectType::Breakable => {
-                                active.velocity.y = 0.;
-                                active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-                            }
-                            ObjectType::Enemy => {}
-                            ObjectType::Player => {}
+                            active.velocity.y = -2.;
+
+                            active.grounded = false;
                         }
-                    }
+                        ObjectType::Block => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Active => {}
+                        ObjectType::Breakable => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Enemy => {}
+                        ObjectType::Player => {}
+                    },
                     Collision::Inside => match o.obj_type {
                         ObjectType::JetpackItem => {}
                         ObjectType::UmbrellaItem => {}
@@ -648,8 +643,7 @@ fn apply_collisions(
                             active.velocity = Vec2::new(0., 0.);
                         }
                         ObjectType::Cobweb => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
+                            active.velocity.x /= 2.;
                         }
                         ObjectType::Block => {
                             println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
@@ -886,18 +880,31 @@ fn move_player(
         pl.velocity.x = pl.velocity.x - 1.;
     }
 
-    //let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
-
-    //the reason that jump height was inconsistent was because this could only happen when on the ground,
-    //and it was multiplied by deltat, so faster framerate meant shorter jump
-    //this code does fix the issue, but might create a new one (yay...)
 
     if input.pressed(KeyCode::Space) && pl.grounded {
         pl.velocity.y = 10.;
         change.y = 10.;
     }
+    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
+    // if input.pressed(KeyCode::Space) {
+    //     match p.item {
+    //         ItemType::None => {
+    //             if pl.grounded {
+    //                 pl.velocity.y = 10.;
+    //                 change.y = 10.;
+    //             }
+    //         }
+    //         ItemType::Jetpack => {
+    //             if (pl.velocity.y < 7.5) {
+    //                 pl.velocity.y += 0.5;
+    //             }
+    //             change.y = pl.velocity.y;
+    //         }
+    //         ItemType::Umbrella => {}
+    //     }
+    // }
     //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
