@@ -116,61 +116,63 @@ pub fn projectile_collisions(
                 collide = true;
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
                 let mut time: f32 = 5.0;
-                if matches!(o_o.obj_type, ObjectType::Breakable) {
-                    commands.entity(o_e).despawn();
-                    let mut rng = rand::thread_rng();
-                    for i in 1..6 {
+                if matches!(pro_o.proj_type, ProjType::Projectile) {
+                    if matches!(o_o.obj_type, ObjectType::Breakable) {
+                        // generate_breakables(&coll_type, o_t, o_o, commands);
+                        println!("{:?}", coll_type);
+                        commands.entity(o_e).despawn();
                         let mut rng = rand::thread_rng();
-                        let mut p_xvel = 0.;
-                        let mut p_yvel = 0.;
-                        match coll_type {
-                            Collision::Left => {
-                                p_xvel = rng.gen_range(3, 6) as f32;
-                                p_yvel = (i as f32 - 4.) / 2.;
+                        for i in 1..6 {
+                            let mut rng = rand::thread_rng();
+                            let mut p_xvel = 0.;
+                            let mut p_yvel = 0.;
+                            match coll_type {
+                                Collision::Left => {
+                                    p_xvel = rng.gen_range(3, 6) as f32;
+                                    p_yvel = (i as f32 - 4.) / 2.;
+                                }
+                                Collision::Right => {
+                                    p_xvel = rng.gen_range(-6, -3) as f32;
+                                    p_yvel = (i as f32 - 4.) / 2.;
+                                }
+                                Collision::Top => {
+                                    p_yvel = rng.gen_range(-3, -6) as f32;
+                                    p_xvel = (i as f32 - 4.) / 2.;
+                                }
+                                Collision::Bottom => {
+                                    p_yvel = rng.gen_range(3, 6) as f32;
+                                    p_xvel = (i as f32 - 4.) / 2.;
+                                }
+                                Collision::Inside => {
+                                    p_yvel = rng.gen_range(3, 6) as f32;
+                                    p_xvel = rng.gen_range(3, 6) as f32;
+                                }
                             }
-                            Collision::Right => {
-                                p_xvel = rng.gen_range(-6, -3) as f32;
-                                p_yvel = (i as f32 - 4.) / 2.;
-                            }
-                            Collision::Top => {
-                                p_yvel = rng.gen_range(-3, -6) as f32;
-                                p_xvel = (i as f32 - 4.) / 2.;
-                            }
-                            Collision::Bottom => {
-                                p_yvel = rng.gen_range(3, 6) as f32;
-                                p_xvel = (i as f32 - 4.) / 2.;
-                            }
-                            Collision::Inside => {
-                                p_yvel = rng.gen_range(3, 6) as f32;
-                                p_xvel = rng.gen_range(3, 6) as f32;
-                            }
+                            let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                            commands
+                                .spawn_bundle(SpriteBundle {
+                                    sprite: Sprite {
+                                        color: Color::BLACK,
+                                        custom_size: Some(Vec2::new(sz, sz)),
+                                        ..default()
+                                    },
+                                    transform: Transform {
+                                        translation: Vec3::new(
+                                            o_t.translation.x,
+                                            o_t.translation.y,
+                                            2.,
+                                        ),
+                                        ..default()
+                                    },
+                                    // texture: asset_server.load("bullet.png"),
+                                    ..default()
+                                })
+                                .insert(Projectile::new(
+                                    Vec2::new(p_xvel, p_yvel as f32),
+                                    ProjType::BrokenObj,
+                                ))
+                                .insert(BrokenObj::new(Timer::from_seconds(5.0, false)));
                         }
-                        // let p_xvel = (i as f32 - 3.) / 2.;
-                        // let p_yvel = rng.gen_range(3, 6);
-                        let sz = o_o.height / rng.gen_range(8, 16) as f32;
-                        commands
-                            .spawn_bundle(SpriteBundle {
-                                sprite: Sprite {
-                                    color: Color::BLACK,
-                                    custom_size: Some(Vec2::new(sz, sz)),
-                                    ..default()
-                                },
-                                transform: Transform {
-                                    translation: Vec3::new(
-                                        o_t.translation.x,
-                                        o_t.translation.y,
-                                        2.,
-                                    ),
-                                    ..default()
-                                },
-                                // texture: asset_server.load("bullet.png"),
-                                ..default()
-                            })
-                            .insert(Projectile::new(
-                                Vec2::new(p_xvel, p_yvel as f32),
-                                ProjType::BrokenObj,
-                            ))
-                            .insert(BrokenObj::new(Timer::from_seconds(time, false)));
                     }
                 }
                 if matches!(pro_o.proj_type, ProjType::Projectile) {
@@ -178,13 +180,17 @@ pub fn projectile_collisions(
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
                     match coll_type {
                         Collision::Left => {
-                            pro_o.velocity.x = 0.;
+                            pro_o.velocity.x *= -0.8;
                         }
                         Collision::Right => {
-                            pro_o.velocity.x = 0.;
+                            pro_o.velocity.x *= -0.8;
                         }
                         Collision::Top => {
-                            pro_o.velocity.y = 0.;
+                            if (pro_o.velocity.y > -1.) {
+                                pro_o.velocity.y = 0.;
+                            } else {
+                                pro_o.velocity.y *= -0.3;
+                            }
                             pro_o.velocity.x /= 2.;
                             pro_t.translation.y =
                                 o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
@@ -201,9 +207,9 @@ pub fn projectile_collisions(
                     }
                 }
             }
-            if !collide {
-                pro_t.translation = pro_o.project_pos;
-            }
+        }
+        if !collide {
+            pro_t.translation = pro_o.project_pos;
         }
     }
 }

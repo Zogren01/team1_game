@@ -120,7 +120,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //second floor from right side
         result.push(Descriptor::new(24., 1., 45.5, 6., ObjectType::Block));
         //first 1x2 wall on second floor
-        result.push(Descriptor::new(1., 2., 7., 0.75, ObjectType::Block));
+        // result.push(Descriptor::new(1., 2., 7., 0.75, ObjectType::Block));
         //2x3 ObjectType::Block on second floor
         result.push(Descriptor::new(2., 3., 26.5, 8., ObjectType::Block));
         //platform above second floor jutting out from left wall
