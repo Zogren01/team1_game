@@ -224,7 +224,7 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            projectile_active_collision,
+            projectile_active_collision.after(shoot),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -457,6 +457,7 @@ fn calculate_sight(
                 ObjectType::Item => {}
                 ObjectType::UmbrellaItem => {}
                 ObjectType::JetpackItem => {}
+                ObjectType::Barrel => {}
             }
         }
         let g = graph.single();
@@ -515,19 +516,14 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block => {
-                            active.velocity.x = 0.;
-                            active.projected_position.x =
-                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
-                        }
                         ObjectType::Active => {}
-                        ObjectType::Breakable => {
-                            active.velocity.x = 0.;
-                            active.projected_position.x =
-                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
-                        }
                         ObjectType::Enemy => {}
                         ObjectType::Player => {}
+                        _ => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                        }
                     },
                     Collision::Right => match o.obj_type {
                         ObjectType::JetpackItem => {}
@@ -542,19 +538,14 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Block => {
-                            active.velocity.x = 0.;
-                            active.projected_position.x =
-                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
-                        }
                         ObjectType::Active => {}
-                        ObjectType::Breakable => {
-                            active.velocity.x = 0.;
-                            active.projected_position.x =
-                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
-                        }
                         ObjectType::Enemy => {}
                         ObjectType::Player => {}
+                        _ => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                        }
                     },
                     Collision::Top => {
                         match o.obj_type {
@@ -570,34 +561,22 @@ fn apply_collisions(
                                     active.velocity.x /= 2.;
                                 }
                                 active.velocity.y = -2.;
-
                                 active.grounded = false;
                             }
-                            ObjectType::Block => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")
-                                }
-                                active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
-                            }
                             ObjectType::Active => {}
-                            ObjectType::Breakable => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")
-                                }
-                                active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
-                            }
                             ObjectType::Enemy => {}
                             ObjectType::Player => {}
+                            _ => {
+                                if active.velocity.y < 0. {
+                                    //if falling down
+                                    active.velocity.y = 0.; //stop vertical velocity
+                                    active.grounded = true;
+                                } else if active.velocity.y == 0. {
+                                    print!("Collided but isnt moving")
+                                }
+                                active.projected_position.y =
+                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                            }
                         }
                     }
                     Collision::Bottom => match o.obj_type {
@@ -614,62 +593,20 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block => {
-                            active.velocity.y = 0.;
-                            active.projected_position.y =
-                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-                        }
                         ObjectType::Active => {}
-                        ObjectType::Breakable => {
-                            active.velocity.y = 0.;
-                            active.projected_position.y =
-                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-                        }
                         ObjectType::Enemy => {}
                         ObjectType::Player => {}
+                        _ => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        }
                     },
                     Collision::Inside => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Bullet => {}
-                        ObjectType::Spike => {
+                        _ => {
                             println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);
                         }
-                        ObjectType::Item => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Cobweb => {
-                            active.velocity.x /= 2.;
-                        }
-                        ObjectType::Block => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Active => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Item => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Cobweb => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Block => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Active => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                            active.velocity = Vec2::new(0., 0.);
-                        }
-                        ObjectType::Breakable => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
                     },
                 }
             }
@@ -706,7 +643,7 @@ fn enemy_collisions(
                     Collision::Top => {
                         if active.velocity.y < 0. {
                             active.velocity.y = 0.;
-                            active.grounded = false;
+                            active.grounded = true;
                         }
                         active.projected_position.y =
                             t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
@@ -924,7 +861,12 @@ fn move_player(
                     pl.velocity.y = 10.;
                     change.y = 10.;
                 } else {
-                    pl.velocity.y += GRAVITY;
+                    if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+                        //open umbrella when going down
+                        pl.velocity.y = UMBRELLA_VELOCITY;
+                    } else {
+                        pl.velocity.y += GRAVITY;
+                    }
                     change.y = pl.velocity.y;
                 }
             }
@@ -946,11 +888,12 @@ fn move_player(
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
         if (matches!(p.item, ItemType::Umbrella)) {
-            if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+            if input.pressed(KeyCode::S) || (pl.velocity.y > UMBRELLA_VELOCITY) {
+                //if they press down, they can close the umbrella
+                pl.velocity.y += GRAVITY;
+            } else {
                 //open umbrella when going down
                 pl.velocity.y = UMBRELLA_VELOCITY;
-            } else {
-                pl.velocity.y += GRAVITY;
             }
             change.y = pl.velocity.y;
         } else {

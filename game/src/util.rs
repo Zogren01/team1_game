@@ -8,8 +8,7 @@ pub const WIN_H: f32 = 720.;
 pub const GRAVITY: f32 = -0.5;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
-pub const UMBRELLA_VELOCITY: f32= -0.75;
-
+pub const UMBRELLA_VELOCITY: f32 = -0.75;
 
 pub const UMBRELLA_PRICE: i8 = 30;
 pub const JETPACK_PRICE: i8 = 70;
@@ -222,4 +221,5 @@ pub enum ObjectType {
     JetpackItem,
     Bullet,
     Breakable,
+    Barrel,
 }
