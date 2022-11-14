@@ -161,7 +161,7 @@ fn create_level(
             .spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     color: Color::ORANGE,
-                    custom_size: Some(Vec2::new(2., 2.,)),
+                    custom_size: Some(Vec2::new(5., 5.,)),
                     ..default()
                 },
                 //   texture: asset_server.load("explosiveBarrel.png"),
@@ -293,7 +293,7 @@ fn setup(
         timer: Timer::from_seconds(START_TIME, true),
     });
 
-    
+    /*
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(1920.0, 1088.0)),
@@ -303,7 +303,7 @@ fn setup(
         transform: Transform::from_xyz(0., 0., 100.),
         ..default()
     });
-    
+    */
 
 
     commands
@@ -386,7 +386,7 @@ fn setup(
             ..default()
         })
         .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
+        .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
     commands
         .spawn_bundle(SpriteBundle {
@@ -468,8 +468,19 @@ fn calculate_sight(
                 ObjectType::Active => {
                     //this type might be useless
                 }
-                ObjectType::Enemy => {}
-                ObjectType::Player => {}
+                ObjectType::Enemy => {
+
+                }
+                ObjectType::Player => {
+                    let sight_line = Line::new(
+                        Vec2::new(pos.x, pos.y),
+                        Vec2::new(t.translation.x, t.translation.y),
+                        MAX_VERT+1,
+                    );
+                    if sight_line.length_squared() < sight_distance * sight_distance {
+                        sight_lines.push(sight_line);
+                    }
+                }
                 ObjectType::Item => {}
                 ObjectType::UmbrellaItem => {}
                 ObjectType::JetpackItem => {}

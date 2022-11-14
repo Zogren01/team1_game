@@ -62,6 +62,8 @@ pub struct Enemy{
     pub index_in_path: usize,
     pub motion: Motion,
     pub action: Action,
+    pub player_seen: bool,
+    pub player_pos: Vec2,
 }
 
 impl Enemy{
@@ -75,11 +77,13 @@ impl Enemy{
             index_in_path: 0,
             motion: Motion::Stop,
             action: Action::Strafe,
+            player_seen: false,
+            player_pos: Vec2::splat(0.),
         }
     }
     //updates enemy motion type if they are at or 
     fn at_destination(&mut self, pos: Vec2){
-        let mut found: bool = false;
+        
         let mut x_diff = f32::MAX;
         let mut y_diff = f32::MAX;
         for v in self.enemy_graph.vertices.iter_mut() {
@@ -92,6 +96,7 @@ impl Enemy{
             if y_diff.abs() <= 5.  {
                 self.current_vertex = self.next_vertex;
                 if self.next_vertex != self.target_vertex{
+                
                     self.index_in_path += 1;
                     self.next_vertex = self.path.vertices[self.index_in_path];
                     self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
@@ -115,22 +120,34 @@ impl Enemy{
         */
         match self.action {
             Action::Strafe => {
+                if self.player_seen {
+                    println!("Player seen");
+                    self.action = Action::Attack;
+                }
                 //select a random seen vertex
                 let r = self.enemy_graph.vertices.len();
                 let mut rng = rand::thread_rng();
                 let pos: usize = rng.gen_range(0, r);
                 self.target_vertex = self.enemy_graph.vertices[pos].id;
-                self.path = self.shortest_path();
-                self.index_in_path = 0;
+                
             }
             Action::Attack => {
-                //select vertex closest to the player
+                if !self.player_seen {
+                    println!("Player no longer visible");
+                    self.action = Action::Strafe;
+                }
+                self.target_vertex = self.nearest_vert(self.player_pos);
+                println!("vertex nearest to player {}", self.target_vertex);
             }
             Action::Retreat => {
-                //select vertex farthest from the player
+                if !self.player_seen {
+                    self.action = Action::Strafe;
+                }
+                self.target_vertex = self.farthest_vert(self.player_pos);
             }
         }
-        
+        self.path = self.shortest_path();
+        self.index_in_path = 0;
         println!("Distance from {} to {} is: {}", self.current_vertex, self.target_vertex, self.path.weight);
         println!("Path is: ");
         for v in self.path.vertices.iter_mut(){
@@ -151,10 +168,34 @@ impl Enemy{
         return self.motion;
     }
 
-    fn find_self(&mut self) {
-        //find what vertex the enemy is at or close to
+    fn nearest_vert(&self, pos: Vec2) -> usize{
+        
+        let mut distance = f32::MAX;
+        let mut result: usize = MAX_VERT+1; 
+        for v in self.enemy_graph.vertices.iter() {
+            let curr = (pos.x - v.x) * (pos.y - v.y) 
+            + (pos.y - v.y) * (pos.y - v.y);
+            if curr < distance{
+                distance = curr;
+                result = v.id;
+            }
+        }
+        return result;
     }
 
+    fn farthest_vert(&self, pos: Vec2) -> usize{
+        let mut distance = 0.;
+        let mut result: usize = MAX_VERT + 1;
+        for v in self.enemy_graph.vertices.iter() {
+            let curr = (pos.x - v.x) * (pos.y - v.y) 
+            + (pos.y - v.y) * (pos.y - v.y);
+            if curr > distance{
+                distance = curr;
+                result = v.id;
+            }
+        }
+        return result;
+    }
 
     fn shortest_path(&mut self) -> Path {
         let mut result = Path::new();
@@ -211,7 +252,7 @@ impl Enemy{
     }
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
-
+        self.player_seen = false;
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
@@ -221,19 +262,27 @@ impl Enemy{
                 }
             }
             if result{
-
-                let vertex = Vertex::new(l.end.x, l.end.y, l.id);
-                let mut seen_before = false;
-                for seen_vertex in self.enemy_graph.vertices.iter_mut(){
-                    if seen_vertex.id == vertex.id{
-                        seen_before = true;
+                //case for the player being seen
+                if l.id == MAX_VERT +1 {
+                    self.player_seen = true;
+                    self.player_pos.x = l.end.x;
+                    self.player_pos.y = l.end.y;
+                }
+                else {
+                    let vertex = Vertex::new(l.end.x, l.end.y, l.id);
+                    let mut seen_before = false;
+                    for seen_vertex in self.enemy_graph.vertices.iter_mut(){
+                        if seen_vertex.id == vertex.id{
+                            seen_before = true;
+                        }
+                        self.enemy_graph.edges[seen_vertex.id][vertex.id] = map_graph.edges[seen_vertex.id][vertex.id];
+                        self.enemy_graph.edges[vertex.id][seen_vertex.id] = map_graph.edges[vertex.id][seen_vertex.id];
                     }
-                    self.enemy_graph.edges[seen_vertex.id][vertex.id] = map_graph.edges[seen_vertex.id][vertex.id];
-                    self.enemy_graph.edges[vertex.id][seen_vertex.id] = map_graph.edges[vertex.id][seen_vertex.id];
+                    if !seen_before{
+                        self.enemy_graph.vertices.push(vertex);
+                    }
                 }
-                if !seen_before{
-                    self.enemy_graph.vertices.push(vertex);
-                }
+                
             }
         }
 

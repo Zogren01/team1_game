@@ -103,11 +103,11 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(6., 1., -16., 7.5, ObjectType::Block));
         result.push(Descriptor::new(6., 1., 16., 7.5, ObjectType::Block));
         //smaller lowered panels
-        result.push(Descriptor::new(6., 1., -24., 5.5, ObjectType::Block));
-        result.push(Descriptor::new(6., 1., 24., 5.5, ObjectType::Block));
+        result.push(Descriptor::new(4., 1., -24., 5.5, ObjectType::Block));
+        result.push(Descriptor::new(4., 1., 24., 5.5, ObjectType::Block));
         //panels with enemimes on them
-        result.push(Descriptor::new(5., 1., -22.5, 11.5, ObjectType::Block));
-        result.push(Descriptor::new(5., 1., 22.5, 11.5, ObjectType::Block));
+        result.push(Descriptor::new(5., 1., -22.5, 10.5, ObjectType::Block));
+        result.push(Descriptor::new(5., 1., 22.5, 10.5, ObjectType::Block));
         //TODO: enemy spawn
         //left and right floors
         result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));
