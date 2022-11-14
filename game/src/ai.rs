@@ -46,6 +46,12 @@ impl PartialOrd for State {
     }
 }
 
+pub enum Action {
+    Strafe,
+    Attack,
+    Retreat,
+}
+
 #[derive(Component)]
 pub struct Enemy{
     pub enemy_graph: Graph, 
@@ -55,18 +61,20 @@ pub struct Enemy{
     pub path: Path,
     pub index_in_path: usize,
     pub motion: Motion,
+    pub action: Action,
 }
 
 impl Enemy{
     pub fn new(v: usize) -> Self {
         Self{
             enemy_graph: Graph::new(),
-            next_vertex: 51,
+            next_vertex: MAX_VERT+1,
             current_vertex: v,
-            target_vertex: 51,
+            target_vertex: MAX_VERT+1,
             path: Path::new(),
             index_in_path: 0,
             motion: Motion::Stop,
+            action: Action::Strafe,
         }
     }
     //updates enemy motion type if they are at or 
@@ -80,8 +88,8 @@ impl Enemy{
                 y_diff = pos.y - v.y;
             }
         }
-        if x_diff.abs() <= 1.{
-            if y_diff.abs() <= 1.  {
+        if x_diff.abs() <= 5.{
+            if y_diff.abs() <= 5.  {
                 self.current_vertex = self.next_vertex;
                 if self.next_vertex != self.target_vertex{
                     self.index_in_path += 1;
@@ -89,6 +97,7 @@ impl Enemy{
                     self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
                 }
                 else{
+                    println!("Enemy arrived at destination");
                     self.motion = Motion::Stop;
                 }
             }
@@ -98,17 +107,32 @@ impl Enemy{
         }
     }
     //for now, the target will be passed from the user
-    fn choose_target(&mut self, target: usize){
+    fn choose_target(&mut self){
         /*
         this is where pathfinding and enemy decisionmaking will occur
         a list (or some other structure) of what vertices must be traversed will be created
         this will be called every time a destination is reached, or the target should be changed
         */
+        match self.action {
+            Action::Strafe => {
+                //select a random seen vertex
+                let r = self.enemy_graph.vertices.len();
+                let mut rng = rand::thread_rng();
+                let pos: usize = rng.gen_range(0, r);
+                self.target_vertex = self.enemy_graph.vertices[pos].id;
+                self.path = self.shortest_path();
+                self.index_in_path = 0;
+            }
+            Action::Attack => {
+                //select vertex closest to the player
+            }
+            Action::Retreat => {
+                //select vertex farthest from the player
+            }
+        }
         
-        self.target_vertex = target;
-        self.path = self.shortest_path();
-        self.index_in_path = 0;
         println!("Distance from {} to {} is: {}", self.current_vertex, self.target_vertex, self.path.weight);
+        println!("Path is: ");
         for v in self.path.vertices.iter_mut(){
             println!("{}", v);
         }
@@ -117,16 +141,28 @@ impl Enemy{
         self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
         println!("Next vertex is: {}", self.next_vertex);
     }
-    pub fn decide_motion(&mut self, pos: Vec2, target: usize)-> Motion{
-        if target != 51{
-            self.choose_target(target);
+    pub fn decide_motion(&mut self, pos: Vec2)-> Motion{
+        if self.enemy_graph.vertices.len() > 0 {
+            if matches!(self.motion, Motion::Stop){
+                self.choose_target();
+            }
+            self.at_destination(pos);
         }
-        self.at_destination(pos);
         return self.motion;
     }
+
+    fn find_self(&mut self) {
+        //find what vertex the enemy is at or close to
+    }
+
+
     fn shortest_path(&mut self) -> Path {
-        // dist[node] = current shortest distance from `start` to `node`
         let mut result = Path::new();
+        result.vertices.push(self.current_vertex);
+        if self.current_vertex == self.target_vertex {
+            return result;
+        }
+
         let mut dist: Vec<Path> = vec!(Path::new(); MAX_VERT);
     
         let mut heap = BinaryHeap::new();
@@ -170,6 +206,7 @@ impl Enemy{
                 index += 1;
             }
         }
+        //case for path not found
         return result;
     }
 
