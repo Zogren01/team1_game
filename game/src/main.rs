@@ -947,6 +947,7 @@ fn move_player(
         //print!("Applying Gravity");
         if (matches!(p.item, ItemType::Umbrella)) {
             if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+                //open umbrella when going down
                 pl.velocity.y = UMBRELLA_VELOCITY;
             } else {
                 pl.velocity.y += GRAVITY;
