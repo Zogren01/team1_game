@@ -881,11 +881,27 @@ fn move_player(
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
 
-    // if input.pressed(KeyCode::Space) && pl.grounded {
-    //     pl.velocity.y = 10.;
-    //     change.y = 10.;
-    // }
-    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
+    if input.just_pressed(KeyCode::J) {
+        //press to rotate item
+        match p.item {
+            ItemType::None => {
+                p.item = ItemType::Jetpack;
+                println!("Jetpack activated");
+            }
+            ItemType::Jetpack => {
+                p.item = ItemType::Umbrella;
+                println!("Umbrella activated");
+            }
+            ItemType::Umbrella => {
+                p.item = ItemType::Boots;
+                println!("Boots activated");
+            }
+            ItemType::Boots => {
+                p.item = ItemType::None;
+                println!("No item activated");
+            }
+        }
+    }
     if input.pressed(KeyCode::Space) {
         match p.item {
             ItemType::None => {
@@ -903,7 +919,15 @@ fn move_player(
                 }
                 change.y = pl.velocity.y;
             }
-            ItemType::Umbrella => {}
+            ItemType::Umbrella => {
+                if pl.grounded {
+                    pl.velocity.y = 10.;
+                    change.y = 10.;
+                } else {
+                    pl.velocity.y += GRAVITY;
+                    change.y = pl.velocity.y;
+                }
+            }
             ItemType::Boots => {
                 if pl.grounded {
                     pl.velocity.y = 15.;
@@ -921,8 +945,17 @@ fn move_player(
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        pl.velocity.y += GRAVITY;
-        change.y = pl.velocity.y;
+        if (matches!(p.item, ItemType::Umbrella)) {
+            if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+                pl.velocity.y = UMBRELLA_VELOCITY;
+            } else {
+                pl.velocity.y += GRAVITY;
+            }
+            change.y = pl.velocity.y;
+        } else {
+            pl.velocity.y += GRAVITY;
+            change.y = pl.velocity.y;
+        }
     }
 
     //this holds the position the player will end up in if there is no collision
