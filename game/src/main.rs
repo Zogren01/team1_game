@@ -883,28 +883,31 @@ fn move_player(
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
 
-    if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 10.;
-        change.y = 10.;
-    }
-    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
-    // if input.pressed(KeyCode::Space) {
-    //     match p.item {
-    //         ItemType::None => {
-    //             if pl.grounded {
-    //                 pl.velocity.y = 10.;
-    //                 change.y = 10.;
-    //             }
-    //         }
-    //         ItemType::Jetpack => {
-    //             if (pl.velocity.y < 7.5) {
-    //                 pl.velocity.y += 0.5;
-    //             }
-    //             change.y = pl.velocity.y;
-    //         }
-    //         ItemType::Umbrella => {}
-    //     }
+    // if input.pressed(KeyCode::Space) && pl.grounded {
+    //     pl.velocity.y = 10.;
+    //     change.y = 10.;
     // }
+    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
+    if input.pressed(KeyCode::Space) {
+        match p.item {
+            ItemType::None => {
+                if pl.grounded {
+                    pl.velocity.y = 10.;
+                    change.y = 10.;
+                } else {
+                    pl.velocity.y += GRAVITY;
+                    change.y = pl.velocity.y;
+                }
+            }
+            ItemType::Jetpack => {
+                if (pl.velocity.y < 7.5) {
+                    pl.velocity.y += 0.5;
+                }
+                change.y = pl.velocity.y;
+            }
+            ItemType::Umbrella => {}
+        }
+    }
     //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
@@ -1075,6 +1078,20 @@ fn item_shop(
         if input.just_pressed(KeyCode::I) {
             pt.translation = Vec3::new(0., 64., 0.);
             clock.timer.unpause();
+        }
+        if input.just_pressed(KeyCode::B) {
+            if pt.translation.x <= -25. && p.credits >= UMBRELLA_PRICE {
+                //IF TRY TO BUY UMBRELLA
+                p.credits -= UMBRELLA_PRICE;
+                p.item = ItemType::Umbrella;
+                print!("UMBRELLA PURCHASED!");
+            } else if pt.translation.x >= 25. && p.credits >= JETPACK_PRICE {
+                //IF TRY TO BUY JETPACK
+                p.credits -= JETPACK_PRICE;
+                p.item = ItemType::Jetpack;
+                print!("JETPACK PURCHASED!");
+            }
+            print!("\n PRESS I TO RETURN!");
         }
     }
 }
