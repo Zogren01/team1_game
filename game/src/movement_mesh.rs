@@ -15,6 +15,13 @@ impl Vertex{
             id: i,
         }
     }
+    pub fn new_scaled(a: f32, b: f32, i: usize) -> Self{
+        Self{
+            x: a * 32.,
+            y: b * 32.,
+            id: i,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -62,6 +69,7 @@ pub fn get_level_mesh(id: i8) -> Graph{
     let mut graph = Graph::new();
     //level id for testing
     if id == 0{
+        //outtated vertex positions
         graph.vertices.push(Vertex::new(-224., 32., 0));
         graph.vertices.push(Vertex::new(208., 32., 1));
         graph.vertices.push(Vertex::new(256., 96., 2));
@@ -72,7 +80,40 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.edges[2][1] = Edge::new(Motion::Left);
     }
     if id == 1{
-
+        //starting panel vertices
+        graph.vertices.push(Vertex::new_scaled(4., 10.5, 0));
+        graph.vertices.push(Vertex::new_scaled(-4., 10.5, 1));
+        graph.edges[0][1] = Edge::new(Motion::Left);
+        graph.edges[1][0] = Edge::new(Motion::Right);
+        //vertices on two columns
+        graph.vertices.push(Vertex::new_scaled(6.5, 12.5, 2));
+        graph.edges[1][3] = Edge::new(Motion::JumpLeft);
+        graph.edges[3][1] = Edge::new(Motion::Right);
+        graph.vertices.push(Vertex::new_scaled(-6.5, 12.5, 3));
+        graph.edges[0][2] = Edge::new(Motion::JumpRight);
+        graph.edges[2][0] = Edge::new(Motion::Left);
+        //vertices between columns and breakable objects
+        graph.vertices.push(Vertex::new_scaled(9.5, 10.5, 4));
+        graph.edges[2][4] = Edge::new(Motion::Right);
+        graph.edges[4][2] = Edge::new(Motion::JumpLeft);
+        graph.vertices.push(Vertex::new_scaled(-9.5, 10.5, 5));
+        graph.edges[3][5] = Edge::new(Motion::Left);
+        graph.edges[5][3] = Edge::new(Motion::JumpRight);
+        //vertices outside of breakable objects
+        graph.vertices.push(Vertex::new_scaled(13.5, 10.5, 6));
+        graph.edges[4][6] = Edge::new(Motion::Right);
+        graph.edges[6][4] = Edge::new(Motion::Left);
+        graph.vertices.push(Vertex::new_scaled(-13.5, 10.5, 7));
+        graph.edges[5][7] = Edge::new(Motion::Left);
+        graph.edges[7][5] = Edge::new(Motion::Right);
+        //vertices on bottom ledges
+        graph.vertices.push(Vertex::new_scaled(16.5, 8.5, 8));
+        graph.edges[6][8] = Edge::new(Motion::Right);
+        graph.edges[8][6] = Edge::new(Motion::JumpLeft);
+        graph.vertices.push(Vertex::new_scaled(-16.5, 8.5, 9));
+        graph.edges[7][9] = Edge::new(Motion::Left);
+        graph.edges[9][7] = Edge::new(Motion::JumpRight);
+        
     }
     return graph;
 }
