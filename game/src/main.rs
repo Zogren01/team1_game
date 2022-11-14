@@ -98,7 +98,7 @@ fn create_level(
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                        texture: asset_server.load("boots.png"),
+                        texture: asset_server.load("jetpack.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
