@@ -576,22 +576,25 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
+                                active.grounded = true;
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
+                                    
+                                    
                                 } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")
+                                    print!("Collided but isnt moving");
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
                             ObjectType::Active => {}
                             ObjectType::Breakable => {
+                                active.grounded = true;
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
+                                    
                                 } else if active.velocity.y == 0. {
                                     print!("Collided but isnt moving")
                                 }
@@ -599,7 +602,8 @@ fn apply_collisions(
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
                             ObjectType::Enemy => {}
-                            ObjectType::Player => {}
+                            ObjectType::Player => {
+                            }
                         }
                     }
                     Collision::Bottom => match o.obj_type {
@@ -883,41 +887,84 @@ fn move_player(
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
 
-    if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 10.;
-        change.y = 10.;
+    if input.just_pressed(KeyCode::J) { //press to rotate item
+        match p.item {
+            ItemType::None => {
+                p.item = ItemType::Jetpack;
+                println!("Jetpack activated");
+            },
+            ItemType::Jetpack => {
+                p.item = ItemType::Umbrella;
+                println!("Umbrella activated");
+            },
+            ItemType::Umbrella => {
+                p.item = ItemType::None;
+                println!("No item activated");
+            }
+        }
+        
+       
     }
-    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
-    // if input.pressed(KeyCode::Space) {
-    //     match p.item {
-    //         ItemType::None => {
-    //             if pl.grounded {
-    //                 pl.velocity.y = 10.;
-    //                 change.y = 10.;
-    //             }
-    //         }
-    //         ItemType::Jetpack => {
-    //             if (pl.velocity.y < 7.5) {
-    //                 pl.velocity.y += 0.5;
-    //             }
-    //             change.y = pl.velocity.y;
-    //         }
-    //         ItemType::Umbrella => {}
-    //     }
-    // }
+    if input.pressed(KeyCode::Space){
+        match p.item {
+            ItemType::Jetpack => {
+                if pl.velocity.y < 7.5{
+                    println!("jetpackkkkkkkk");
+                    pl.velocity.y += 0.5;
+                    pl.grounded=false;
+                }
+            },
+            ItemType::Umbrella=> {
+                if pl.grounded {
+                    pl.velocity.y =10.;
+                    pl.grounded=false;
+                }
+                else {
+                    pl.velocity.y +=UMBRELLA_VELOCITY;
+                }
+            },
+            ItemType::None=> {
+                if pl.grounded {
+                    pl.velocity.y =10.;
+                    pl.grounded=false;
+                }
+                else {
+                    pl.velocity.y +=GRAVITY;
+                }
+            }
+        }
+        change.y = pl.velocity.y;
+    }
     //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        pl.velocity.y += GRAVITY;
+        match p.item {
+            ItemType::Umbrella => {
+                if pl.velocity.y<0. { //open umbrella when going down
+                    if input.pressed(KeyCode::S) { //if they press down, they can close the umbrella
+                        pl.velocity.y += GRAVITY;
+                    }
+                    else {
+                        pl.velocity.y=UMBRELLA_VELOCITY;
+                    }
+                }
+                else {
+                    pl.velocity.y += GRAVITY;
+                }
+            }
+            _ => { 
+                pl.velocity.y += GRAVITY;
+            },
+        }
         change.y = pl.velocity.y;
     }
 
     //this holds the position the player will end up in if there is no collision
     pl.projected_position = pt.translation + Vec3::new(change.x, change.y, 0.);
-    pl.grounded = false;
+
 }
 
 fn attack(
@@ -1026,6 +1073,7 @@ fn show_gui(
     for mut text in &mut healthbar {
         text.sections[0].value = p.health.to_string();
     }
+
 }
 
 fn item_shop(

@@ -6,6 +6,7 @@ pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
 
 pub const GRAVITY: f32 = -0.5;
+pub const UMBRELLA_VELOCITY: f32= -0.75;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
 
