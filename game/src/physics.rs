@@ -85,7 +85,7 @@ pub fn shoot(
     }
 }
 
-pub fn projectile_collisions(
+pub fn projectile_static_collisions(
     mut commands: Commands,
     mut objects: Query<
         (&Object, &Transform, Entity),
@@ -239,13 +239,14 @@ pub fn projectile_active_collision(
     for (mut pro_o, mut pro_t, entity) in projectiles.iter_mut() {
         for (mut e_o, e_t) in enemies.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
-                Vec3::new(pro_t.translation.x, pro_t.translation.y, 0.),
+                Vec3::new(pro_t.translation.x, pro_t.translation.y, 5.),
                 Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ),
                 e_t.translation,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
             );
 
             if res.is_some() {
+                print!("coll");
                 e_o.health -= PROJECTILE_DAMAGE;
             }
         }

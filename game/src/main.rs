@@ -110,11 +110,10 @@ fn create_level(
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::BLACK,
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                        //   texture: asset_server.load("explosiveBarrel.png"),
+                        texture: asset_server.load("breakable.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
@@ -127,10 +126,9 @@ fn create_level(
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(desc.width, desc.height)),
-                        color: Color::RED,
                         ..default()
                     },
-                    // texture: asset_server.load(texture_path),
+                    texture: asset_server.load(texture_path),
                     transform: Transform {
                         translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                         ..default()
@@ -243,19 +241,19 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            projectile_active_collision.after(shoot),
+            projectile_active_collision,
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            projectile_collisions.after(projectile_active_collision),
+            projectile_static_collisions.after(projectile_active_collision),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            despawn_broken_objects.after(projectile_collisions),
+            despawn_broken_objects.after(projectile_static_collisions),
         )
         .run();
 }
@@ -905,36 +903,82 @@ fn move_player(
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
 
-    if input.pressed(KeyCode::Space) && pl.grounded {
-        pl.velocity.y = 10.;
-        change.y = 10.;
+    if input.just_pressed(KeyCode::J) {
+        //press to rotate item
+        match p.item {
+            ItemType::None => {
+                p.item = ItemType::Jetpack;
+                println!("Jetpack activated");
+            }
+            ItemType::Jetpack => {
+                p.item = ItemType::Umbrella;
+                println!("Umbrella activated");
+            }
+            ItemType::Umbrella => {
+                p.item = ItemType::Boots;
+                println!("Boots activated");
+            }
+            ItemType::Boots => {
+                p.item = ItemType::None;
+                println!("No item activated");
+            }
+        }
     }
-    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
-    // if input.pressed(KeyCode::Space) {
-    //     match p.item {
-    //         ItemType::None => {
-    //             if pl.grounded {
-    //                 pl.velocity.y = 10.;
-    //                 change.y = 10.;
-    //             }
-    //         }
-    //         ItemType::Jetpack => {
-    //             if (pl.velocity.y < 7.5) {
-    //                 pl.velocity.y += 0.5;
-    //             }
-    //             change.y = pl.velocity.y;
-    //         }
-    //         ItemType::Umbrella => {}
-    //     }
-    // }
+    if input.pressed(KeyCode::Space) {
+        match p.item {
+            ItemType::None => {
+                if pl.grounded {
+                    pl.velocity.y = 10.;
+                    change.y = 10.;
+                } else {
+                    pl.velocity.y += GRAVITY;
+                    change.y = pl.velocity.y;
+                }
+            }
+            ItemType::Jetpack => {
+                if (pl.velocity.y < 7.5) {
+                    pl.velocity.y += 0.5;
+                }
+                change.y = pl.velocity.y;
+            }
+            ItemType::Umbrella => {
+                if pl.grounded {
+                    pl.velocity.y = 10.;
+                    change.y = 10.;
+                } else {
+                    pl.velocity.y += GRAVITY;
+                    change.y = pl.velocity.y;
+                }
+            }
+            ItemType::Boots => {
+                if pl.grounded {
+                    pl.velocity.y = 15.;
+                    change.y = 15.;
+                } else {
+                    pl.velocity.y += GRAVITY;
+                    change.y = pl.velocity.y;
+                }
+            }
+        }
+    }
     //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        pl.velocity.y += GRAVITY;
-        change.y = pl.velocity.y;
+        if (matches!(p.item, ItemType::Umbrella)) {
+            if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+                //open umbrella when going down
+                pl.velocity.y = UMBRELLA_VELOCITY;
+            } else {
+                pl.velocity.y += GRAVITY;
+            }
+            change.y = pl.velocity.y;
+        } else {
+            pl.velocity.y += GRAVITY;
+            change.y = pl.velocity.y;
+        }
     }
 
     //this holds the position the player will end up in if there is no collision
@@ -1073,7 +1117,7 @@ fn item_shop(
                 },
                 texture: asset_server.load("jetpack.png"),
                 transform: Transform {
-                    translation: Vec3::new(150., -400., 2.),
+                    translation: Vec3::new(200., -400., 2.),
                     ..default()
                 },
                 ..default()
@@ -1087,7 +1131,21 @@ fn item_shop(
                 },
                 texture: asset_server.load("umbrella.png"),
                 transform: Transform {
-                    translation: Vec3::new(-150., -400., 2.),
+                    translation: Vec3::new(-200., -400., 2.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Object::new(id, 50., 50., ObjectType::Active));
+        commands
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(75., 75.)),
+                    ..default()
+                },
+                texture: asset_server.load("boots.png"),
+                transform: Transform {
+                    translation: Vec3::new(0., -400., 2.),
                     ..default()
                 },
                 ..default()
@@ -1097,6 +1155,25 @@ fn item_shop(
         if input.just_pressed(KeyCode::I) {
             pt.translation = Vec3::new(0., 64., 0.);
             clock.timer.unpause();
+        }
+        if input.just_pressed(KeyCode::B) {
+            if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
+                //IF TRY TO BUY UMBRELLA
+                p.credits -= UMBRELLA_PRICE;
+                p.item = ItemType::Umbrella;
+                print!("UMBRELLA PURCHASED!");
+            } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
+                //IF TRY TO BUY JETPACK
+                p.credits -= JETPACK_PRICE;
+                p.item = ItemType::Jetpack;
+                print!("JETPACK PURCHASED!");
+            } else if p.credits >= BOOTS_PRICE {
+                //IF TRY TO BUY JETPACK
+                p.credits -= BOOTS_PRICE;
+                p.item = ItemType::Boots;
+                print!("JETPACK PURCHASED!");
+            }
+            print!("\n PRESS I TO RETURN!");
         }
     }
 }
