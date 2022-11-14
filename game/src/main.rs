@@ -224,7 +224,7 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            projectile_active_collision.after(shoot),
+            projectile_active_collision,
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
