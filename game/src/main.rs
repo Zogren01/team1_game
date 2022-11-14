@@ -514,7 +514,6 @@ fn apply_collisions(
                                 active.velocity.x /= 2.;
                             }
                             active.velocity.y = -2.;
-
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -909,7 +908,6 @@ fn move_player(
         match p.item {
             ItemType::Jetpack => {
                 if pl.velocity.y < 7.5{
-                    println!("jetpackkkkkkkk");
                     pl.velocity.y += 0.5;
                     pl.grounded=false;
                 }
@@ -920,7 +918,13 @@ fn move_player(
                     pl.grounded=false;
                 }
                 else {
-                    pl.velocity.y +=UMBRELLA_VELOCITY;
+                    if(pl.velocity.y <0.) {
+                        pl.velocity.y =UMBRELLA_VELOCITY;
+                    }
+                    else {
+                        pl.velocity.y+=GRAVITY;
+                    }
+                    
                 }
             },
             ItemType::None=> {
