@@ -114,7 +114,7 @@ fn create_level(
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                     //   texture: asset_server.load("explosiveBarrel.png"),
+                        //   texture: asset_server.load("explosiveBarrel.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
@@ -127,9 +127,10 @@ fn create_level(
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        color: Color::RED,
                         ..default()
                     },
-                    texture: asset_server.load(texture_path),
+                    // texture: asset_server.load(texture_path),
                     transform: Transform {
                         translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                         ..default()
@@ -221,8 +222,6 @@ fn main() {
         .add_system(show_gui)
         .add_system(attack)
         .add_system(shoot)
-
-
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
@@ -389,7 +388,7 @@ fn setup(
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new(0));
     //this variable can change based on what room the player is in
-    let mut level = get_level(0);
+    let mut level = get_level(1);
     let mesh = get_level_mesh(0);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
@@ -413,7 +412,7 @@ fn calculate_sight(
     objects: Query<(&Object, &Transform), With<Object>>,
 ) {
     let sight_distance = 800.0;
-    
+
     for (tr, mut en) in enemies.iter_mut() {
         let pos = tr.translation;
         let mut sight_lines = Vec::new();
@@ -422,8 +421,8 @@ fn calculate_sight(
         //add lines for objects to used to determine if an object is blocked form view
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
-            match o.obj_type{
-                ObjectType::Block | ObjectType::Spike=> {
+            match o.obj_type {
+                ObjectType::Block | ObjectType::Spike => {
                     //blocks and spikes are the only two objects that block line of sight
                     let (v1, v2, v3) = find_vertices(
                         pos.x,
@@ -455,17 +454,12 @@ fn calculate_sight(
                 ObjectType::Active => {
                     //this type might be useless
                 }
-                ObjectType::Enemy => {
-
-                }
-                ObjectType::Player => {
-
-                }
+                ObjectType::Enemy => {}
+                ObjectType::Player => {}
                 ObjectType::Item => {}
                 ObjectType::UmbrellaItem => {}
                 ObjectType::JetpackItem => {}
             }
-            
         }
         let g = graph.single();
         for vertex in &g.vertices {
@@ -505,6 +499,9 @@ fn apply_collisions(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                if (matches!(o.obj_type, ObjectType::Cobweb)) {
+                    println!("{:?}", coll_type);
+                }
                 match coll_type {
                     Collision::Left => match o.obj_type {
                         ObjectType::JetpackItem => {}
@@ -514,11 +511,10 @@ fn apply_collisions(
                         ObjectType::Bullet => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x = 2.;
+                                active.velocity.x /= 2.;
                             }
-                            if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y = 2.;
-                            }
+                            active.velocity.y = -2.;
+
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -543,11 +539,9 @@ fn apply_collisions(
                         ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
-                                active.velocity.x = 2.;
+                                active.velocity.x /= 2.;
                             }
-                            if active.velocity.y != 0. && active.velocity.y < 5. {
-                                active.velocity.y = 2.;
-                            }
+                            active.velocity.y = -2.;
                             active.grounded = false;
                         }
                         ObjectType::Block => {
@@ -574,13 +568,11 @@ fn apply_collisions(
                             }
                             ObjectType::Item => {}
                             ObjectType::Cobweb => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 2.; //stop vertical velocity
+                                if active.velocity.x != 0. {
+                                    active.velocity.x /= 2.;
                                 }
-                                if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y = 2.;
-                                }
+                                active.velocity.y = -2.;
+
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
@@ -601,7 +593,7 @@ fn apply_collisions(
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
                                 } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")   
+                                    print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
@@ -610,52 +602,57 @@ fn apply_collisions(
                             ObjectType::Player => {}
                         }
                     }
-                    Collision::Bottom => {
-                        match o.obj_type {
-                            ObjectType::JetpackItem => {}
-                            ObjectType::UmbrellaItem => {}
-                            ObjectType::Bullet => {}
-                            ObjectType::Spike => {}
-                            ObjectType::Item => {}
-                            ObjectType::Cobweb => {
-                                if active.velocity.y < 0. {
-                                    //if falling down
-                                    active.velocity.y = 2.; //stop vertical velocity
-                                }
-                                if active.velocity.y != 0. && active.velocity.y < 5. {
-                                    active.velocity.y = 2.;
-                                }
-                                active.grounded = false;
+                    Collision::Bottom => match o.obj_type {
+                        ObjectType::JetpackItem => {}
+                        ObjectType::UmbrellaItem => {}
+                        ObjectType::Bullet => {}
+                        ObjectType::Spike => {}
+                        ObjectType::Item => {}
+                        ObjectType::Cobweb => {
+                            if active.velocity.x != 0. {
+                                active.velocity.x /= 2.;
                             }
-                            ObjectType::Block => {
-                                active.velocity.y = 0.;
-                                active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
-                            }
-                            ObjectType::Active => {}
-                            ObjectType::Breakable => {
-                                active.velocity.y = 0.;
-                                active.projected_position.y =
-                                    t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;    
-                            }
-                            ObjectType::Enemy => {}
-                            ObjectType::Player => {}
+                            active.velocity.y = -2.;
+
+                            active.grounded = false;
                         }
-                    }
+                        ObjectType::Block => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Active => {}
+                        ObjectType::Breakable => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                        }
+                        ObjectType::Enemy => {}
+                        ObjectType::Player => {}
+                    },
                     Collision::Inside => match o.obj_type {
                         ObjectType::JetpackItem => {}
                         ObjectType::UmbrellaItem => {}
                         ObjectType::Bullet => {}
-                        ObjectType::Spike => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Item => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Cobweb => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Block => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
-                        ObjectType::Active => {println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
-                        active.velocity = Vec2::new(0., 0.);}
+                        ObjectType::Spike => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Item => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Cobweb => {
+                            active.velocity.x /= 2.;
+                        }
+                        ObjectType::Block => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
+                        ObjectType::Active => {
+                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
+                            active.velocity = Vec2::new(0., 0.);
+                        }
                         ObjectType::Item => {
                             println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);
@@ -800,7 +797,6 @@ fn move_enemies(
     input: Res<Input<KeyCode>>,
     mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>)>,
 ) {
-
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
@@ -847,7 +843,6 @@ fn move_enemies(
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Stop => {
-
                 enemy.velocity.x = 0.;
                 enemy.velocity.y += GRAVITY;
             }
@@ -885,18 +880,31 @@ fn move_player(
         pl.velocity.x = pl.velocity.x - 1.;
     }
 
-    //let deltat = time.delta_seconds();
     let mut change = Vec2::splat(0.);
     change.x = pl.velocity.x;
-
-    //the reason that jump height was inconsistent was because this could only happen when on the ground,
-    //and it was multiplied by deltat, so faster framerate meant shorter jump
-    //this code does fix the issue, but might create a new one (yay...)
 
     if input.pressed(KeyCode::Space) && pl.grounded {
         pl.velocity.y = 10.;
         change.y = 10.;
     }
+    // TENTATIVE JETPACK CODE (REMOVE ABOVE)
+    // if input.pressed(KeyCode::Space) {
+    //     match p.item {
+    //         ItemType::None => {
+    //             if pl.grounded {
+    //                 pl.velocity.y = 10.;
+    //                 change.y = 10.;
+    //             }
+    //         }
+    //         ItemType::Jetpack => {
+    //             if (pl.velocity.y < 7.5) {
+    //                 pl.velocity.y += 0.5;
+    //             }
+    //             change.y = pl.velocity.y;
+    //         }
+    //         ItemType::Umbrella => {}
+    //     }
+    // }
     //if the player did not just jump, add gravity to move them downward (colon for gounded found later)
     else if pl.grounded {
         pl.velocity.y += 0.0;
@@ -925,14 +933,16 @@ fn attack(
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
         // DOWN
         } else if input.pressed(KeyCode::W) {
-            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);// UP
+            hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
+        // UP
         } else {
             if pl.facing_left {
-                hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);//LEFT
+                hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
+            //LEFT
+            } else {
+                hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
+                // RIGHT
             }
-            else {
-                hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);// RIGHT
-            } 
         }
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
