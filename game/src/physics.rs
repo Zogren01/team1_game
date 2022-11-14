@@ -251,8 +251,7 @@ pub fn projectile_active_collision(
                     commands.entity(entity).despawn();
                     let mut rng = rand::thread_rng();
                     for i in 1..6 {
-                        let sz = 64. / rng.gen_range(8, 16) as f32;
-
+                        let sz = 48. / rng.gen_range(8, 16) as f32;
                         commands
                             .spawn_bundle(SpriteBundle {
                                 sprite: Sprite {
