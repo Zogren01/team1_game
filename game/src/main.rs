@@ -121,39 +121,47 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            }
-            commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+            } else if matches!(desc.obj_type, ObjectType::Enemy){
+                println!("We here now");
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::RED,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    texture: asset_server.load(texture_path),
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-        } else {
-            commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
-                        ..default()
-                    },
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-        }
+                    })
+                    .insert(ActiveObject::new(100, 25))
+                    .insert(Object::new(900, desc.width, desc.height, ObjectType::Enemy))
+                    .insert(Enemy::new(0));
 
-        id += 1;
+
+        } 
     }
+    else {
+        commands
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(desc.width, desc.height)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+    }
+    id += 1;
+   
+}
+ 
     for v in mesh.vertices.clone(){
         commands
             .spawn_bundle(SpriteBundle {
@@ -170,6 +178,7 @@ fn create_level(
                 ..default()
             });
     }
+    
     commands.spawn().insert(mesh);
     
 }
@@ -386,6 +395,8 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
+
+    /*
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -402,6 +413,7 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
         .insert(Enemy::new(0));
+        */
     //this variable can change based on what room the player is in
     let mut level = get_level(1);
     let mesh = get_level_mesh(1);
