@@ -95,20 +95,29 @@ impl Enemy{
         let v = self.nearest_vert(pos);
         self.current_vertex = v;
         for i in 0..MAX_VERT{
-            if !matches!(self.enemy_graph.edges[v][i].path, Motion::Stop){
-                self.next_vertex = i;
-                self.target_vertex = i;
-                self.motion = self.enemy_graph.edges[v][i].path;
-                self.update_path();
-                break;
+            match self.enemy_graph.edges[v][i].path{
+                Motion::Left | Motion::Right=>{
+                    self.next_vertex = i;
+                    self.target_vertex = i;
+                    self.motion = self.enemy_graph.edges[v][i].path;
+                    break;
+                }
+                Motion::Jump=>{}
+                Motion::JumpRight | Motion::JumpLeft=>{
+                    self.next_vertex = i;
+                    self.target_vertex = i;
+                    self.motion = self.enemy_graph.edges[v][i].path;
+                }
+                Motion::Fall=>{}
+                Motion::Stop=>{}
             }
         }
-
+        self.update_path();
     }
     pub fn decide_motion(&mut self, pos: Vec2)-> Motion{
         //only update motion if enemy has seen at least one vertex
         if self.enemy_graph.vertices.len() > 0 {
-            
+            //checks if enemy is stuck
             if self.old_pos == pos && !matches!(self.motion, Motion::Stop){
                 self.immobile_frames += 1;
             }
@@ -146,6 +155,7 @@ impl Enemy{
                 self.current_vertex = self.next_vertex;
                 match self.action{
                     Action::Strafe => {
+                        println!("strafing");
                         //if still travelling towards goal
                         if self.current_vertex != self.target_vertex{
                             self.index_in_path += 1;
