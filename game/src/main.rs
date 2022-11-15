@@ -526,7 +526,7 @@ fn calculate_sight(
 fn apply_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
-    input: Res<Input<KeyCode>>,
+    //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
@@ -657,7 +657,7 @@ fn apply_collisions(
         }
     }
 }
-
+//this function doesn't seem to work
 fn enemy_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
     mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
@@ -772,9 +772,8 @@ fn update_positions(
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
 //ex. for enemy in enemies, 1. calc sight 2. make decision on where to go 3. execute one of the select motion commands
 fn move_enemies(
-    time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>)>,
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
 ) {
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
@@ -793,11 +792,11 @@ fn move_enemies(
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
             Motion::Left => {
-                enemy.velocity.x = -PLAYER_SPEED + 1.;
+                enemy.velocity.x = -PLAYER_SPEED ;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
-                enemy.velocity.x = PLAYER_SPEED - 1.;
+                enemy.velocity.x = PLAYER_SPEED;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
@@ -832,10 +831,10 @@ fn move_enemies(
 
 fn move_player(
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>)>,
-    mut exit: EventWriter<AppExit>,
+    mut player: Query<(&mut ActiveObject, &Transform, &mut Player), (With<Player>)>,
+    //mut exit: EventWriter<AppExit>,
 ) {
-    let (mut pl, mut pt, mut p) = player.single_mut();
+    let (mut pl, pt, mut p) = player.single_mut();
     if input.pressed(KeyCode::A) {
         pl.facing_left = true;
         if pl.velocity.x > -PLAYER_SPEED {
@@ -900,7 +899,7 @@ fn move_player(
                     pl.velocity.y = 10.;
                     change.y = 10.;
                 } else {
-                    if (pl.velocity.y <= UMBRELLA_VELOCITY) {
+                    if pl.velocity.y <= UMBRELLA_VELOCITY {
                         //open umbrella when going down
                         pl.velocity.y = UMBRELLA_VELOCITY;
                     } else {
@@ -926,7 +925,7 @@ fn move_player(
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        if (matches!(p.item, ItemType::Umbrella)) {
+        if matches!(p.item, ItemType::Umbrella) {
             if input.pressed(KeyCode::S) || (pl.velocity.y > UMBRELLA_VELOCITY) {
                 //if they press down, they can close the umbrella
                 pl.velocity.y += GRAVITY;
@@ -950,11 +949,11 @@ fn attack(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
-    mut commands: Commands,
+    //mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
     if input.just_pressed(KeyCode::P) {
-        let mut hitbox_pos;
+        let hitbox_pos: Vec3;
         if input.pressed(KeyCode::S) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
         // DOWN
@@ -1011,15 +1010,15 @@ fn attack(
 fn show_gui(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
+    //mut commands: Commands,
+    //asset_server: Res<AssetServer>,
+    mut player: Query<(&Player, &mut Transform), With<Player>>,
     mut clock: ResMut<Clock>,
     mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>, Without<HealthBar>)>,
     mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
     mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
 ) {
-    let (mut p, mut pt) = player.single_mut();
+    let (p, mut pt) = player.single_mut();
     //create_timer(commands, asset_server, time);
     if pt.translation.y < -400. {
         clock.timer.pause();
@@ -1056,11 +1055,10 @@ fn show_gui(
 
 fn item_shop(
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut Player, &mut Transform), (With<Player>)>,
+    mut player: Query<(&mut Player, &mut Transform), With<Player>>,
     mut clock: ResMut<Clock>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
