@@ -8,9 +8,11 @@ pub const WIN_H: f32 = 720.;
 pub const GRAVITY: f32 = -0.5;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
+pub const UMBRELLA_VELOCITY: f32 = -0.75;
 
 pub const UMBRELLA_PRICE: i8 = 30;
 pub const JETPACK_PRICE: i8 = 70;
+pub const BOOTS_PRICE: i8 = 30;
 
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
 
@@ -86,6 +88,67 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(16., 1., 0.5, 0., ObjectType::Block));
     }
     if id == 1 {
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+        //small 1x2s on left and right
+        result.push(Descriptor::new(1., 2., -6.5, 11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 6.5, 11., ObjectType::Block));
+        //breakable objects on left and right
+        //result.push(Descriptor::new(1., 4., -11.5, 12., ObjectType::Breakable));
+        //result.push(Descriptor::new(1., 4., 11.5, 12., ObjectType::Breakable));
+        //block under main panel
+        result.push(Descriptor::new(1., 1., -13.5, 8.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 13.5, 8.5, ObjectType::Block));
+        //ledges under main panel
+        result.push(Descriptor::new(6., 1., -16., 7.5, ObjectType::Block));
+        result.push(Descriptor::new(6., 1., 16., 7.5, ObjectType::Block));
+        //smaller lowered panels
+        result.push(Descriptor::new(4., 1., -24., 5.5, ObjectType::Block));
+        result.push(Descriptor::new(4., 1., 24., 5.5, ObjectType::Block));
+        //panels with enemimes on them
+        result.push(Descriptor::new(5., 1., -22.5, 10.5, ObjectType::Block));
+        result.push(Descriptor::new(5., 1., 22.5, 10.5, ObjectType::Block));
+        //enemies
+        result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::Enemy));
+        result.push(Descriptor::new(1., 1., 22.5, 11.5, ObjectType::Enemy));
+        //left and right floors
+        result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));
+        result.push(Descriptor::new(27., 1., 16.5, 2.5, ObjectType::Block));
+        //left and right walls
+        result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        //bottom floor
+        result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+        //block on bottom floor
+        result.push(Descriptor::new(18., 4., 0., -10., ObjectType::Block));
+        //innermost bottom pillars
+        result.push(Descriptor::new(1., 2., -13.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 13.5, -11., ObjectType::Block));
+        //middle bottom pillars
+        result.push(Descriptor::new(1., 4., -16.5, -10., ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 16.5, -10., ObjectType::Block));
+        //outer bottom pillars
+        result.push(Descriptor::new(1., 2., -19.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 19.5, -11., ObjectType::Block));
+        //inner floating blocks
+        result.push(Descriptor::new(1., 1., -11.5, -5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 11.5, -5.5, ObjectType::Block));
+        //outer floating blocks
+        result.push(Descriptor::new(1., 1., -14.5, -2.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 14.5, -2.5, ObjectType::Block));
+        //top panels
+        result.push(Descriptor::new(7., 1., -19.5, -5.5, ObjectType::Block));
+        result.push(Descriptor::new(7., 1., 19.5, -5.5, ObjectType::Block));
+        //small walls
+        result.push(Descriptor::new(1., 6., -22.5, -9., ObjectType::Block));
+        result.push(Descriptor::new(1., 6., 22.5, -9., ObjectType::Block));
+        //pillars on panels
+        result.push(Descriptor::new(1., 2., -22.5, -4., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 22.5, -4., ObjectType::Block));
+    }
+    if id == 2 {
         let mut x = 16.;
         let mut y = 0.;
         //main floor
@@ -297,4 +360,5 @@ pub enum ObjectType {
     JetpackItem,
     Bullet,
     Breakable,
+    Barrel,
 }

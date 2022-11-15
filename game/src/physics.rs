@@ -7,7 +7,7 @@ use bevy::sprite::collide_aabb::Collision;
 use rand::Rng;
 
 const PROJECTILE_SZ: f32 = 6.;
-const PROJECTILE_DAMAGE: i32 = 10;
+const PROJECTILE_DAMAGE: i32 = 25;
 
 pub enum ProjType {
     Particle,
@@ -85,7 +85,7 @@ pub fn shoot(
     }
 }
 
-pub fn projectile_collisions(
+pub fn projectile_static_collisions(
     mut commands: Commands,
     mut objects: Query<
         (&Object, &Transform, Entity),
@@ -98,11 +98,6 @@ pub fn projectile_collisions(
 ) {
     //let (pl, pt) = player.single_mut();
     for (mut pro_o, mut pro_t, entity) in projectiles.iter_mut() {
-        pro_o.project_pos = Vec3::new(
-            pro_t.translation.x + pro_o.velocity.x,
-            pro_t.translation.y + pro_o.velocity.y,
-            0.,
-        );
         let mut collide = false;
         // pro_t.translation.x += pro_o.velocity.x;
         // pro_t.translation.y += pro_o.velocity.y;
@@ -231,22 +226,53 @@ pub fn despawn_broken_objects(
 pub fn projectile_active_collision(
     mut commands: Commands,
     mut projectiles: Query<
-        (&mut Projectile, &mut Transform, Entity),
+        (&mut Projectile, &mut Transform),
         (Without<Object>, Without<Player>, Without<Enemy>),
     >,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<ActiveObject>, With<Enemy>)>,
+    mut enemies: Query<(&mut ActiveObject, Entity), (With<Enemy>)>,
 ) {
-    for (mut pro_o, mut pro_t, entity) in projectiles.iter_mut() {
-        for (mut e_o, e_t) in enemies.iter_mut() {
+    for (mut pro_o, mut pro_t) in projectiles.iter_mut() {
+        pro_o.project_pos = Vec3::new(
+            pro_t.translation.x + pro_o.velocity.x,
+            pro_t.translation.y + pro_o.velocity.y,
+            0.,
+        );
+        for (mut e_o, entity) in enemies.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
-                Vec3::new(pro_t.translation.x, pro_t.translation.y, 0.),
+                pro_o.project_pos,
                 Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ),
-                e_t.translation,
+                e_o.projected_position,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
             );
 
             if res.is_some() {
                 e_o.health -= PROJECTILE_DAMAGE;
+                if (e_o.health <= 0) {
+                    commands.entity(entity).despawn();
+                    let mut rng = rand::thread_rng();
+                    for i in 1..6 {
+                        let sz = 48. / rng.gen_range(8, 16) as f32;
+                        commands
+                            .spawn_bundle(SpriteBundle {
+                                sprite: Sprite {
+                                    color: Color::RED,
+                                    custom_size: Some(Vec2::new(sz, sz)),
+                                    ..default()
+                                },
+                                transform: Transform {
+                                    translation: e_o.projected_position,
+                                    ..default()
+                                },
+                                // texture: asset_server.load("bullet.png"),
+                                ..default()
+                            })
+                            .insert(Projectile::new(
+                                Vec2::new(rng.gen_range(-5, 5) as f32, rng.gen_range(2, 7) as f32),
+                                ProjType::BrokenObj,
+                            ))
+                            .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                    }
+                }
             }
         }
     }
