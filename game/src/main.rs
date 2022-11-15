@@ -122,7 +122,6 @@ fn create_level(
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::Enemy){
-                println!("We here now");
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -138,7 +137,7 @@ fn create_level(
                     })
                     .insert(ActiveObject::new(100, 25))
                     .insert(Object::new(900, desc.width, desc.height, ObjectType::Enemy))
-                    .insert(Enemy::new(0));
+                    .insert(Enemy::new());
 
 
         } 
@@ -840,46 +839,45 @@ fn move_enemies(
             for v in e.enemy_graph.vertices.iter_mut() {
                 println!("{}", v.id);
             }
+            println!("Enemy current vertex: {}\nEnemy target vertex: {}", e.current_vertex, e.target_vertex);
         }
-        if input.pressed(KeyCode::G) {
-            e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
-            match e.motion {
-                Motion::Left => {
-                    if enemy.velocity.x > -PLAYER_SPEED {
-                        enemy.velocity.x = enemy.velocity.x - 1.;
-                    }
-                    enemy.velocity.y += GRAVITY;
+        e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
+        match e.motion {
+            Motion::Left => {
+                if enemy.velocity.x > -PLAYER_SPEED {
+                    enemy.velocity.x = enemy.velocity.x - 1.;
                 }
-                Motion::Right => {
-                    if enemy.velocity.x < PLAYER_SPEED {
-                        enemy.velocity.x = enemy.velocity.x + 1.;
-                    }
-                    enemy.velocity.y += GRAVITY;
-                }
-                Motion::Jump => {
-                    enemy.velocity.y = 10.;
-                    e.motion = Motion::Fall;
-                }
-                Motion::JumpRight => {
-                    enemy.velocity.y = 10.;
-                    e.motion = Motion::Right;
-                }
-                Motion::JumpLeft => {
-                    enemy.velocity.y = 10.;
-                    e.motion = Motion::Left;
-                }
-                Motion::Fall => {
-                    enemy.velocity.x = 0.;
-                    enemy.velocity.y += GRAVITY;
-                }
-                Motion::Stop => {
-                    enemy.velocity.x = 0.;
-                    enemy.velocity.y += GRAVITY;
-                }
+                enemy.velocity.y += GRAVITY;
             }
-            change.y = enemy.velocity.y;
-            change.x = enemy.velocity.x;
+            Motion::Right => {
+                if enemy.velocity.x < PLAYER_SPEED {
+                    enemy.velocity.x = enemy.velocity.x + 1.;
+                }
+                enemy.velocity.y += GRAVITY;
+            }
+            Motion::Jump => {
+                enemy.velocity.y = 10.;
+                e.motion = Motion::Fall;
+            }
+            Motion::JumpRight => {
+                enemy.velocity.y = 10.;
+                e.motion = Motion::Right;
+            }
+            Motion::JumpLeft => {
+                enemy.velocity.y = 10.;
+                e.motion = Motion::Left;
+            }
+            Motion::Fall => {
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY;
+            }
+            Motion::Stop => {
+                enemy.velocity.x = 0.;
+                enemy.velocity.y += GRAVITY;
+            }
         }
+        change.y = enemy.velocity.y;
+        change.x = enemy.velocity.x;
         
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
@@ -888,7 +886,6 @@ fn move_enemies(
 }
 
 fn move_player(
-    time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>)>,
     mut exit: EventWriter<AppExit>,
