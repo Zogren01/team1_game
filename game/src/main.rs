@@ -122,6 +122,7 @@ fn create_level(
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::Enemy){
+               
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -778,18 +779,15 @@ fn move_enemies(
             }
             println!("Enemy current vertex: {}\nEnemy target vertex: {}", e.current_vertex, e.target_vertex);
         }
+        //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
             Motion::Left => {
-                if enemy.velocity.x > -PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x - 1.;
-                }
+                enemy.velocity.x = -PLAYER_SPEED + 1.;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
-                if enemy.velocity.x < PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x + 1.;
-                }
+                enemy.velocity.x = PLAYER_SPEED - 1.;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
@@ -815,7 +813,7 @@ fn move_enemies(
         }
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x;
-        
+    //}  //comment out when enemy should move freely
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
