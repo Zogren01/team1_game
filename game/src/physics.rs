@@ -183,23 +183,23 @@ pub fn projectile_static_collisions(
                             match coll_type {
                                 Collision::Left => {
                                     p_xvel = rng.gen_range(10, 20) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2.;
+                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Right => {
                                     p_xvel = rng.gen_range(-20, -10) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2.;
+                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Top => {
                                     p_yvel = rng.gen_range(-20, -10) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2.;
+                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Bottom => {
                                     p_yvel = rng.gen_range(10, 20) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2.;
+                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Inside => {
-                                    p_yvel = rng.gen_range(2, 7) as f32;
-                                    p_xvel = rng.gen_range(2, 7) as f32;
+                                    p_yvel = rng.gen_range(4, 10) as f32;
+                                    p_xvel = rng.gen_range(-10, 10) as f32;
                                 }
                             }
                             let sz = o_o.height / rng.gen_range(8, 16) as f32;
