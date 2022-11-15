@@ -35,6 +35,17 @@ impl Object {
     }
 }
 
+#[derive(Component)]
+pub struct ParticleSystem {
+    pub lifespan: Timer,
+}
+
+impl ParticleSystem {
+    pub fn new(lifespan: Timer) -> Self {
+        Self { lifespan: lifespan }
+    }
+}
+
 impl Hash for Descriptor {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
