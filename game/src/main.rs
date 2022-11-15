@@ -322,6 +322,7 @@ fn setup(
     });
     */
 
+
     commands
         .spawn_bundle(TextBundle::from_section(
             "",
@@ -458,7 +459,7 @@ fn calculate_sight(
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
             match o.obj_type {
-                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable => {
+                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable=> {
                     //blocks and spikes are the only two objects that block line of sight
                     let (v1, v2, v3) = find_vertices(
                         pos.x,
@@ -487,12 +488,14 @@ fn calculate_sight(
                 ObjectType::Active => {
                     //this type might be useless
                 }
-                ObjectType::Enemy => {}
+                ObjectType::Enemy => {
+
+                }
                 ObjectType::Player => {
                     let sight_line = Line::new(
                         Vec2::new(pos.x, pos.y),
                         Vec2::new(t.translation.x, t.translation.y),
-                        MAX_VERT + 1,
+                        MAX_VERT+1,
                     );
                     if sight_line.length_squared() < sight_distance * sight_distance {
                         sight_lines.push(sight_line);
@@ -784,23 +787,17 @@ fn move_enemies(
             for v in e.enemy_graph.vertices.iter_mut() {
                 println!("{}", v.id);
             }
-            println!(
-                "Enemy current vertex: {}\nEnemy target vertex: {}",
-                e.current_vertex, e.target_vertex
-            );
+            println!("Enemy current vertex: {}\nEnemy target vertex: {}", e.current_vertex, e.target_vertex);
         }
+        //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
             Motion::Left => {
-                if enemy.velocity.x > -PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x - 1.;
-                }
+                enemy.velocity.x = -PLAYER_SPEED + 1.;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
-                if enemy.velocity.x < PLAYER_SPEED {
-                    enemy.velocity.x = enemy.velocity.x + 1.;
-                }
+                enemy.velocity.x = PLAYER_SPEED - 1.;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
@@ -826,7 +823,7 @@ fn move_enemies(
         }
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x;
-
+    //}  //comment out when enemy should move freely
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
