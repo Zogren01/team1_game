@@ -138,8 +138,8 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            } else if matches!(desc.obj_type, ObjectType::Enemy) {
-                
+            } else if matches!(desc.obj_type, ObjectType::Enemy){
+               
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
