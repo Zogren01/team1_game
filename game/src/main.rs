@@ -138,8 +138,7 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-} else if matches!(desc.obj_type, ObjectType::Enemy){
-               
+            } else if matches!(desc.obj_type, ObjectType::Enemy) {
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -824,7 +823,7 @@ fn move_enemies(
         }
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x;
-    //}  //comment out when enemy should move freely
+        //}  //comment out when enemy should move freely
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
@@ -1067,7 +1066,7 @@ fn item_shop(
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
         print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
         clock.timer.pause();
-        pt.translation = Vec3::new(0., -475., 0.);
+        pt.translation = Vec3::new(0., -575., 0.);
 
         let mut id = 0;
         commands
@@ -1129,10 +1128,10 @@ fn item_shop(
                 p.item = ItemType::Jetpack;
                 print!("JETPACK PURCHASED!");
             } else if p.credits >= BOOTS_PRICE {
-                //IF TRY TO BUY JETPACK
+                //IF TRY TO BUY BOOTS
                 p.credits -= BOOTS_PRICE;
                 p.item = ItemType::Boots;
-                print!("JETPACK PURCHASED!");
+                print!("BOOTS PURCHASED!");
             }
             print!("\n PRESS I TO RETURN!");
         }
