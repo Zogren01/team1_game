@@ -99,6 +99,7 @@ impl Enemy{
                 self.next_vertex = i;
                 self.target_vertex = i;
                 self.motion = self.enemy_graph.edges[v][i].path;
+                self.update_path();
                 break;
             }
         }
@@ -200,7 +201,7 @@ impl Enemy{
                         }
                     }
                 }
-                if self.path.vertices.len() > 0{
+                if self.path.vertices.len() > self.index_in_path{
                     self.next_vertex = self.path.vertices[self.index_in_path];
                 }
                 println!("Enemy has arrived at vertex: {}\nIs heading to vertex: {}", self.current_vertex, self.next_vertex);

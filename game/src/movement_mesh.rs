@@ -156,6 +156,7 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.edges[19][17] = Edge::new(Motion::Right);
         //vertices along floors
         //result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));
+        /*
         graph.vertices.push(Vertex::new_scaled(27.5, 3.5, 20));
         graph.edges[18][20] = Edge::new(Motion::Left);
         graph.edges[20][18] = Edge::new(Motion::JumpRight);
@@ -168,6 +169,7 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.vertices.push(Vertex::new_scaled(-21., 3.5, 23));
         graph.edges[21][23] = Edge::new(Motion::Left);
         graph.edges[23][21] = Edge::new(Motion::Right);
+        */
     }
     return graph;
 }
