@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use std::cmp::Eq;
+use crate::physics::*;
 use std::hash::{Hash, Hasher};
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
@@ -36,11 +37,11 @@ impl Object {
 }
 
 #[derive(Component)]
-pub struct ParticleSystem {
+pub struct Explosive {
     pub lifespan: Timer,
 }
 
-impl ParticleSystem {
+impl Explosive {
     pub fn new(lifespan: Timer) -> Self {
         Self { lifespan: lifespan }
     }

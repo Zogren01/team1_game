@@ -170,6 +170,108 @@ pub fn projectile_static_collisions(
                                     ProjType::BrokenObj,
                                 ))
                                 .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                            commands
+                                .spawn_bundle(SpriteBundle {
+                                    sprite: Sprite {
+                                        color: Color::RED,
+                                        custom_size: Some(Vec2::new(sz, sz)),
+                                        ..default()
+                                    },
+                                    transform: Transform {
+                                        translation: Vec3::new(
+                                            o_t.translation.x,
+                                            o_t.translation.y,
+                                            2.,
+                                        ),
+                                        ..default()
+                                    },
+                                    // texture: asset_server.load("bullet.png"),
+                                    ..default()
+                                })
+                                .insert(Projectile::new(
+                                    Vec2::new(p_xvel, p_yvel as f32),
+                                    ProjType::BrokenObj,
+                                ))
+                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                        }
+                    } else if matches!(o_o.obj_type, ObjectType::Barrel) {
+                        // generate_breakables(&coll_type, o_t, o_o, commands);
+                        println!("{:?}", coll_type);
+                        commands.entity(o_e).despawn();
+                        let mut rng = rand::thread_rng();
+                        for i in 1..10 {
+                            let mut rng = rand::thread_rng();
+                            let mut p_xvel = 0.;
+                            let mut p_yvel = 0.;
+                            match coll_type {
+                                Collision::Left => {
+                                    p_xvel = rng.gen_range(-5, 5) as f32;
+                                    p_yvel = 8.;
+                                }
+                                Collision::Right => {
+                                    p_xvel = rng.gen_range(-5, 5) as f32;
+                                    p_yvel = 8.;
+                                }
+                                Collision::Top => {
+                                    p_xvel = rng.gen_range(-5, 5) as f32;
+                                    p_yvel = 8.;
+                                }
+                                Collision::Bottom => {
+                                    p_xvel = rng.gen_range(-5, 5) as f32;
+                                    p_yvel = 8.;
+                                }
+                                Collision::Inside => {
+                                    p_yvel = rng.gen_range(2, 7) as f32;
+                                    p_xvel = rng.gen_range(2, 7) as f32;
+                                }
+                            }
+                            let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                            commands
+                                .spawn_bundle(SpriteBundle {
+                                    sprite: Sprite {
+                                        color: Color::RED,
+                                        custom_size: Some(Vec2::new(sz, sz)),
+                                        ..default()
+                                    },
+                                    transform: Transform {
+                                        translation: Vec3::new(
+                                            o_t.translation.x,
+                                            o_t.translation.y,
+                                            2.,
+                                        ),
+                                        ..default()
+                                    },
+                                    // texture: asset_server.load("bullet.png"),
+                                    ..default()
+                                })
+                                .insert(Projectile::new(
+                                    Vec2::new(p_xvel, p_yvel as f32),
+                                    ProjType::BrokenObj,
+                                ))
+                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                            commands
+                                .spawn_bundle(SpriteBundle {
+                                    sprite: Sprite {
+                                        color: Color::RED,
+                                        custom_size: Some(Vec2::new(sz, sz)),
+                                        ..default()
+                                    },
+                                    transform: Transform {
+                                        translation: Vec3::new(
+                                            o_t.translation.x,
+                                            o_t.translation.y,
+                                            2.,
+                                        ),
+                                        ..default()
+                                    },
+                                    // texture: asset_server.load("bullet.png"),
+                                    ..default()
+                                })
+                                .insert(Projectile::new(
+                                    Vec2::new(p_xvel, p_yvel as f32),
+                                    ProjType::BrokenObj,
+                                ))
+                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
                         }
                     }
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {

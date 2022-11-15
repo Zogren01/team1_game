@@ -121,8 +121,8 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type))
-                    .insert(ParticleSystem::new(Timer::from_seconds(2.0, false)));
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+                //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
             } else if matches!(desc.obj_type, ObjectType::Breakable) {
                 commands
                     .spawn_bundle(SpriteBundle {
@@ -138,7 +138,7 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            } else if matches!(desc.obj_type, ObjectType::Enemy){
+            } else if matches!(desc.obj_type, ObjectType::Enemy) {
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -155,48 +155,42 @@ fn create_level(
                     .insert(ActiveObject::new(100, 25))
                     .insert(Object::new(900, desc.width, desc.height, ObjectType::Enemy))
                     .insert(Enemy::new());
+            }
+        } else {
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+        }
+        id += 1;
+    }
 
+    for v in mesh.vertices.clone() {
+        commands.spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                color: Color::ORANGE,
+                custom_size: Some(Vec2::new(5., 5.)),
+                ..default()
+            },
+            //   texture: asset_server.load("explosiveBarrel.png"),
+            transform: Transform {
+                translation: Vec3::new(v.x, v.y, 2.),
+                ..default()
+            },
+            ..default()
+        });
+    }
 
-        } 
-    }
-    else {
-        commands
-            .spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(desc.width, desc.height)),
-                    ..default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-    }
-    id += 1;
-   
-}
- 
-    for v in mesh.vertices.clone(){
-        commands
-            .spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::ORANGE,
-                    custom_size: Some(Vec2::new(5., 5.,)),
-                    ..default()
-                },
-                //   texture: asset_server.load("explosiveBarrel.png"),
-                transform: Transform {
-                    translation: Vec3::new(v.x, v.y, 2.),
-                    ..default()
-                },
-                ..default()
-            });
-    }
-    
     commands.spawn().insert(mesh);
-    
 }
 
 fn main() {
@@ -327,7 +321,6 @@ fn setup(
         ..default()
     });
     */
-
 
     commands
         .spawn_bundle(TextBundle::from_section(
@@ -465,7 +458,7 @@ fn calculate_sight(
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
             match o.obj_type {
-                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable=> {
+                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable => {
                     //blocks and spikes are the only two objects that block line of sight
                     let (v1, v2, v3) = find_vertices(
                         pos.x,
@@ -494,14 +487,12 @@ fn calculate_sight(
                 ObjectType::Active => {
                     //this type might be useless
                 }
-                ObjectType::Enemy => {
-
-                }
+                ObjectType::Enemy => {}
                 ObjectType::Player => {
                     let sight_line = Line::new(
                         Vec2::new(pos.x, pos.y),
                         Vec2::new(t.translation.x, t.translation.y),
-                        MAX_VERT+1,
+                        MAX_VERT + 1,
                     );
                     if sight_line.length_squared() < sight_distance * sight_distance {
                         sight_lines.push(sight_line);
@@ -793,7 +784,10 @@ fn move_enemies(
             for v in e.enemy_graph.vertices.iter_mut() {
                 println!("{}", v.id);
             }
-            println!("Enemy current vertex: {}\nEnemy target vertex: {}", e.current_vertex, e.target_vertex);
+            println!(
+                "Enemy current vertex: {}\nEnemy target vertex: {}",
+                e.current_vertex, e.target_vertex
+            );
         }
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
@@ -832,7 +826,7 @@ fn move_enemies(
         }
         change.y = enemy.velocity.y;
         change.x = enemy.velocity.x;
-        
+
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
