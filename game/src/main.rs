@@ -106,6 +106,23 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            } else if matches!(desc.obj_type, ObjectType::Barrel) {
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            //color: Color::GRAY,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        texture: asset_server.load("explosiveBarrel.png"),
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(Object::new(id, desc.width, desc.height, desc.obj_type))
+                    .insert(ParticleSystem::new(Timer::from_seconds(2.0, false)));
             } else if matches!(desc.obj_type, ObjectType::Breakable) {
                 commands
                     .spawn_bundle(SpriteBundle {
