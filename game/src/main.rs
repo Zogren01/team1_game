@@ -210,13 +210,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            enemy_collisions.after(apply_collisions),
+            enemy_player_collisions.after(apply_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            update_positions.after(enemy_collisions),
+            update_positions.after(enemy_player_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -641,47 +641,48 @@ fn apply_collisions(
     }
 }
 
-fn enemy_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
-    mut exit: EventWriter<AppExit>,
+fn enemy_player_collisions(
+    mut actives: Query<(&mut ActiveObject, &Transform, Entity), (With<Player>, With<Enemy>)>,
+    mut actives_b: Query<(&mut ActiveObject, &Transform, Entity), (With<Player>, With<Enemy>)>,
 ) {
-    for (mut active, transform) in actives.iter_mut() {
-        for (o, t) in enemies.iter() {
-            let res = bevy::sprite::collide_aabb::collide(
-                active.projected_position,
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
-                o.projected_position,
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
-            );
-            if res.is_some() {
-                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                match coll_type {
-                    Collision::Left => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x =
-                            t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
-                    }
-                    Collision::Right => {
-                        active.velocity.x = 0.;
-                        active.projected_position.x =
-                            t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
-                    }
-                    Collision::Top => {
-                        if active.velocity.y < 0. {
-                            active.velocity.y = 0.;
-                            active.grounded = true;
+    for (mut active, transform, entity_a) in actives.iter_mut() {
+        for (mut o, t, entity_b) in actives_b.iter_mut() {
+            if !(entity_a.id() == entity_b.id()) {
+                let res = bevy::sprite::collide_aabb::collide(
+                    active.projected_position,
+                    Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                    o.projected_position,
+                    Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                );
+                if res.is_some() {
+                    let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                    match coll_type {
+                        Collision::Left => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
                         }
-                        active.projected_position.y =
-                            t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
-                    }
-                    Collision::Bottom => {
-                        active.velocity.y = 0.;
-                        active.projected_position.y =
-                            t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
-                    }
-                    Collision::Inside => {
-                        active.velocity = Vec2::new(0., 0.);
+                        Collision::Right => {
+                            active.velocity.x = 0.;
+                            active.projected_position.x =
+                                t.translation.x + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                        }
+                        Collision::Top => {
+                            if active.velocity.y < 0. {
+                                active.velocity.y = 0.;
+                                active.grounded = true;
+                            }
+                            active.projected_position.y =
+                                t.translation.y + (PLAYER_SZ / 2.) + PLAYER_SZ / 2.;
+                        }
+                        Collision::Bottom => {
+                            active.velocity.y = 0.;
+                            active.projected_position.y =
+                                t.translation.y - (PLAYER_SZ / 2.) - PLAYER_SZ / 2.;
+                        }
+                        Collision::Inside => {
+                            active.velocity = Vec2::new(0., 0.);
+                        }
                     }
                 }
             }
