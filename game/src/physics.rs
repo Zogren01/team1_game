@@ -51,7 +51,7 @@ pub fn shoot(
 ) {
     let (pl, pt) = player.single_mut();
 
-    let mut vel = Vec2::new(10., 5.);
+    let mut vel = Vec2::new(10., 4.);
 
     if pl.facing_left {
         vel.x *= -1.;
@@ -150,29 +150,6 @@ pub fn projectile_static_collisions(
                             commands
                                 .spawn_bundle(SpriteBundle {
                                     sprite: Sprite {
-                                        color: Color::BLACK,
-                                        custom_size: Some(Vec2::new(sz, sz)),
-                                        ..default()
-                                    },
-                                    transform: Transform {
-                                        translation: Vec3::new(
-                                            o_t.translation.x,
-                                            o_t.translation.y,
-                                            2.,
-                                        ),
-                                        ..default()
-                                    },
-                                    // texture: asset_server.load("bullet.png"),
-                                    ..default()
-                                })
-                                .insert(Projectile::new(
-                                    Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::BrokenObj,
-                                ))
-                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                            commands
-                                .spawn_bundle(SpriteBundle {
-                                    sprite: Sprite {
                                         color: Color::RED,
                                         custom_size: Some(Vec2::new(sz, sz)),
                                         ..default()
@@ -205,20 +182,20 @@ pub fn projectile_static_collisions(
                             let mut p_yvel = 0.;
                             match coll_type {
                                 Collision::Left => {
-                                    p_xvel = rng.gen_range(-5, 5) as f32;
-                                    p_yvel = 8.;
+                                    p_xvel = rng.gen_range(10, 20) as f32;
+                                    p_yvel = (i as f32 - 3.) / 2.;
                                 }
                                 Collision::Right => {
-                                    p_xvel = rng.gen_range(-5, 5) as f32;
-                                    p_yvel = 8.;
+                                    p_xvel = rng.gen_range(-20, -10) as f32;
+                                    p_yvel = (i as f32 - 3.) / 2.;
                                 }
                                 Collision::Top => {
-                                    p_xvel = rng.gen_range(-5, 5) as f32;
-                                    p_yvel = 8.;
+                                    p_yvel = rng.gen_range(-20, -10) as f32;
+                                    p_xvel = (i as f32 - 3.) / 2.;
                                 }
                                 Collision::Bottom => {
-                                    p_xvel = rng.gen_range(-5, 5) as f32;
-                                    p_yvel = 8.;
+                                    p_yvel = rng.gen_range(10, 20) as f32;
+                                    p_xvel = (i as f32 - 3.) / 2.;
                                 }
                                 Collision::Inside => {
                                     p_yvel = rng.gen_range(2, 7) as f32;
@@ -246,30 +223,7 @@ pub fn projectile_static_collisions(
                                 })
                                 .insert(Projectile::new(
                                     Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::BrokenObj,
-                                ))
-                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                            commands
-                                .spawn_bundle(SpriteBundle {
-                                    sprite: Sprite {
-                                        color: Color::RED,
-                                        custom_size: Some(Vec2::new(sz, sz)),
-                                        ..default()
-                                    },
-                                    transform: Transform {
-                                        translation: Vec3::new(
-                                            o_t.translation.x,
-                                            o_t.translation.y,
-                                            2.,
-                                        ),
-                                        ..default()
-                                    },
-                                    // texture: asset_server.load("bullet.png"),
-                                    ..default()
-                                })
-                                .insert(Projectile::new(
-                                    Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::BrokenObj,
+                                    ProjType::Particle,
                                 ))
                                 .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
                         }
@@ -295,6 +249,36 @@ pub fn projectile_static_collisions(
                         }
                         Collision::Bottom => {
                             pro_o.velocity.y = 0.;
+                        }
+                        Collision::Inside => {
+                            pro_o.velocity.x = 0.;
+                            pro_o.velocity.y = 0.;
+                            pro_t.translation.y =
+                                o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
+                        }
+                    }
+                } else if matches!(pro_o.proj_type, ProjType::Particle) {
+                    match coll_type {
+                        Collision::Left => {
+                            pro_o.velocity.x *= -0.8;
+                        }
+                        Collision::Right => {
+                            pro_o.velocity.x *= -0.8;
+                        }
+                        Collision::Top => {
+                            // print!("{}\n", pro_o.velocity.y.abs());
+                            if (pro_o.velocity.y.abs() < 1.5) {
+                                pro_o.velocity.y = 0.;
+                            } else {
+                                pro_o.velocity.y *= -0.5;
+                            }
+                            pro_o.velocity.x *= 0.8;
+                            // pro_t.translation.y =
+                            //     o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
+                        }
+                        Collision::Bottom => {
+                            pro_o.velocity.y *= -1.;
+                            pro_o.velocity.x *= -0.9;
                         }
                         Collision::Inside => {
                             pro_o.velocity.x = 0.;

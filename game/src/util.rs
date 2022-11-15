@@ -1,6 +1,6 @@
+use crate::physics::*;
 use bevy::prelude::*;
 use std::cmp::Eq;
-use crate::physics::*;
 use std::hash::{Hash, Hasher};
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
@@ -259,20 +259,16 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 1., 0., -27., ObjectType::Block));
     }
 
-    if id == 7{
-
+    if id == 7 {
         //spawn hallway
         result.push(Descriptor::new(40., 1., 19., 0., ObjectType::Block)); //spawn floor
         result.push(Descriptor::new(1., 32., -1., 0., ObjectType::Block)); //spawn left wall
         result.push(Descriptor::new(32., 1., 15., 6., ObjectType::Block)); //spawn ceiling
 
-
         result.push(Descriptor::new(1., 4., 31., 1.5, ObjectType::Block)); //first obstacle
         result.push(Descriptor::new(1., 4., 32., 1.5, ObjectType::Block));
 
         result.push(Descriptor::new(1., 20., 30.5, 16.5, ObjectType::Block)); //left side upper wall + exit
-
-
 
         //upper level
         result.push(Descriptor::new(60., 1., 64., 6., ObjectType::Block)); //upper floor
@@ -288,8 +284,6 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 2., 69., 6.5, ObjectType::Block));
 
         result.push(Descriptor::new(1., 20., 73.5, 16., ObjectType::Block)); //right wall
-
-
 
         //lower level
         result.push(Descriptor::new(1., 6., 39., -2.5, ObjectType::Block)); //stairs downwards
@@ -307,13 +301,13 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         result.push(Descriptor::new(1., 12., 104., -13.5, ObjectType::Block)); //stairs upwards
         result.push(Descriptor::new(1., 12., 103., -13.5, ObjectType::Block));
-        result.push(Descriptor::new(1., 12., 102., -14.5, ObjectType::Block)); 
+        result.push(Descriptor::new(1., 12., 102., -14.5, ObjectType::Block));
         result.push(Descriptor::new(1., 12., 101., -14.5, ObjectType::Block));
         result.push(Descriptor::new(1., 10., 100., -15.5, ObjectType::Block));
         result.push(Descriptor::new(1., 10., 99., -15.5, ObjectType::Block));
         result.push(Descriptor::new(1., 8., 98., -16.5, ObjectType::Block));
         result.push(Descriptor::new(1., 8., 97., -16.5, ObjectType::Block));
-        result.push(Descriptor::new(1., 6., 96., -17.5, ObjectType::Block)); 
+        result.push(Descriptor::new(1., 6., 96., -17.5, ObjectType::Block));
         result.push(Descriptor::new(1., 6., 95., -17.5, ObjectType::Block));
         result.push(Descriptor::new(1., 4., 94., -18.5, ObjectType::Block));
         result.push(Descriptor::new(1., 4., 93., -18.5, ObjectType::Block));
@@ -332,7 +326,6 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         result.push(Descriptor::new(2., 1., 36., -10., ObjectType::Block)); //platform for item
 
-
         //top level
         result.push(Descriptor::new(32., 1., 47., 20., ObjectType::Block)); //top floor
     }
@@ -346,6 +339,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(8., 1., 12., -29., ObjectType::Block)); // platform to hold umbrella
     result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
     result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
+
+    result.push(Descriptor::new(1., 2., -1., -20., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
 
     result.push(Descriptor::new(
         1.,
