@@ -1,3 +1,4 @@
+use crate::physics::*;
 use bevy::prelude::*;
 use std::cmp::Eq;
 use std::hash::{Hash, Hasher};
@@ -8,9 +9,11 @@ pub const WIN_H: f32 = 720.;
 pub const GRAVITY: f32 = -0.5;
 pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
+pub const UMBRELLA_VELOCITY: f32 = -0.75;
 
 pub const UMBRELLA_PRICE: i8 = 30;
 pub const JETPACK_PRICE: i8 = 70;
+pub const BOOTS_PRICE: i8 = 30;
 
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
 
@@ -30,6 +33,17 @@ impl Object {
             height: h,
             obj_type: t,
         }
+    }
+}
+
+#[derive(Component)]
+pub struct Explosive {
+    pub lifespan: Timer,
+}
+
+impl Explosive {
+    pub fn new(lifespan: Timer) -> Self {
+        Self { lifespan: lifespan }
     }
 }
 
@@ -86,6 +100,68 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(16., 1., 0.5, 0., ObjectType::Block));
     }
     if id == 1 {
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+        //small 1x2s on left and right
+        result.push(Descriptor::new(1., 2., -6.5, 11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 6.5, 11., ObjectType::Block));
+        //breakable objects on left and right
+        //result.push(Descriptor::new(1., 4., -11.5, 12., ObjectType::Breakable));
+        //result.push(Descriptor::new(1., 4., 11.5, 12., ObjectType::Breakable));
+        //block under main panel
+        result.push(Descriptor::new(1., 1., -13.5, 8.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 13.5, 8.5, ObjectType::Block));
+        //ledges under main panel
+        result.push(Descriptor::new(6., 1., -16., 7.5, ObjectType::Block));
+        result.push(Descriptor::new(6., 1., 16., 7.5, ObjectType::Block));
+        //smaller lowered panels
+        result.push(Descriptor::new(4., 1., -24., 5.5, ObjectType::Block));
+        result.push(Descriptor::new(4., 1., 24., 5.5, ObjectType::Block));
+        //panels with enemimes on them
+        result.push(Descriptor::new(5., 1., -22.5, 10.5, ObjectType::Block));
+        result.push(Descriptor::new(5., 1., 22.5, 10.5, ObjectType::Block));
+        //enemies
+        //result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::Enemy));
+        result.push(Descriptor::new(1., 1., 22.5, 11.5, ObjectType::Enemy));
+        //left and right floors
+        result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));
+        result.push(Descriptor::new(27., 1., 16.5, 2.5, ObjectType::Block));
+        result.push(Descriptor::new(4., 1., 0., 0.5, ObjectType::Block));
+        //left and right walls
+        result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        //bottom floor
+        result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+        //block on bottom floor
+        result.push(Descriptor::new(18., 4., 0., -10., ObjectType::Block));
+        //innermost bottom pillars
+        result.push(Descriptor::new(1., 2., -13.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 13.5, -11., ObjectType::Block));
+        //middle bottom pillars
+        result.push(Descriptor::new(1., 4., -16.5, -10., ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 16.5, -10., ObjectType::Block));
+        //outer bottom pillars
+        result.push(Descriptor::new(1., 2., -19.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 19.5, -11., ObjectType::Block));
+        //inner floating blocks
+        result.push(Descriptor::new(1., 1., -11.5, -5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 11.5, -5.5, ObjectType::Block));
+        //outer floating blocks
+        result.push(Descriptor::new(1., 1., -14.5, -2.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 1., 14.5, -2.5, ObjectType::Block));
+        //top panels
+        result.push(Descriptor::new(7., 1., -19.5, -5.5, ObjectType::Block));
+        result.push(Descriptor::new(7., 1., 19.5, -5.5, ObjectType::Block));
+        //small walls
+        result.push(Descriptor::new(1., 6., -22.5, -9., ObjectType::Block));
+        result.push(Descriptor::new(1., 6., 22.5, -9., ObjectType::Block));
+        //pillars on panels
+        result.push(Descriptor::new(1., 2., -22.5, -4., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 22.5, -4., ObjectType::Block));
+    }
+    if id == 2 {
         let mut x = 16.;
         let mut y = 0.;
         //main floor
@@ -183,6 +259,77 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 1., 0., -27., ObjectType::Block));
     }
 
+    if id == 7 {
+        //spawn hallway
+        result.push(Descriptor::new(40., 1., 19., 0., ObjectType::Block)); //spawn floor
+        result.push(Descriptor::new(1., 32., -1., 0., ObjectType::Block)); //spawn left wall
+        result.push(Descriptor::new(32., 1., 15., 6., ObjectType::Block)); //spawn ceiling
+
+        result.push(Descriptor::new(1., 4., 31., 1.5, ObjectType::Block)); //first obstacle
+        result.push(Descriptor::new(1., 4., 32., 1.5, ObjectType::Block));
+
+        result.push(Descriptor::new(1., 20., 30.5, 16.5, ObjectType::Block)); //left side upper wall + exit
+
+        //upper level
+        result.push(Descriptor::new(60., 1., 64., 6., ObjectType::Block)); //upper floor
+
+        result.push(Descriptor::new(1., 4., 54., 7.5, ObjectType::Block)); //obstacle
+        result.push(Descriptor::new(1., 4., 55., 7.5, ObjectType::Block));
+
+        result.push(Descriptor::new(2., 1., 32., 11.5, ObjectType::Block)); //platform for ranged enemy
+
+        result.push(Descriptor::new(1., 6., 66., 8.5, ObjectType::Block)); //obstacle at end of platform
+        result.push(Descriptor::new(1., 6., 67., 8.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 68., 7.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 69., 6.5, ObjectType::Block));
+
+        result.push(Descriptor::new(1., 20., 73.5, 16., ObjectType::Block)); //right wall
+
+        //lower level
+        result.push(Descriptor::new(1., 6., 39., -2.5, ObjectType::Block)); //stairs downwards
+        result.push(Descriptor::new(1., 6., 40., -2.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 41., -3.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 42., -3.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 43., -4.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 44., -4.5, ObjectType::Block));
+
+        result.push(Descriptor::new(10., 1., 49., -5., ObjectType::Block)); //floor extending from stairs
+
+        result.push(Descriptor::new(37., 1., 82., -5., ObjectType::Block)); //floor for enemy across
+
+        result.push(Descriptor::new(70., 1., 69.5, -20., ObjectType::Block)); //bottom floor
+
+        result.push(Descriptor::new(1., 12., 104., -13.5, ObjectType::Block)); //stairs upwards
+        result.push(Descriptor::new(1., 12., 103., -13.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 12., 102., -14.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 12., 101., -14.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 10., 100., -15.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 10., 99., -15.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 8., 98., -16.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 8., 97., -16.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 6., 96., -17.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 6., 95., -17.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 94., -18.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., 93., -18.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 92., -19.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 91., -19.5, ObjectType::Block));
+
+        result.push(Descriptor::new(1., 20., 35., -10., ObjectType::Block)); //bottom left wall
+
+        result.push(Descriptor::new(1., 40., 105., -0.5, ObjectType::Block)); //bottom right wall
+
+        result.push(Descriptor::new(1., 3., 62., -4., ObjectType::Block)); //obstacle for ranged enemy
+        result.push(Descriptor::new(1., 3., 63., -4., ObjectType::Block));
+
+        result.push(Descriptor::new(1., 4., 58., -18.5, ObjectType::Block)); //bottom floor obstacle
+        result.push(Descriptor::new(1., 4., 59., -18.5, ObjectType::Block));
+
+        result.push(Descriptor::new(2., 1., 36., -10., ObjectType::Block)); //platform for item
+
+        //top level
+        result.push(Descriptor::new(32., 1., 47., 20., ObjectType::Block)); //top floor
+    }
+
     // shop platform spawns below level
     result.push(Descriptor::new(32., 1., 0., -32., ObjectType::Block)); // shop box code start
     result.push(Descriptor::new(32., 1., 0., -21., ObjectType::Block));
@@ -192,6 +339,12 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(8., 1., 12., -29., ObjectType::Block)); // platform to hold umbrella
     result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
     result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
+
+    result.push(Descriptor::new(1., 2., -1., -20., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., -3., -20., ObjectType::Barrel)); // platform to hold another item
+
+    result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 4., -20., ObjectType::Breakable)); // platform to hold another item
 
     result.push(Descriptor::new(
         1.,
@@ -219,4 +372,5 @@ pub enum ObjectType {
     JetpackItem,
     Bullet,
     Breakable,
+    Barrel,
 }

@@ -72,6 +72,7 @@ pub enum ItemType {
     None,
     Jetpack,
     Umbrella,
+    Boots,
 }
 
 #[derive(Component)]

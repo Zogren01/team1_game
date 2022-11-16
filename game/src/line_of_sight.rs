@@ -113,3 +113,7 @@ pub fn find_vertices(x1:f32, y1:f32, x2:f32, y2:f32, width:f32, height:f32) -> (
     }
     return (v1, v2, v3);
 }
+
+pub fn distance_squared(x1: f32, y1: f32, x2: f32, y2:f32) -> f32 {
+    (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)
+}
