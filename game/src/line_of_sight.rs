@@ -1,4 +1,8 @@
 use bevy::{prelude::*};
+use crate::movement_mesh::*;
+use crate::ai::*;
+use crate::util::*;
+use crate::active_util::*;
 
 #[derive(Component)]
 pub struct Line {
@@ -116,4 +120,84 @@ pub fn find_vertices(x1:f32, y1:f32, x2:f32, y2:f32, width:f32, height:f32) -> (
 
 pub fn distance_squared(x1: f32, y1: f32, x2: f32, y2:f32) -> f32 {
     (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)
+}
+
+pub fn calculate_sight(
+    graph: Query<&Graph, With<Graph>>,
+    //player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
+    mut enemies: Query<(&Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
+    objects: Query<(&Object, &Transform), With<Object>>,
+) {
+    let sight_distance = 800.0;
+
+    for (tr, mut en) in enemies.iter_mut() {
+        let pos = tr.translation;
+        let mut sight_lines = Vec::new();
+        let mut object_lines = Vec::new();
+
+        //add lines for objects to used to determine if an object is blocked form view
+        for (o, t) in objects.iter() {
+            //v1 and v2 and v3 hold the three vertices visible to the player
+            match o.obj_type {
+                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable => {
+                    //blocks and spikes are the only two objects that block line of sight
+                    let (v1, v2, v3) = find_vertices(
+                        pos.x,
+                        pos.y,
+                        t.translation.x,
+                        t.translation.y,
+                        o.width,
+                        o.height,
+                    );
+                    //if the object is within range, add its lines to object lines so that they are checked for line of sight
+                    let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
+                    if l1.length_squared() < sight_distance * sight_distance {
+                        let o1 = Line::new(v1, v3, 0);
+                        let o2 = Line::new(v2, v3, 0);
+                        object_lines.push(o1);
+                        object_lines.push(o2);
+                    }
+                    //spikes might need to be added in a different way so enemy can use them
+                }
+                ObjectType::Bullet => {
+                    //enemy will avoid these
+                }
+                ObjectType::Cobweb => {
+                    //cobwebs are "transparent", might need to be added to enemies code to utilize them
+                }
+                ObjectType::Active => {
+                    //this type might be useless
+                }
+                ObjectType::Enemy => {}
+                ObjectType::Player => {
+                    let sight_line = Line::new(
+                        Vec2::new(pos.x, pos.y),
+                        Vec2::new(t.translation.x, t.translation.y),
+                        MAX_VERT + 1,
+                    );
+                    if sight_line.length_squared() < sight_distance * sight_distance {
+                        sight_lines.push(sight_line);
+                    }
+                }
+                ObjectType::Item => {}
+                ObjectType::UmbrellaItem => {}
+                ObjectType::JetpackItem => {}
+                ObjectType::Barrel => {}
+            }
+        }
+        let g = graph.single();
+        for vertex in &g.vertices {
+            let sight_line = Line::new(
+                Vec2::new(pos.x, pos.y),
+                Vec2::new(vertex.x, vertex.y),
+                vertex.id,
+            );
+            if sight_line.length_squared() < sight_distance * sight_distance {
+                sight_lines.push(sight_line);
+            }
+        }
+        //cloning the graph for each enemy is expensive but I don't know how to avoid it
+        //copmuter fan go brrrr
+        en.update_sight(sight_lines, object_lines, g.clone());
+    }
 }
