@@ -5,6 +5,8 @@ use std::hash::{Hash, Hasher};
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
+pub const MAP_W: f32 = 1920.;
+pub const MAP_H: f32 = 1056.;
 
 pub const GRAVITY: f32 = -0.5;
 pub const TERMINAL_VELOCITY: f32 = -500.;
@@ -15,6 +17,7 @@ pub const UMBRELLA_PRICE: i8 = 30;
 pub const JETPACK_PRICE: i8 = 70;
 pub const BOOTS_PRICE: i8 = 30;
 
+pub const ATTACK_HITBOX: Vec2 = Vec2::new(32., 16.,);
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
 
 #[derive(Component, Copy, Clone)]
