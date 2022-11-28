@@ -340,11 +340,6 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.edges[62][60] = Edge::new(Motion::JumpLeft);
         graph.edges[59][61] = Edge::new(Motion::Left);
         graph.edges[61][59] = Edge::new(Motion::JumpRight);
-
-
-
-
-
     }
     return graph;
 }

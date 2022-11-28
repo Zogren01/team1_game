@@ -247,10 +247,6 @@ fn main() {
             // it can be a conditional system!
             calculate_sight.after(move_enemies),
         )
-        // .add_system(enemy_collisions.after(update_positions))
-        // .add_system(move_enemies.after(update_positions))
-        // .add_system(calculate_sight.after(update_positions))
-        // .add_system(item_shop.before(show_gui))
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
@@ -404,25 +400,6 @@ fn setup(
         .insert(ActiveObject::new(100, 25))
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
-
-    /*
-    commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::RED,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(128., 336., 900.),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(ActiveObject::new(100, 25))
-        .insert(Object::new(900, PLAYER_SZ, PLAYER_SZ, ObjectType::Active))
-        .insert(Enemy::new(0));
-        */
     //this variable can change based on what room the player is in
     let mut level = get_level(1);
     let mesh = get_level_mesh(1);
@@ -438,86 +415,6 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
             transform.translation.z = count;
         }
         count += 1.0;
-    }
-}
-
-fn calculate_sight(
-    graph: Query<&Graph, With<Graph>>,
-    //player: Query<(&Object, &Transform), (With<ActiveObject>, With<Player>)>,
-    mut enemies: Query<(&Transform, &mut Enemy), (With<ActiveObject>, With<Enemy>)>,
-    objects: Query<(&Object, &Transform), With<Object>>,
-) {
-    let sight_distance = 800.0;
-
-    for (tr, mut en) in enemies.iter_mut() {
-        let pos = tr.translation;
-        let mut sight_lines = Vec::new();
-        let mut object_lines = Vec::new();
-
-        //add lines for objects to used to determine if an object is blocked form view
-        for (o, t) in objects.iter() {
-            //v1 and v2 and v3 hold the three vertices visible to the player
-            match o.obj_type {
-                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable => {
-                    //blocks and spikes are the only two objects that block line of sight
-                    let (v1, v2, v3) = find_vertices(
-                        pos.x,
-                        pos.y,
-                        t.translation.x,
-                        t.translation.y,
-                        o.width,
-                        o.height,
-                    );
-                    //if the object is within range, add its lines to object lines so that they are checked for line of sight
-                    let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
-                    if l1.length_squared() < sight_distance * sight_distance {
-                        let o1 = Line::new(v1, v3, 0);
-                        let o2 = Line::new(v2, v3, 0);
-                        object_lines.push(o1);
-                        object_lines.push(o2);
-                    }
-                    //spikes might need to be added in a different way so enemy can use them
-                }
-                ObjectType::Bullet => {
-                    //enemy will avoid these
-                }
-                ObjectType::Cobweb => {
-                    //cobwebs are "transparent", might need to be added to enemies code to utilize them
-                }
-                ObjectType::Active => {
-                    //this type might be useless
-                }
-                ObjectType::Enemy => {}
-                ObjectType::Player => {
-                    let sight_line = Line::new(
-                        Vec2::new(pos.x, pos.y),
-                        Vec2::new(t.translation.x, t.translation.y),
-                        MAX_VERT + 1,
-                    );
-                    if sight_line.length_squared() < sight_distance * sight_distance {
-                        sight_lines.push(sight_line);
-                    }
-                }
-                ObjectType::Item => {}
-                ObjectType::UmbrellaItem => {}
-                ObjectType::JetpackItem => {}
-                ObjectType::Barrel => {}
-            }
-        }
-        let g = graph.single();
-        for vertex in &g.vertices {
-            let sight_line = Line::new(
-                Vec2::new(pos.x, pos.y),
-                Vec2::new(vertex.x, vertex.y),
-                vertex.id,
-            );
-            if sight_line.length_squared() < sight_distance * sight_distance {
-                sight_lines.push(sight_line);
-            }
-        }
-        //cloning the graph for each enemy is expensive but I don't know how to avoid it
-        //copmuter fan go brrrr
-        en.update_sight(sight_lines, object_lines, g.clone());
     }
 }
 
@@ -764,9 +661,24 @@ fn update_positions(
     let (mut pl, mut pt) = player.single_mut();
     let mut camera = cam.single_mut();
     pt.translation = pl.projected_position;
-
-    camera.translation.x = pt.translation.x;
-    camera.translation.y = pt.translation.y;
+    if pt.translation.x + WIN_W / 2. < MAP_W /2. && pt.translation.x - WIN_W/2. > -MAP_W / 2.{
+        camera.translation.x = pt.translation.x;
+    }
+    else if pt.translation.x > 0.{
+        camera.translation.x = MAP_W / 2. - WIN_W / 2.;
+    }
+    else{
+        camera.translation.x = -MAP_W / 2. + WIN_W / 2.;
+    }
+    if pt.translation.y + WIN_H / 2. < MAP_H /2. && pt.translation.y - WIN_H/2. > -MAP_H / 2.{
+        camera.translation.y = pt.translation.y;
+    }
+    else if pt.translation.y > 0.{
+        camera.translation.y = MAP_H / 2. - WIN_H / 2.;
+    }
+    else{
+        camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
+    }
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -947,12 +859,12 @@ fn move_player(
 
 fn attack(
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>)>,
+    mut player: Query<(&mut ActiveObject, &mut Transform), With<Player>>,
     objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
-    //mut commands: Commands,
+    mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
-    if input.just_pressed(KeyCode::P) {
+    if input.just_pressed(KeyCode::K) {
         let hitbox_pos: Vec3;
         if input.pressed(KeyCode::S) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
@@ -969,6 +881,19 @@ fn attack(
                 // RIGHT
             }
         }
+        commands.spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                color: Color::GREEN,
+                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
+                ..default()
+            },
+            //   texture: asset_server.load("explosiveBarrel.png"),
+            transform: Transform {
+                translation: hitbox_pos,
+                ..default()
+            },
+            ..default()
+        });
         for (_o, t) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
@@ -1003,6 +928,9 @@ fn attack(
                 }
             }
         }
+    }
+    else{
+
     }
 }
 
