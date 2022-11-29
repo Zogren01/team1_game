@@ -78,7 +78,8 @@ pub enum ItemType {
 #[derive(Component)]
 pub struct Player {
     pub credits: i8,
-    pub item: ItemType,
+    pub items: Vec<ItemType>,
+    pub active_item: usize,
     pub health: i8,
     //temp variable
 }
@@ -87,7 +88,8 @@ impl Player {
     pub fn new() -> Self {
         Self {
             credits: 100,
-            item: ItemType::None,
+            items: vec![ItemType::None],
+            active_item: 0,
             health: 100,
         }
     }

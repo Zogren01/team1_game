@@ -67,8 +67,8 @@ pub fn shoot(
 
     if input.just_pressed(KeyCode::L) {
         // for (pla)
-        if p.credits>0 {
-            p.credits-=1;
+        if p.credits > 0 {
+            p.credits -= 1;
             commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
@@ -85,7 +85,6 @@ pub fn shoot(
                 })
                 .insert(Projectile::new(vel, ProjType::Projectile));
         }
-        
     }
 }
 
@@ -368,15 +367,22 @@ pub fn despawn_broken_objects(
     }
 }
 
-
 pub fn projectile_active_collision(
     mut commands: Commands,
     mut projectiles: Query<
         (&mut Projectile, &mut Transform, Entity),
-        (With<Projectile>,Without<Object>, Without<Player>, Without<Enemy>),
+        (
+            With<Projectile>,
+            Without<Object>,
+            Without<Player>,
+            Without<Enemy>,
+        ),
     >,
-    mut actives: Query<(&mut ActiveObject, Entity), (With<ActiveObject>, Without<Player>, Without<Projectile>)>,
-    mut player: Query<(&mut Player, & ActiveObject), With<Player>>,
+    mut actives: Query<
+        (&mut ActiveObject, Entity),
+        (With<ActiveObject>, Without<Player>, Without<Projectile>),
+    >,
+    mut player: Query<(&mut Player, &ActiveObject), With<Player>>,
 ) {
     for (mut pro_o, mut pro_t, entity_p) in projectiles.iter_mut() {
         pro_o.project_pos = Vec3::new(
@@ -393,41 +399,40 @@ pub fn projectile_active_collision(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                if matches!(pro_o.proj_type, ProjType::Particle){
+                if matches!(pro_o.proj_type, ProjType::Particle) {
                     // let mut p = player.single_mut();
                     e_o.health -= 5;
                     // print!("{}\n", e_o.health);
                     commands.entity(entity_p).despawn();
-                    match coll_type{ 
+                    match coll_type {
                         Collision::Top => {
                             pro_o.velocity.y *= -1.;
                             pro_o.velocity.x *= 0.8;
-                        },
+                        }
                         Collision::Bottom => {
                             pro_o.velocity.y *= 1.;
                             pro_o.velocity.x *= 0.8;
-                        },
+                        }
                         Collision::Left => {
                             pro_o.velocity.x *= -1.;
                             pro_o.velocity.y *= 0.8;
-                        },
+                        }
                         Collision::Right => {
                             pro_o.velocity.x *= 1.;
                             pro_o.velocity.y *= 0.8;
-                        },
+                        }
                         Collision::Inside => {
                             pro_o.velocity.x *= 1.;
                         }
                     }
-                    
-                } else if matches!(pro_o.proj_type, ProjType::Projectile){
+                } else if matches!(pro_o.proj_type, ProjType::Projectile) {
                     e_o.health -= PROJECTILE_DAMAGE;
-                } 
+                }
                 if (e_o.health <= 0) {
                     commands.entity(entity).despawn();
                     let mut rng = rand::thread_rng();
                     let (mut p, po) = player.single_mut();
-                    p.credits+=10;
+                    p.credits += 10;
                     for i in 1..6 {
                         let sz = 48. / rng.gen_range(8, 16) as f32;
                         commands
@@ -460,13 +465,17 @@ pub fn projectile_active_collision(
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
             );
             if res2.is_some() {
-                let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
-                if matches!(pro_o.proj_type, ProjType::Particle){
-                    p.health -= 20;
-                    print!("{}\n", p.health);
-                    commands.entity(entity_p).despawn();
+                // let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
+                if matches!(pro_o.proj_type, ProjType::Particle) {
+                    if (p.health > 20) {
+                        p.health -= 20;
+                        print!("{}\n", p.health);
+                        commands.entity(entity_p).despawn();
+                    } else {
+                        println!("you lose!");
+                    }
                 }
+            }
         }
     }
-}
 }

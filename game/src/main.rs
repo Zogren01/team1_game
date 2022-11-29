@@ -568,7 +568,6 @@ fn apply_collisions(
     }
 }
 
-
 //this function doesn't seem to work
 fn enemy_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
@@ -662,18 +661,16 @@ fn my_cursor_system(
         }
     }
 }
-fn object_collisions( 
-   mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
-   //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
-
+fn object_collisions(
+    mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+    //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     // let mut objects2 = objects.to_readonly();
     // for(mut o, mut t) in objects.iter_mut() {
     //     if matches!(o.obj_type, ObjectType::Barrel){
 
-        
     //     for (mut o2,mut t2) in objects2.iter_mut() {
-            
+
     //             let res = bevy::sprite::collide_aabb::collide(
     //                 t.translation,
     //                 //ne    ed to change this to get the size of whatever the object is
@@ -711,22 +708,15 @@ fn object_collisions(
     //         }
     //     }
     // }
-        
+
     // }
 
     // let mut barrels = Vec<(&mut Object, &mut Transform)>::new();
-
-
-
-
 }
-
-    
-    
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
-    mut objects: Query<(& Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
     mut player: Query<(&ActiveObject, &mut Transform), With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
@@ -739,22 +729,18 @@ fn update_positions(
     let (mut pl, mut pt) = player.single_mut();
     let mut camera = cam.single_mut();
     pt.translation = pl.projected_position;
-    if pt.translation.x + WIN_W / 2. < MAP_W /2. && pt.translation.x - WIN_W/2. > -MAP_W / 2.{
+    if pt.translation.x + WIN_W / 2. < MAP_W / 2. && pt.translation.x - WIN_W / 2. > -MAP_W / 2. {
         camera.translation.x = pt.translation.x;
-    }
-    else if pt.translation.x > 0.{
+    } else if pt.translation.x > 0. {
         camera.translation.x = MAP_W / 2. - WIN_W / 2.;
-    }
-    else{
+    } else {
         camera.translation.x = -MAP_W / 2. + WIN_W / 2.;
     }
-    if pt.translation.y + WIN_H / 2. < MAP_H /2. && pt.translation.y - WIN_H/2. > -MAP_H / 2.{
+    if pt.translation.y + WIN_H / 2. < MAP_H / 2. && pt.translation.y - WIN_H / 2. > -MAP_H / 2. {
         camera.translation.y = pt.translation.y;
-    }
-    else if pt.translation.y > 0.{
+    } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
-    }
-    else{
+    } else {
         camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
     }
 }
@@ -782,7 +768,7 @@ fn move_enemies(
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
             Motion::Left => {
-                enemy.velocity.x = -PLAYER_SPEED ;
+                enemy.velocity.x = -PLAYER_SPEED;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
@@ -819,7 +805,6 @@ fn move_enemies(
     }
 }
 
-
 fn move_player(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &Transform, &mut Player), (With<Player>)>,
@@ -849,27 +834,27 @@ fn move_player(
 
     if input.just_pressed(KeyCode::J) {
         //press to rotate item
-        match p.item {
+        let newI: usize = ((p.active_item + 1) % (p.items.len() as usize)) as usize;
+        p.active_item = newI;
+        let item = p.items.get(p.active_item);
+        match item.unwrap() {
             ItemType::None => {
-                p.item = ItemType::Jetpack;
-                println!("Jetpack activated");
+                println!("No active item!")
             }
             ItemType::Jetpack => {
-                p.item = ItemType::Umbrella;
-                println!("Umbrella activated");
+                println!("Jetpack is on!")
             }
             ItemType::Umbrella => {
-                p.item = ItemType::Boots;
-                println!("Boots activated");
+                println!("Umbrella activated!")
             }
             ItemType::Boots => {
-                p.item = ItemType::None;
-                println!("No item activated");
+                println!("Jumping boots are on!")
             }
         }
     }
     if input.pressed(KeyCode::Space) {
-        match p.item {
+        let item = p.items.get(p.active_item);
+        match item.unwrap() {
             ItemType::None => {
                 if pl.grounded {
                     pl.velocity.y = 10.;
@@ -916,7 +901,9 @@ fn move_player(
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        if matches!(p.item, ItemType::Umbrella) {
+        let item = p.items.get(p.active_item).unwrap();
+
+        if matches!(item, ItemType::Umbrella) {
             if input.pressed(KeyCode::S) || (pl.velocity.y > UMBRELLA_VELOCITY) {
                 //if they press down, they can close the umbrella
                 pl.velocity.y += GRAVITY;
@@ -1007,9 +994,7 @@ fn attack(
                 }
             }
         }
-    }
-    else{
-
+    } else {
     }
 }
 
@@ -1125,17 +1110,17 @@ fn item_shop(
             if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
                 //IF TRY TO BUY UMBRELLA
                 p.credits -= UMBRELLA_PRICE;
-                p.item = ItemType::Umbrella;
+                p.items.push(ItemType::Umbrella);
                 print!("UMBRELLA PURCHASED!");
             } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
                 //IF TRY TO BUY JETPACK
                 p.credits -= JETPACK_PRICE;
-                p.item = ItemType::Jetpack;
+                p.items.push(ItemType::Jetpack);
                 print!("JETPACK PURCHASED!");
             } else if p.credits >= BOOTS_PRICE {
                 //IF TRY TO BUY BOOTS
                 p.credits -= BOOTS_PRICE;
-                p.item = ItemType::Boots;
+                p.items.push(ItemType::Boots);
                 print!("BOOTS PURCHASED!");
             }
             print!("\n PRESS I TO RETURN!");
@@ -1145,4 +1130,4 @@ fn item_shop(
 
 // fn collect_credits(
 //     mut player: Query<(&mut Player, &mut Transform), With<Player>>,
-// ) 
+// )
