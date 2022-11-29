@@ -239,6 +239,12 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
+            object_collisions.after(update_positions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
             move_enemies,
         )
         .add_fixed_timestep_system(
@@ -422,14 +428,14 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
-    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
+    mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
     //loop through all objects that move
     for (mut active, transform) in actives.iter_mut() {
-        for (o, t) in objects.iter() {
+        for (mut o, t) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -460,6 +466,9 @@ fn apply_collisions(
                         ObjectType::Active => {}
                         ObjectType::Enemy => {}
                         ObjectType::Player => {}
+                        // ObjectType::Barrel => {
+                        //     o.velocity.x = active.velocity.x;
+                        // }
                         _ => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
@@ -482,6 +491,10 @@ fn apply_collisions(
                         ObjectType::Active => {}
                         ObjectType::Enemy => {}
                         ObjectType::Player => {}
+                        // ObjectType::Barrel => {
+                        //     o.velocity.x = active.velocity.x;
+                        //     //t.translation.x=transform.translation.x+PLAYER_SZ;
+                        //}
                         _ => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
@@ -554,6 +567,8 @@ fn apply_collisions(
         }
     }
 }
+
+
 //this function doesn't seem to work
 fn enemy_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
@@ -647,13 +662,76 @@ fn my_cursor_system(
         }
     }
 }
+fn object_collisions( 
+   mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+   //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+
+) {
+    // let mut objects2 = objects.to_readonly();
+    // for(mut o, mut t) in objects.iter_mut() {
+    //     if matches!(o.obj_type, ObjectType::Barrel){
+
+        
+    //     for (mut o2,mut t2) in objects2.iter_mut() {
+            
+    //             let res = bevy::sprite::collide_aabb::collide(
+    //                 t.translation,
+    //                 //ne    ed to change this to get the size of whatever the object is
+    //                 Vec2::new(o.height, o.width),
+    //                 t2.translation,
+    //                 Vec2::new(o2.width, o2.height),
+    //             );
+    //             if res.is_some() {
+    //                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+    //                 match coll_type {
+    //                     Collision::Top => {
+    //                         o.velocity.y = 0.;
+    //                     },
+    //                     Collision::Left => {
+    //                         o.velocity.x = 0.;
+    //                     },
+    //                     Collision::Right => {
+    //                         o.velocity.x = 0.;
+    //                     },
+    //                     Collision::Bottom => {
+    //                         o.velocity.y = 0.;
+    //                     },
+    //                     Collision::Inside => {
+    //                         o.velocity.x = 0.;
+    //                         o.velocity.y = 0.;
+
+    //                     }
+    //                 }
+    //             }
+    //         match o.obj_type {
+    //             ObjectType::Barrel => {
+    //                o.velocity.y += GRAVITY;
+    //                }
+    //                 _ => {}
+    //         }
+    //     }
+    // }
+        
+    // }
+
+    // let mut barrels = Vec<(&mut Object, &mut Transform)>::new();
+
+
+
+
+}
+
+    
+    
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
+    mut objects: Query<(& Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
     mut player: Query<(&ActiveObject, &mut Transform), With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
+
     for (o, mut t) in actives.iter_mut() {
         t.translation = o.projected_position;
     }
@@ -740,6 +818,7 @@ fn move_enemies(
         enemy.grounded = false;
     }
 }
+
 
 fn move_player(
     input: Res<Input<KeyCode>>,
@@ -1063,3 +1142,7 @@ fn item_shop(
         }
     }
 }
+
+// fn collect_credits(
+//     mut player: Query<(&mut Player, &mut Transform), With<Player>>,
+// ) 

@@ -26,6 +26,7 @@ pub struct Object {
     pub width: f32,
     pub height: f32,
     pub obj_type: ObjectType,
+    pub velocity: Vec2,
 }
 
 impl Object {
@@ -35,6 +36,9 @@ impl Object {
             width: w,
             height: h,
             obj_type: t,
+            velocity: Vec2::splat(0.0),
+           // project_pos: Vec3::splat(0.),
+
         }
     }
 }
@@ -513,9 +517,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
     result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
 
-    result.push(Descriptor::new(1., 2., -1., -20., ObjectType::Barrel)); // platform to hold another item
-    result.push(Descriptor::new(1., 2., -3., -20., ObjectType::Barrel)); // platform to hold another item
-
+    result.push(Descriptor::new(1., 2., 0., -7., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 5., -7., ObjectType::Barrel)); // platform to hold another item
+    
     result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
     result.push(Descriptor::new(1., 2., 4., -20., ObjectType::Breakable)); // platform to hold another item
 
@@ -546,4 +550,5 @@ pub enum ObjectType {
     Bullet,
     Breakable,
     Barrel,
+    Credit,
 }
