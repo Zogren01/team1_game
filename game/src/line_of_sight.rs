@@ -183,6 +183,7 @@ pub fn calculate_sight(
                 ObjectType::UmbrellaItem => {}
                 ObjectType::JetpackItem => {}
                 ObjectType::Barrel => {}
+                ObjectType::Credit=> {}
             }
         }
         let g = graph.single();
