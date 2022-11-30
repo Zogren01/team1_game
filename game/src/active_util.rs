@@ -67,7 +67,7 @@ impl ActiveObject {
         //implement healing
     }
 }
-
+#[derive(PartialEq)]
 pub enum ItemType {
     None,
     Jetpack,
@@ -78,7 +78,8 @@ pub enum ItemType {
 #[derive(Component)]
 pub struct Player {
     pub credits: i8,
-    pub item: ItemType,
+    pub items: Vec<ItemType>,
+    pub active_item: usize,
     pub health: i8,
     //temp variable
 }
@@ -87,8 +88,20 @@ impl Player {
     pub fn new() -> Self {
         Self {
             credits: 100,
-            item: ItemType::None,
+            items: vec![ItemType::None],
+            active_item: 0,
             health: 100,
         }
+    }
+}
+
+#[derive(Component)]
+pub struct Hitbox {
+    lifespan: Timer,
+}
+
+impl Hitbox {
+    pub fn new(lifespan: Timer) -> Self {
+        Self { lifespan: lifespan }
     }
 }

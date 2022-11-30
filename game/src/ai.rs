@@ -46,7 +46,13 @@ impl PartialOrd for State {
     }
 }
 
+pub enum Type {
+    Melee,
+    Ranged,
+}
+
 pub enum Action {
+    Reset,
     Strafe,
     Chase,
     Attack,
@@ -63,6 +69,7 @@ pub enum Attack {
 
 #[derive(Component)]
 pub struct Enemy{
+    pub t: Type,
     pub enemy_graph: Graph, 
     pub next_vertex: usize,
     pub current_vertex: usize,
@@ -79,8 +86,9 @@ pub struct Enemy{
 }
 
 impl Enemy{
-    pub fn new() -> Self {
+    pub fn new(ty: Type) -> Self {
         Self{
+            t: ty,
             //supgraph of the movement mesh that has been seen by enemy
             enemy_graph: Graph::new(),
             //enemy starts at it's first "target" vertex
@@ -101,70 +109,26 @@ impl Enemy{
             attack: Attack::None,
         }
     }
-    fn reset(&mut self, pos: Vec2) {
-        println!("resetting");
-        self.immobile_frames = 0;
-        let v = self.nearest_vert(pos);
-        self.current_vertex = v;
-        match self.action{
-            Action::Strafe => {
-                println!("strafe reset");
-                for i in 0..MAX_VERT{
-                    match self.enemy_graph.edges[v][i].path{
-                        Motion::Left | Motion::Right=>{
-                            self.target_vertex = i;
-                            break;
-                        }
-                        Motion::Jump=>{}
-                        Motion::JumpRight | Motion::JumpLeft=>{
-                            self.target_vertex = i;
-                        }
-                        Motion::Fall=>{}
-                        Motion::Stop=>{}
-                    }
-                }
-            }
-            Action::Chase => {
-                println!("chase reset");
-                self.target_vertex = self.nearest_vert(self.player_pos);
-            }
-            Action::Attack => {
-                println!("attack reset");
-                self.target_vertex = self.nearest_vert(self.player_pos);
-            }
-            Action::Retreat => {
-                self.target_vertex = self.farthest_vert(self.player_pos);
-            }
-        }
-        
-        self.update_path();
-        //might need function to navigate the enemy to their supposed "current vertex"
-        self.next_vertex = self.path.vertices[self.index_in_path];
-        self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;
-    }
     pub fn decide_motion(&mut self, pos: Vec2)-> Motion{
         //only update motion if enemy has seen at least one vertex
         self.attack = Attack::None;
         if self.enemy_graph.vertices.len() > 0 {
-            //checks if enemy is stuck
-            if self.old_pos == pos && !matches!(self.motion, Motion::Stop){
+            let dist_to_player = distance_squared(pos.x, pos.y, self.player_pos.x, self.player_pos.y);
+            if pos == self.old_pos{
                 self.immobile_frames += 1;
             }
-            else{
+            //first check is for if player should be attacked
+            if self.player_seen && dist_to_player < 10000.{
+                self.action = Action::Attack;
+            }
+            //will need a new check for if enemy is stuck
+            else if self.immobile_frames >= 3 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack){
                 self.immobile_frames = 0;
+                self.current_vertex = MAX_VERT + 1;
+                self.action = Action::Reset;
             }
-            if self.current_vertex == MAX_VERT+1 || self.immobile_frames >= 3 || matches!(self.action, Action::Attack){
-                self.reset(pos);
-            }
-            //if enemy has seen player
-            if self.player_seen{
-                let dist_to_player = distance_squared(pos.x, pos.y, self.player_pos.x, self.player_pos.y);
-                if dist_to_player < 10000.{
-                    self.action = Action::Attack;
-                }
-                else{
-                    self.action = Action::Chase;
-                }              
+            else if self.player_seen{
+                self.action = Action::Chase
             }
             else{
                 self.action = Action::Strafe;
@@ -177,143 +141,170 @@ impl Enemy{
 
      //updates enemy motion type if they are at or 
      fn update_motion(&mut self, pos: Vec2){
-        if matches!(self.action, Action::Attack){
-            let x_to_player = pos.x - self.player_pos.x;
-            let y_to_player = pos.y - self.player_pos.y;
-            if x_to_player.abs() <= PLAYER_SZ{
-                if y_to_player.abs() <= PLAYER_SZ{
-                    //within range to attack
-                    self.motion = Motion::Stop;
-                    if x_to_player.abs() > y_to_player.abs(){
-                        if x_to_player > 0.{
-                            self.attack = Attack::Left;
+
+        match self.action{
+            Action::Reset => {
+
+                let mut x_dist = f32::MAX;
+                let mut best_vert = MAX_VERT+1;
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.y <= pos.y + 5. && v.y >= pos.y - 5.{
+                        let diff = v.x - pos.x;
+                        if diff.abs() < x_dist.abs(){
+                            x_dist = diff;
+                            best_vert = v.id;
+                        }
+                    }
+                }
+                if best_vert == MAX_VERT+1{
+                    self.motion = Motion::Fall;
+                }
+                else{
+                    self.next_vertex = best_vert;
+                    self.target_vertex = best_vert;
+                    if x_dist >= 5. {
+                        self.motion = Motion::Right;
+                    }
+                    else if x_dist <= -5.{
+                        self.motion = Motion::Left;
+                    }
+                    else{
+                        self.current_vertex = self.next_vertex;
+                    }
+                }
+            }
+            Action::Strafe => {
+                //println!("Strafe update");
+                let mut x_diff = f32::MAX;
+                let mut y_diff = f32::MAX;
+                //find the difference in enemies position to the next vertex on the enemies path
+                //needed to determine if the enemy is "at" their destination
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.id == self.next_vertex {
+                        x_diff = pos.x - v.x;
+                        y_diff = pos.y - v.y;
+                        break;
+                    }
+                }
+                if x_diff.abs() <= 5.{
+                    if y_diff.abs() <= 5.  {
+
+                        self.current_vertex = self.next_vertex;
+
+                        if self.current_vertex == self.target_vertex{
+                            //randomly select a seen vertex
+                            let r = self.enemy_graph.vertices.len();
+                            let mut rng = rand::thread_rng();
+
+                            let pos: usize = rng.gen_range(0, r);
+                            self.target_vertex = self.enemy_graph.vertices[pos].id;
+                            //update path to be the path to that vertex
+                            self.path = self.shortest_path();
+                            self.index_in_path = 0;
+                        }
+                        //otherwise, destination is not reached
+                        else{
+                            self.index_in_path += 1;
+                        }
+                        if self.path.vertices.len() > self.index_in_path{
+                            self.next_vertex = self.path.vertices[self.index_in_path];
+                            self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
                         }
                         else{
-                            self.attack = Attack::Right;
+                            println!("shouldn't get stuck here");
                         }
                     }
                     else{
-                        if y_to_player > 0.{
-                            self.attack = Attack::Down;
+                        //x position is correct but enemy is still falling to destination
+                        self.motion = Motion::Fall;
+                    }
+                }
+            }
+            Action::Retreat => {
+                println!("Retreat update");
+            }
+            Action::Chase => {
+                //println!("Chase update");
+                //check that the current target vertex is still the closest one to the player
+                let mut x_diff = f32::MAX;
+                let mut y_diff = f32::MAX;
+                //find the difference in enemies position to the next vertex on the enemies path
+                //needed to determine if the enemy is "at" their destination
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.id == self.next_vertex {
+                        x_diff = pos.x - v.x;
+                        y_diff = pos.y - v.y;
+                        break;
+                    }
+                }
+                if x_diff.abs() <= 5.{
+                    if y_diff.abs() <= 5.  {
+                        self.current_vertex = self.next_vertex;
+                        let pl_vert = self.nearest_vert(self.player_pos);
+                        //if a better vertex is found or the enemy has arrived (second one shouldn't ever happen)
+                        if pl_vert != self.target_vertex || self.current_vertex == self.target_vertex{
+
+                            self.target_vertex = pl_vert;
+                            self.path = self.shortest_path();
+                            self.index_in_path = 0;
                         }
                         else{
-                            self.attack = Attack::Up;
+                            self.index_in_path += 1;
+                        }
+                        if self.path.vertices.len() > self.index_in_path{
+                            self.next_vertex = self.path.vertices[self.index_in_path];
+                            self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
+                        }
+                        else{
+                            println!("shouldn't get stuck here");
                         }
                     }
+                    else {
+                        //x position is correct but enemy is still falling to destination
+                        self.motion = Motion::Fall;
+                    }
                 }
-                //below player
+            }
+            Action::Attack =>{
+                //println!("Attack update");
+                let x_to_player = pos.x - self.player_pos.x;
+                let y_to_player = pos.y - self.player_pos.y;
+                if x_to_player.abs() <= PLAYER_SZ{
+                    if y_to_player.abs() <= PLAYER_SZ{
+                        //within range to attack
+                        self.motion = Motion::Stop;
+                        if x_to_player.abs() > y_to_player.abs(){
+                            if x_to_player > 0.{
+                                self.attack = Attack::Left;
+                            }
+                            else{
+                                self.attack = Attack::Right;
+                            }
+                        }
+                        else{
+                            if y_to_player > 0.{
+                                self.attack = Attack::Down;
+                            }
+                            else{
+                                self.attack = Attack::Up;
+                            }
+                        }
+                    }
+                    //below player
+                    else{
+                        self.motion = Motion::Jump;
+                    }
+                }
                 else{
-                    //eventually need code to jump
-                }
-            }
-            else{
-                if x_to_player > 0.{
-                    self.motion = Motion::Left;
-                }
-                else{
-                    self.motion = Motion::Right;
-                }
-            }
-        }
-        else{
-            let mut x_diff = f32::MAX;
-            let mut y_diff = f32::MAX;
-            for v in self.enemy_graph.vertices.iter_mut() {
-                if v.id == self.next_vertex {
-                    x_diff = pos.x - v.x;
-                    y_diff = pos.y - v.y;
-                }
-            }
-            if x_diff.abs() <= 5.{
-                if y_diff.abs() <= 5.  {
-                    self.current_vertex = self.next_vertex;
-                    match self.action{
-                        Action::Strafe => {
-                            //println!("strafing");
-                            //if still travelling towards goal
-                            if self.current_vertex != self.target_vertex{
-                                self.index_in_path += 1;
-                            }
-                            //if a new goal is needed
-                            else{
-                                //println!("Enemy selecting new destination of strafe");
-                                let r = self.enemy_graph.vertices.len();
-                                let mut rng = rand::thread_rng();
-                                let pos: usize = rng.gen_range(0, r);
-                                self.target_vertex = self.enemy_graph.vertices[pos].id;
-                                self.update_path()
-                            }
-                        }
-                        Action::Chase => {
-
-                            let pl_vert = self.nearest_vert(self.player_pos);
-                            //do a check here to see if the player is within range of an attack
-                            //println!("player seen at: {}, {}", self.player_pos.x/32., self.player_pos.y/32.);
-                            //println!("vertex closest to player is: {}", pl_vert);
-                            if pl_vert != self.target_vertex{
-                                self.target_vertex = pl_vert;
-                                self.update_path();
-                            }
-                            else{
-                                if self.current_vertex != self.target_vertex{
-                                    self.index_in_path += 1;
-                                }
-                                else{
-                                    //println!("Enemy arrived at destination of attack");
-                                    //temporary code
-                                    self.motion = Motion::Stop;
-                                    //determine what to do to get to the player
-                                }
-                            }
-                        }
-                        Action::Attack => {
-                            //the updates for this action are independent of pathfinding,
-                            //so behavior is determined at beginning of method
-                        }
-                        Action::Retreat => {
-                            let ret_vert = self.farthest_vert(self.player_pos);
-                            //do a check here to see if the player is within range of an attack
-                            if ret_vert != self.target_vertex{
-                                self.target_vertex = ret_vert;
-                                self.update_path();
-                            }
-                            else{
-                                if self.current_vertex != self.target_vertex{
-                                    self.index_in_path += 1;
-                                }
-                                else{
-                                    //println!("Enemy arrived at destination of retreat");
-                                    //temporary code
-                                    self.motion = Motion::Stop;
-                                    //determine what to do after retreating
-                                }
-                            }
-                        }
+                    if x_to_player > 0.{
+                        self.motion = Motion::Left;
                     }
-                    if self.path.vertices.len() > self.index_in_path{
-                        self.next_vertex = self.path.vertices[self.index_in_path];
+                    else{
+                        self.motion = Motion::Right;
                     }
-                    //println!("Enemy has arrived at vertex: {}\nIs heading to vertex: {}", self.current_vertex, self.next_vertex);
-                    self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path;   
-                }
-
-                else {
-                    self.motion = Motion::Fall;
                 }
             }
-        }
-    }
-    //for now, the target will be passed from the user
-    fn update_path(&mut self){
-        //println!("Finding new path");
-
-        self.path = self.shortest_path();
-        self.index_in_path = 0;
-        //println!("Distance from {} to {} is: {}", self.current_vertex, self.target_vertex, self.path.weight);
-        //println!("Path is: ");
-        for v in self.path.vertices.iter_mut(){
-            //println!("{}", v);
-        }
+        }           
     }
 
     fn nearest_vert(&self, pos: Vec2) -> usize{
@@ -329,6 +320,7 @@ impl Enemy{
         }
         return result;
     }
+
     fn farthest_vert(&self, pos: Vec2) -> usize{
         let mut distance = 0.;
         let mut result: usize = MAX_VERT + 1;
@@ -408,10 +400,20 @@ impl Enemy{
             }
             if result{
                 //case for the player being seen
-                if l.id == MAX_VERT +1 {
+                if l.id == MAX_VERT + 1 {
                     self.player_seen = true;
                     self.player_pos.x = l.end.x;
                     self.player_pos.y = l.end.y;
+                }
+                //case for breakable objects
+                else if l.id == MAX_VERT + 2 {
+
+                }
+                else if l.id == MAX_VERT + 3 {
+
+                }
+                else if l.id == MAX_VERT + 4 {
+
                 }
                 else {
                     let vertex = Vertex::new(l.end.x, l.end.y, l.id);

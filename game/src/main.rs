@@ -138,7 +138,7 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            } else if matches!(desc.obj_type, ObjectType::Enemy) {
+            } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -153,8 +153,26 @@ fn create_level(
                         ..default()
                     })
                     .insert(ActiveObject::new(100, 25))
-                    .insert(Object::new(900, desc.width, desc.height, ObjectType::Enemy))
-                    .insert(Enemy::new());
+                    .insert(Object::new(900, desc.width, desc.height, ObjectType::MeleeEnemy))
+                    .insert(Enemy::new(Type::Melee));
+            }
+            else if matches!(desc.obj_type, ObjectType::RangedEnemy) {
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::PURPLE,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(ActiveObject::new(100, 25))
+                    .insert(Object::new(900, desc.width, desc.height, ObjectType::RangedEnemy))
+                    .insert(Enemy::new(Type::Ranged));
             }
         } else {
             commands
@@ -239,6 +257,12 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
+            object_collisions.after(update_positions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
             move_enemies,
         )
         .add_fixed_timestep_system(
@@ -247,10 +271,11 @@ fn main() {
             // it can be a conditional system!
             calculate_sight.after(move_enemies),
         )
+        .add_system(player_health)
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
-        .add_system(attack)
+        .add_system(attack_static)
         .add_system(shoot)
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -268,7 +293,19 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            despawn_broken_objects.after(projectile_static_collisions),
+            break_objects.after(projectile_static_collisions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            break_hb_objects.after(break_objects),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            despawn_broken_objects.after(break_hb_objects),
         )
         .run();
 }
@@ -305,18 +342,6 @@ fn setup(
         // create the repeating timer
         timer: Timer::from_seconds(START_TIME, true),
     });
-
-    /*
-    commands.spawn_bundle(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(1920.0, 1088.0)),
-            ..default()
-        },
-        texture: asset_server.load("Room_1.png"),
-        transform: Transform::from_xyz(0., 0., 100.),
-        ..default()
-    });
-    */
 
     commands
         .spawn_bundle(TextBundle::from_section(
@@ -422,14 +447,14 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
-    objects: Query<(&Object, &Transform), (With<Object>, Without<ActiveObject>)>,
+    mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
     //loop through all objects that move
     for (mut active, transform) in actives.iter_mut() {
-        for (o, t) in objects.iter() {
+        for (mut o, t) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -439,16 +464,11 @@ fn apply_collisions(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                if (matches!(o.obj_type, ObjectType::Cobweb)) {
+                if matches!(o.obj_type, ObjectType::Cobweb) {
                     println!("{:?}", coll_type);
                 }
                 match coll_type {
                     Collision::Left => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
-                        ObjectType::Bullet => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -457,21 +477,14 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Right => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::Bullet => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -479,24 +492,18 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Top => {
                         match o.obj_type {
-                            ObjectType::JetpackItem => {}
-                            ObjectType::Bullet => {}
-                            ObjectType::UmbrellaItem => {}
                             ObjectType::Spike => {
                                 exit.send(AppExit);
                             }
-                            ObjectType::Item => {}
                             ObjectType::Cobweb => {
                                 if active.velocity.x != 0. {
                                     active.velocity.x /= 2.;
@@ -504,10 +511,7 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Active => {}
-                            ObjectType::Enemy => {}
-                            ObjectType::Player => {}
-                            _ => {
+                            ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -518,14 +522,10 @@ fn apply_collisions(
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
+                            _ => {}
                         }
                     }
                     Collision::Bottom => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Bullet => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -534,14 +534,12 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.y = 0.;
                             active.projected_position.y =
                                 t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Inside => match o.obj_type {
                         _ => {
@@ -554,6 +552,7 @@ fn apply_collisions(
         }
     }
 }
+
 //this function doesn't seem to work
 fn enemy_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
@@ -647,13 +646,67 @@ fn my_cursor_system(
         }
     }
 }
+fn object_collisions(
+    mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+    //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+) {
+    // let mut objects2 = objects.to_readonly();
+    // for(mut o, mut t) in objects.iter_mut() {
+    //     if matches!(o.obj_type, ObjectType::Barrel){
+
+    //     for (mut o2,mut t2) in objects2.iter_mut() {
+
+    //             let res = bevy::sprite::collide_aabb::collide(
+    //                 t.translation,
+    //                 //ne    ed to change this to get the size of whatever the object is
+    //                 Vec2::new(o.height, o.width),
+    //                 t2.translation,
+    //                 Vec2::new(o2.width, o2.height),
+    //             );
+    //             if res.is_some() {
+    //                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+    //                 match coll_type {
+    //                     Collision::Top => {
+    //                         o.velocity.y = 0.;
+    //                     },
+    //                     Collision::Left => {
+    //                         o.velocity.x = 0.;
+    //                     },
+    //                     Collision::Right => {
+    //                         o.velocity.x = 0.;
+    //                     },
+    //                     Collision::Bottom => {
+    //                         o.velocity.y = 0.;
+    //                     },
+    //                     Collision::Inside => {
+    //                         o.velocity.x = 0.;
+    //                         o.velocity.y = 0.;
+
+    //                     }
+    //                 }
+    //             }
+    //         match o.obj_type {
+    //             ObjectType::Barrel => {
+    //                o.velocity.y += GRAVITY;
+    //                }
+    //                 _ => {}
+    //         }
+    //     }
+    // }
+
+    // }
+
+    // let mut barrels = Vec<(&mut Object, &mut Transform)>::new();
+}
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
     mut player: Query<(&ActiveObject, &mut Transform), With<Player>>,
     mut cam: Query<&mut Transform, (With<Camera>, Without<Object>, Without<ActiveObject>)>,
 ) {
     //update position of active objects based on projected position from apply_collisions()
+
     for (o, mut t) in actives.iter_mut() {
         t.translation = o.projected_position;
     }
@@ -661,24 +714,19 @@ fn update_positions(
     let (mut pl, mut pt) = player.single_mut();
     let mut camera = cam.single_mut();
     pt.translation = pl.projected_position;
-    if pt.translation.x + WIN_W / 2. < MAP_W /2. && pt.translation.x - WIN_W/2. > -MAP_W / 2.{
+    if pt.translation.x + WIN_W / 2. < MAP_W / 2. && pt.translation.x - WIN_W / 2. > -MAP_W / 2. {
         camera.translation.x = pt.translation.x;
-    }
-    else if pt.translation.x > 0.{
+    } else if pt.translation.x > 0. {
         camera.translation.x = MAP_W / 2. - WIN_W / 2.;
-    }
-    else{
+    } else {
         camera.translation.x = -MAP_W / 2. + WIN_W / 2.;
     }
-    if pt.translation.y + WIN_H / 2. < MAP_H /2. && pt.translation.y - WIN_H/2. > -MAP_H / 2.{
+    if pt.translation.y + WIN_H / 2. < MAP_H / 2. && pt.translation.y - WIN_H / 2. > -MAP_H / 2. {
         camera.translation.y = pt.translation.y;
-    }
-    else if pt.translation.y > 0.{
+    } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
     }
-    else{
-        camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
-    }
+    camera.translation.y = pt.translation.y;
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -704,7 +752,7 @@ fn move_enemies(
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
         match e.motion {
             Motion::Left => {
-                enemy.velocity.x = -PLAYER_SPEED ;
+                enemy.velocity.x = -PLAYER_SPEED;
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Right => {
@@ -712,16 +760,22 @@ fn move_enemies(
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Fall;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Fall;
+                } 
             }
             Motion::JumpRight => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Right;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Right;
+                }
             }
             Motion::JumpLeft => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Left;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Left;
+                }
             }
             Motion::Fall => {
                 enemy.velocity.x = 0.;
@@ -770,27 +824,27 @@ fn move_player(
 
     if input.just_pressed(KeyCode::J) {
         //press to rotate item
-        match p.item {
+        let newI: usize = ((p.active_item + 1) % (p.items.len() as usize)) as usize;
+        p.active_item = newI;
+        let item = p.items.get(p.active_item);
+        match item.unwrap() {
             ItemType::None => {
-                p.item = ItemType::Jetpack;
-                println!("Jetpack activated");
+                println!("No active item!")
             }
             ItemType::Jetpack => {
-                p.item = ItemType::Umbrella;
-                println!("Umbrella activated");
+                println!("Jetpack is on!")
             }
             ItemType::Umbrella => {
-                p.item = ItemType::Boots;
-                println!("Boots activated");
+                println!("Umbrella activated!")
             }
             ItemType::Boots => {
-                p.item = ItemType::None;
-                println!("No item activated");
+                println!("Jumping boots are on!")
             }
         }
     }
     if input.pressed(KeyCode::Space) {
-        match p.item {
+        let item = p.items.get(p.active_item);
+        match item.unwrap() {
             ItemType::None => {
                 if pl.grounded {
                     pl.velocity.y = 10.;
@@ -837,7 +891,9 @@ fn move_player(
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
         //print!("Applying Gravity");
-        if matches!(p.item, ItemType::Umbrella) {
+        let item = p.items.get(p.active_item).unwrap();
+
+        if matches!(item, ItemType::Umbrella) {
             if input.pressed(KeyCode::S) || (pl.velocity.y > UMBRELLA_VELOCITY) {
                 //if they press down, they can close the umbrella
                 pl.velocity.y += GRAVITY;
@@ -857,10 +913,10 @@ fn move_player(
     pl.grounded = false;
 }
 
-fn attack(
+fn attack_static(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), With<Player>>,
-    objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
+    mut objects: Query<(&mut Object, &Transform, Entity), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
@@ -881,20 +937,17 @@ fn attack(
                 // RIGHT
             }
         }
-        commands.spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::GREEN,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform {
+                    translation: hitbox_pos,
+                    ..default()
+                },
+
                 ..default()
-            },
-            //   texture: asset_server.load("explosiveBarrel.png"),
-            transform: Transform {
-                translation: hitbox_pos,
-                ..default()
-            },
-            ..default()
-        });
-        for (_o, t) in objects.iter() {
+            })
+            .insert(Hitbox::new(Timer::from_seconds(0.5, false)));
+        for (mut _o, t, entity) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
@@ -903,6 +956,11 @@ fn attack(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                if (matches!(_o.obj_type, ObjectType::Barrel)
+                    || matches!(_o.obj_type, ObjectType::Breakable))
+                {
+                    _o.broken = true;
+                }
                 match coll_type {
                     Collision::Left => {
                         println!("Attacked object right of player");
@@ -928,9 +986,7 @@ fn attack(
                 }
             }
         }
-    }
-    else{
-
+    } else {
     }
 }
 
@@ -990,7 +1046,7 @@ fn item_shop(
 ) {
     let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
-        print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
+        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
         clock.timer.pause();
         pt.translation = Vec3::new(0., -575., 0.);
 
@@ -1045,21 +1101,48 @@ fn item_shop(
         if input.just_pressed(KeyCode::B) {
             if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
                 //IF TRY TO BUY UMBRELLA
-                p.credits -= UMBRELLA_PRICE;
-                p.item = ItemType::Umbrella;
-                print!("UMBRELLA PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Umbrella already purchased!");
+                } else {
+                    p.credits -= UMBRELLA_PRICE;
+                    p.items.push(ItemType::Umbrella);
+                    print!("UMBRELLA PURCHASED!");
+                }
             } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
                 //IF TRY TO BUY JETPACK
-                p.credits -= JETPACK_PRICE;
-                p.item = ItemType::Jetpack;
-                print!("JETPACK PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Jetpack already purchased!");
+                } else {
+                    p.credits -= JETPACK_PRICE;
+                    p.items.push(ItemType::Jetpack);
+                    print!("JETPACK PURCHASED!");
+                }
             } else if p.credits >= BOOTS_PRICE {
                 //IF TRY TO BUY BOOTS
-                p.credits -= BOOTS_PRICE;
-                p.item = ItemType::Boots;
-                print!("BOOTS PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Boots already purchased!");
+                } else {
+                    p.credits -= BOOTS_PRICE;
+                    p.items.push(ItemType::Boots);
+                    print!("BOOTS PURCHASED!");
+                }
             }
-            print!("\n PRESS I TO RETURN!");
+            println!("PRESS I TO RETURN!");
         }
+    }
+}
+
+fn player_health(
+    mut player: Query<(&mut Player), With<Player>>,
+    mut exit: EventWriter<AppExit>,
+    // mut healthbar: Query<(Entity), With<HealthBar>>,
+    // mut commands: Commands,
+) {
+    let (p) = player.single_mut();
+    // let e = healthbar.single_mut();
+    // commands.entity(e).despawn();
+    if p.health <= 0 {
+        exit.send(AppExit);
+        print!("You lose!");
     }
 }
