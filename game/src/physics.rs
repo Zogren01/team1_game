@@ -143,8 +143,27 @@ pub fn projectile_static_collisions(
                                     p_xvel = (i as f32 - 3.) / 2.;
                                 }
                                 Collision::Inside => {
-                                    p_yvel = rng.gen_range(2, 7) as f32;
-                                    p_xvel = rng.gen_range(2, 7) as f32;
+                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                        true
+                                    } else {
+                                        false
+                                    };
+                                    if (horizontal && pro_o.velocity.x > 0.) {
+                                        p_xvel = rng.gen_range(2, 7) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2.;
+                                    } else if horizontal && pro_o.velocity.x < 0. {
+                                        p_xvel = rng.gen_range(-7, -2) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2.;
+                                    } else if !horizontal && pro_o.velocity.y > 0. {
+                                        p_yvel = rng.gen_range(7, 2) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2.;
+                                    } else if !horizontal && pro_o.velocity.y < 0. {
+                                        p_yvel = rng.gen_range(-7, -2) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2.;
+                                    } else {
+                                        p_yvel = rng.gen_range(2, 7) as f32;
+                                        p_xvel = rng.gen_range(2, 7) as f32;
+                                    }
                                 }
                             }
                             let sz = o_o.height / rng.gen_range(8, 16) as f32;
@@ -199,8 +218,27 @@ pub fn projectile_static_collisions(
                                     p_xvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Inside => {
-                                    p_yvel = rng.gen_range(4, 10) as f32;
-                                    p_xvel = rng.gen_range(-10, 10) as f32;
+                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                        true
+                                    } else {
+                                        false
+                                    };
+                                    if (horizontal && pro_o.velocity.x > 0.) {
+                                        p_xvel = rng.gen_range(10, 20) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if horizontal && pro_o.velocity.x < 0. {
+                                        p_xvel = rng.gen_range(-20, -10) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if !horizontal && pro_o.velocity.y > 0. {
+                                        p_yvel = rng.gen_range(10, 20) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if !horizontal && pro_o.velocity.y < 0. {
+                                        p_yvel = rng.gen_range(-20, -10) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else {
+                                        p_yvel = rng.gen_range(4, 10) as f32;
+                                        p_xvel = rng.gen_range(-10, 10) as f32;
+                                    }
                                 }
                             }
                             let sz = o_o.height / rng.gen_range(8, 16) as f32;
@@ -262,8 +300,9 @@ pub fn projectile_static_collisions(
                     if matches!(o_o.obj_type, ObjectType::Barrel) {
                         println!("{:?}", coll_type);
                         commands.entity(o_e).despawn();
+                        commands.entity(entity).despawn();
                         let mut rng = rand::thread_rng();
-                        for i in 1..20 {
+                        for i in 1..10 {
                             let mut rng = rand::thread_rng();
                             let mut p_xvel = 0.;
                             let mut p_yvel = 0.;
@@ -285,8 +324,27 @@ pub fn projectile_static_collisions(
                                     p_xvel = (i as f32 - 3.) / 2. + 2.;
                                 }
                                 Collision::Inside => {
-                                    p_yvel = rng.gen_range(4, 10) as f32;
-                                    p_xvel = rng.gen_range(-10, 10) as f32;
+                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                        true
+                                    } else {
+                                        false
+                                    };
+                                    if (horizontal && pro_o.velocity.x > 0.) {
+                                        p_xvel = rng.gen_range(10, 20) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if horizontal && pro_o.velocity.x < 0. {
+                                        p_xvel = rng.gen_range(-20, -10) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if !horizontal && pro_o.velocity.y > 0. {
+                                        p_yvel = rng.gen_range(10, 20) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else if !horizontal && pro_o.velocity.y < 0. {
+                                        p_yvel = rng.gen_range(-20, -10) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    } else {
+                                        p_yvel = rng.gen_range(4, 10) as f32;
+                                        p_xvel = rng.gen_range(-10, 10) as f32;
+                                    }
                                 }
                             }
                             let sz = o_o.height / rng.gen_range(8, 16) as f32;
