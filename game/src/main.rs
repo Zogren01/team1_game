@@ -152,7 +152,7 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(100, 25))
+                    .insert(ActiveObject::new(ENEMY_HEALTH, 25))
                     .insert(Object::new(900, desc.width, desc.height, ObjectType::MeleeEnemy))
                     .insert(Enemy::new(Type::Melee));
             }
@@ -170,7 +170,7 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(100, 25))
+                    .insert(ActiveObject::new(ENEMY_HEALTH, 25))
                     .insert(Object::new(900, desc.width, desc.height, ObjectType::RangedEnemy))
                     .insert(Enemy::new(Type::Ranged));
             }
@@ -737,19 +737,12 @@ fn move_enemies(
 ) {
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
-        //if the player did not just jump, add gravity to move them downward (collision for grounded found later)
-        if input.just_pressed(KeyCode::Key9) {
-            println!("Verts seen by enemy:");
-            for v in e.enemy_graph.vertices.iter_mut() {
-                println!("{}", v.id);
-            }
-            println!(
-                "Enemy current vertex: {}\nEnemy target vertex: {}",
-                e.current_vertex, e.target_vertex
-            );
-        }
         //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
-        e.decide_motion(Vec2::new(et.translation.x, et.translation.y));
+        e.decide_motion(Vec2::new(et.translation.x, et.translation.y), enemy.health);
+        if e.recover_health{
+            enemy.health += 5;
+        }
+
         match e.motion {
             Motion::Left => {
                 enemy.velocity.x = -PLAYER_SPEED;

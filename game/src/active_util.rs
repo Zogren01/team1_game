@@ -4,6 +4,8 @@ use bevy::prelude::*;
 pub const PLAYER_SPEED: f32 = 5.;
 pub const PLAYER_SZ: f32 = 32.;
 
+pub const ENEMY_HEALTH: i32 = 100;
+
 #[derive(Component)]
 pub struct ClockText;
 #[derive(Component)]
@@ -77,7 +79,7 @@ pub enum ItemType {
 
 #[derive(Component)]
 pub struct Player {
-    pub credits: i8,
+    pub credits: i32,
     pub items: Vec<ItemType>,
     pub active_item: usize,
     pub health: i8,

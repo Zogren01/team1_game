@@ -13,9 +13,9 @@ pub const TERMINAL_VELOCITY: f32 = -500.;
 pub const TILE_SIZE: f32 = 32.;
 pub const UMBRELLA_VELOCITY: f32 = -0.75;
 
-pub const UMBRELLA_PRICE: i8 = 30;
-pub const JETPACK_PRICE: i8 = 70;
-pub const BOOTS_PRICE: i8 = 30;
+pub const UMBRELLA_PRICE: i32 = 30;
+pub const JETPACK_PRICE: i32 = 70;
+pub const BOOTS_PRICE: i32 = 30;
 
 pub const ATTACK_HITBOX: Vec2 = Vec2::new(32., 16.);
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
