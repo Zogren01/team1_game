@@ -41,6 +41,17 @@ impl Velocity {
 }
 
 #[derive(Component)]
+pub struct MeleeBox{
+    pub position: Vec3,
+}
+
+impl MeleeBox{
+    pub fn new(pos: Vec3) -> Self{
+        Self { position: pos }
+    }
+}
+
+#[derive(Component)]
 pub struct ActiveObject {
     pub grounded: bool,
     pub facing_left: bool,

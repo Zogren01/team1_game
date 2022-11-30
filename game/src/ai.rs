@@ -67,6 +67,8 @@ pub enum Attack {
     Left,
     Right,
     None,
+    Projectile,
+    Melee
 }
 
 #[derive(Component)]
@@ -119,6 +121,8 @@ impl Enemy{
         //only update motion if enemy has seen at least one vertex
         self.attack = Attack::None;
         self.recover_health = false;
+        //println!("{}", health);
+        
         if self.enemy_graph.vertices.len() > 0 {
             let x_dist = (self.player_pos.x - pos.x).abs();
             let y_dist = self.player_pos.y - pos.y;
@@ -525,5 +529,6 @@ impl Enemy{
                 
             }
         }
-    }
+    }    
+
 }
