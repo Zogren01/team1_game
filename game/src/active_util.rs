@@ -79,7 +79,7 @@ pub enum ItemType {
 
 #[derive(Component)]
 pub struct Player {
-    pub credits: i8,
+    pub credits: i32,
     pub items: Vec<ItemType>,
     pub active_item: usize,
     pub health: i8,

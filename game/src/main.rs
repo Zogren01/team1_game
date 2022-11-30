@@ -727,8 +727,8 @@ fn move_enemies(
         let mut change = Vec2::splat(0.);
         //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), enemy.health);
-        if e.recover_health && enemy.health + 10 < ENEMY_HEALTH{
-            enemy.health += 10;
+        if e.recover_health{
+            enemy.health += 5;
         }
 
         match e.motion {

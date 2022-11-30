@@ -116,14 +116,14 @@ impl Enemy{
         //only update motion if enemy has seen at least one vertex
         self.attack = Attack::None;
         self.recover_health = false;
-        println!("{}", health);
         if self.enemy_graph.vertices.len() > 0 {
-            let dist_to_player = distance_squared(pos.x, pos.y, self.player_pos.x, self.player_pos.y);
+            let x_dist = (self.player_pos.x - pos.x).abs();
+            let y_dist = self.player_pos.y - pos.y;
             if pos == self.old_pos{
                 self.immobile_frames += 1;
             }
             //first check is for if player should be attacked
-            if self.player_seen && dist_to_player < 10000. && health >= ENEMY_HEALTH/2{
+            if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
                 self.action = Action::Attack;
             }
             //if stuck, new or done attacking player, and not healing
@@ -133,11 +133,12 @@ impl Enemy{
                 self.action = Action::Reset;
             }
             else if self.player_seen{
-                if health < ENEMY_HEALTH/2{
-                    println!("retreating");
+                if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
                     self.action = Action::Retreat;
                 }
-                self.action = Action::Chase;
+                else{
+                    self.action = Action::Chase;
+                }
             }
             else if health < ENEMY_HEALTH{
                 self.action = Action::Heal;
@@ -234,7 +235,6 @@ impl Enemy{
             }
             Action::Retreat => {
                 //println!("Chase update");
-                //check that the current target vertex is still the closest one to the player
                 let mut x_diff = f32::MAX;
                 let mut y_diff = f32::MAX;
                 //find the difference in enemies position to the next vertex on the enemies path
