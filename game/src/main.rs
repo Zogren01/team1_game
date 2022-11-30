@@ -229,6 +229,11 @@ fn main() {
             // we need to give it a string name, to refer to it
             "my_fixed_update",
         )
+        .add_fixed_timestep(
+            Duration::from_millis(250),
+            // we need to give it a string name, to refer to it
+            "my_fixed_update_2",
+        )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
@@ -271,7 +276,14 @@ fn main() {
             // it can be a conditional system!
             calculate_sight.after(move_enemies),
         )
+        .add_fixed_timestep_system(
+            "my_fixed_update_2",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            attack_enemies.after(calculate_sight),
+        )
         .add_system(player_health)
+        .add_system(meleebox_collisions)
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
@@ -785,6 +797,131 @@ fn move_enemies(
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
+    }
+}
+
+fn attack_enemies(
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
+    mut commands: Commands,
+) {
+    
+    for (mut enemy, et, mut e) in enemies.iter_mut() {
+        
+        let hitbox: Vec3;
+        match e.attack {
+            Attack::Up =>{
+                hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: hitbox,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(MeleeBox::new(hitbox));
+            }
+            Attack::Down =>{
+                hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: hitbox,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(MeleeBox::new(hitbox));
+                
+            }
+            Attack::Left =>{
+                hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: hitbox,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(MeleeBox::new(hitbox));
+            }
+            Attack::Right =>{
+                hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PLAYER_SZ  * 2., PLAYER_SZ  * 2.)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: hitbox,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(MeleeBox::new(hitbox));
+            }
+            Attack::None =>{}
+            Attack::Melee =>{}
+            Attack::Projectile =>{}
+        }
+    }
+}
+
+fn meleebox_collisions(
+    melee_box: Query<(&MeleeBox, Entity), (With<MeleeBox>, Without<Player>)>,
+    mut commands: Commands,
+    mut player: Query<(&ActiveObject, &mut Player), With<Player>>,
+){
+    for (obj, entity) in melee_box.iter(){
+        for (pl, mut p) in player.iter_mut(){
+            let res = bevy::sprite::collide_aabb::collide(
+                obj.position,
+                Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.),
+                pl.projected_position,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+            );
+            if res.is_some(){
+                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                match coll_type{
+                    Collision::Left =>{
+                        commands.entity(entity).despawn();
+                        p.health -= 5;
+
+                    }
+                    Collision::Right =>{
+                        commands.entity(entity).despawn();
+                        p.health -= 5;
+                    }
+                    Collision::Top =>{
+                        commands.entity(entity).despawn();
+
+                    }
+                    Collision::Bottom =>{
+                        commands.entity(entity).despawn();
+                        p.health -= 5;
+                    }
+                    Collision::Inside =>{
+                        commands.entity(entity).despawn();
+                        p.health -= 5;
+                    }
+                }
+                
+            }
+        }
     }
 }
 
