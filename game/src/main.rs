@@ -257,7 +257,7 @@ fn main() {
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
-        .add_system(attack)
+        .add_system(attack_static)
         .add_system(shoot)
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -275,7 +275,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            despawn_broken_objects.after(projectile_static_collisions),
+            break_objects.after(projectile_static_collisions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            despawn_broken_objects.after(break_objects),
         )
         .run();
 }
@@ -741,8 +747,8 @@ fn update_positions(
         camera.translation.y = pt.translation.y;
     } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
-    } 
-    camera.translation.y=pt.translation.y;
+    }
+    camera.translation.y = pt.translation.y;
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -923,10 +929,10 @@ fn move_player(
     pl.grounded = false;
 }
 
-fn attack(
+fn attack_static(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), With<Player>>,
-    objects: Query<(&Object, &Transform), (With<Object>, Without<Player>)>,
+    objects: Query<(&Object, &Transform, Entity), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
@@ -960,7 +966,7 @@ fn attack(
             },
             ..default()
         });
-        for (_o, t) in objects.iter() {
+        for (_o, t, entity) in objects.iter() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
@@ -1110,36 +1116,30 @@ fn item_shop(
             if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
                 //IF TRY TO BUY UMBRELLA
                 if p.items.contains(&ItemType::Umbrella) {
-                    println!("Umbrella already purchased!"               );
-                }
-                else {
+                    println!("Umbrella already purchased!");
+                } else {
                     p.credits -= UMBRELLA_PRICE;
                     p.items.push(ItemType::Umbrella);
                     print!("UMBRELLA PURCHASED!");
                 }
-                
             } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
                 //IF TRY TO BUY JETPACK
                 if p.items.contains(&ItemType::Umbrella) {
-                    println!("Jetpack already purchased!"               );
-                }
-                else {
+                    println!("Jetpack already purchased!");
+                } else {
                     p.credits -= JETPACK_PRICE;
                     p.items.push(ItemType::Jetpack);
                     print!("JETPACK PURCHASED!");
                 }
-                
             } else if p.credits >= BOOTS_PRICE {
                 //IF TRY TO BUY BOOTS
                 if p.items.contains(&ItemType::Umbrella) {
-                    println!("Boots already purchased!"               );
-                }
-                else {
+                    println!("Boots already purchased!");
+                } else {
                     p.credits -= BOOTS_PRICE;
                     p.items.push(ItemType::Boots);
                     print!("BOOTS PURCHASED!");
                 }
-                
             }
             println!("PRESS I TO RETURN!");
         }

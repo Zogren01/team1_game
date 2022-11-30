@@ -91,7 +91,7 @@ pub fn shoot(
 pub fn projectile_static_collisions(
     mut commands: Commands,
     mut objects: Query<
-        (&Object, &Transform, Entity),
+        (&mut Object, &Transform, Entity),
         (With<Object>, Without<Player>, Without<Projectile>),
     >,
     mut projectiles: Query<
@@ -118,154 +118,12 @@ pub fn projectile_static_collisions(
                     commands.entity(entity).despawn();
                     if matches!(o_o.obj_type, ObjectType::Breakable) {
                         // generate_breakables(&coll_type, o_t, o_o, commands);
-                        println!("{:?}", coll_type);
                         commands.entity(o_e).despawn();
-                        let mut rng = rand::thread_rng();
-                        for i in 1..5 {
-                            let mut rng = rand::thread_rng();
-                            let mut p_xvel = 0.;
-                            let mut p_yvel = 0.;
-                            match coll_type {
-                                Collision::Left => {
-                                    p_xvel = rng.gen_range(2, 7) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2.;
-                                }
-                                Collision::Right => {
-                                    p_xvel = rng.gen_range(-7, -2) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2.;
-                                }
-                                Collision::Top => {
-                                    p_yvel = rng.gen_range(-7, -2) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2.;
-                                }
-                                Collision::Bottom => {
-                                    p_yvel = rng.gen_range(7, 2) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2.;
-                                }
-                                Collision::Inside => {
-                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
-                                        true
-                                    } else {
-                                        false
-                                    };
-                                    if (horizontal && pro_o.velocity.x > 0.) {
-                                        p_xvel = rng.gen_range(2, 7) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2.;
-                                    } else if horizontal && pro_o.velocity.x < 0. {
-                                        p_xvel = rng.gen_range(-7, -2) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2.;
-                                    } else if !horizontal && pro_o.velocity.y > 0. {
-                                        p_yvel = rng.gen_range(7, 2) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2.;
-                                    } else if !horizontal && pro_o.velocity.y < 0. {
-                                        p_yvel = rng.gen_range(-7, -2) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2.;
-                                    } else {
-                                        p_yvel = rng.gen_range(2, 7) as f32;
-                                        p_xvel = rng.gen_range(2, 7) as f32;
-                                    }
-                                }
-                            }
-                            let sz = o_o.height / rng.gen_range(8, 16) as f32;
-                            commands
-                                .spawn_bundle(SpriteBundle {
-                                    sprite: Sprite {
-                                        color: Color::RED,
-                                        custom_size: Some(Vec2::new(sz, sz)),
-                                        ..default()
-                                    },
-                                    transform: Transform {
-                                        translation: Vec3::new(
-                                            o_t.translation.x,
-                                            o_t.translation.y,
-                                            2.,
-                                        ),
-                                        ..default()
-                                    },
-                                    // texture: asset_server.load("bullet.png"),
-                                    ..default()
-                                })
-                                .insert(Projectile::new(
-                                    Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::BrokenObj,
-                                ))
-                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                        }
+                        o_o.broken = true;
                     } else if matches!(o_o.obj_type, ObjectType::Barrel) {
                         // generate_breakables(&coll_type, o_t, o_o, commands);
-                        println!("{:?}", coll_type);
+                        o_o.broken = true;
                         commands.entity(o_e).despawn();
-                        let mut rng = rand::thread_rng();
-                        for i in 1..10 {
-                            let mut rng = rand::thread_rng();
-                            let mut p_xvel = 0.;
-                            let mut p_yvel = 0.;
-                            match coll_type {
-                                Collision::Left => {
-                                    p_xvel = rng.gen_range(10, 20) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Right => {
-                                    p_xvel = rng.gen_range(-20, -10) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Top => {
-                                    p_yvel = rng.gen_range(-20, -10) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Bottom => {
-                                    p_yvel = rng.gen_range(10, 20) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Inside => {
-                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
-                                        true
-                                    } else {
-                                        false
-                                    };
-                                    if (horizontal && pro_o.velocity.x > 0.) {
-                                        p_xvel = rng.gen_range(10, 20) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if horizontal && pro_o.velocity.x < 0. {
-                                        p_xvel = rng.gen_range(-20, -10) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if !horizontal && pro_o.velocity.y > 0. {
-                                        p_yvel = rng.gen_range(10, 20) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if !horizontal && pro_o.velocity.y < 0. {
-                                        p_yvel = rng.gen_range(-20, -10) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else {
-                                        p_yvel = rng.gen_range(4, 10) as f32;
-                                        p_xvel = rng.gen_range(-10, 10) as f32;
-                                    }
-                                }
-                            }
-                            let sz = o_o.height / rng.gen_range(8, 16) as f32;
-                            commands
-                                .spawn_bundle(SpriteBundle {
-                                    sprite: Sprite {
-                                        color: Color::RED,
-                                        custom_size: Some(Vec2::new(sz, sz)),
-                                        ..default()
-                                    },
-                                    transform: Transform {
-                                        translation: Vec3::new(
-                                            o_t.translation.x,
-                                            o_t.translation.y,
-                                            2.,
-                                        ),
-                                        ..default()
-                                    },
-                                    // texture: asset_server.load("bullet.png"),
-                                    ..default()
-                                })
-                                .insert(Projectile::new(
-                                    Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::Particle,
-                                ))
-                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                        }
                     }
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
                     match coll_type {
@@ -298,80 +156,9 @@ pub fn projectile_static_collisions(
                     }
                 } else if matches!(pro_o.proj_type, ProjType::Particle) {
                     if matches!(o_o.obj_type, ObjectType::Barrel) {
-                        println!("{:?}", coll_type);
+                        o_o.broken = true;
                         commands.entity(o_e).despawn();
                         commands.entity(entity).despawn();
-                        let mut rng = rand::thread_rng();
-                        for i in 1..10 {
-                            let mut rng = rand::thread_rng();
-                            let mut p_xvel = 0.;
-                            let mut p_yvel = 0.;
-                            match coll_type {
-                                Collision::Left => {
-                                    p_xvel = rng.gen_range(10, 20) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Right => {
-                                    p_xvel = rng.gen_range(-20, -10) as f32;
-                                    p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Top => {
-                                    p_yvel = rng.gen_range(-20, -10) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Bottom => {
-                                    p_yvel = rng.gen_range(10, 20) as f32;
-                                    p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                }
-                                Collision::Inside => {
-                                    let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
-                                        true
-                                    } else {
-                                        false
-                                    };
-                                    if (horizontal && pro_o.velocity.x > 0.) {
-                                        p_xvel = rng.gen_range(10, 20) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if horizontal && pro_o.velocity.x < 0. {
-                                        p_xvel = rng.gen_range(-20, -10) as f32;
-                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if !horizontal && pro_o.velocity.y > 0. {
-                                        p_yvel = rng.gen_range(10, 20) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else if !horizontal && pro_o.velocity.y < 0. {
-                                        p_yvel = rng.gen_range(-20, -10) as f32;
-                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
-                                    } else {
-                                        p_yvel = rng.gen_range(4, 10) as f32;
-                                        p_xvel = rng.gen_range(-10, 10) as f32;
-                                    }
-                                }
-                            }
-                            let sz = o_o.height / rng.gen_range(8, 16) as f32;
-                            commands
-                                .spawn_bundle(SpriteBundle {
-                                    sprite: Sprite {
-                                        color: Color::RED,
-                                        custom_size: Some(Vec2::new(sz, sz)),
-                                        ..default()
-                                    },
-                                    transform: Transform {
-                                        translation: Vec3::new(
-                                            o_t.translation.x,
-                                            o_t.translation.y,
-                                            2.,
-                                        ),
-                                        ..default()
-                                    },
-                                    // texture: asset_server.load("bullet.png"),
-                                    ..default()
-                                })
-                                .insert(Projectile::new(
-                                    Vec2::new(p_xvel, p_yvel as f32),
-                                    ProjType::Particle,
-                                ))
-                                .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                        }
                     } else {
                         match coll_type {
                             Collision::Left => {
@@ -382,11 +169,9 @@ pub fn projectile_static_collisions(
                             }
                             Collision::Top => {
                                 // print!("{}\n", pro_o.velocity.y.abs());
-                                if (pro_o.velocity.y.abs() < 1.5) {
-                                    pro_o.velocity.y = 0.;
-                                } else {
-                                    pro_o.velocity.y *= -0.5;
-                                }
+
+                                pro_o.velocity.y *= -0.5;
+
                                 pro_o.velocity.x *= 0.8;
                                 // pro_t.translation.y =
                                 //     o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
@@ -396,10 +181,7 @@ pub fn projectile_static_collisions(
                                 pro_o.velocity.x *= -0.9;
                             }
                             Collision::Inside => {
-                                pro_o.velocity.x = 0.;
-                                pro_o.velocity.y = 0.;
-                                pro_t.translation.y =
-                                    o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
+                                pro_o.velocity.y *= -0.8;
                             }
                         }
                     }
@@ -525,13 +307,269 @@ pub fn projectile_active_collision(
             if res2.is_some() {
                 // let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
                 if matches!(pro_o.proj_type, ProjType::Particle) {
-                    if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 / 2 > 20 {
-                        p.health -= 20;
-                    } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 / 2 > 3 {
-                        p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8 / 2;
+                    if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 30 {
+                        p.health -= 30;
+                    } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 3 {
+                        p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
                     }
-                    print!("{}\n", p.health);
                     commands.entity(entity_p).despawn();
+                }
+            }
+        }
+    }
+}
+
+pub fn break_objects(
+    mut commands: Commands,
+    mut objects: Query<
+        (&mut Object, &Transform, Entity),
+        (With<Object>, Without<Player>, Without<Projectile>),
+    >,
+    mut projectiles: Query<
+        (&mut Projectile, &mut Transform, Entity),
+        (Without<Object>, Without<Player>, Without<Enemy>),
+    >,
+) {
+    for (mut pro_o, mut pro_t, entity) in projectiles.iter_mut() {
+        let mut collide = false;
+        pro_o.velocity.y += GRAVITY;
+        for (mut o_o, o_t, o_e) in objects.iter_mut() {
+            let res = bevy::sprite::collide_aabb::collide(
+                pro_o.project_pos,
+                Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ),
+                o_t.translation,
+                Vec2::new(o_o.width, o_o.height),
+            );
+            if res.is_some() {
+                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                let mut time: f32 = 5.0;
+                if matches!(pro_o.proj_type, ProjType::Projectile) {
+                    commands.entity(entity).despawn();
+                    if matches!(o_o.obj_type, ObjectType::Breakable) {
+                        if o_o.broken {
+                            let mut rng = rand::thread_rng();
+                            for i in 1..5 {
+                                let mut rng = rand::thread_rng();
+                                let mut p_xvel = 0.;
+                                let mut p_yvel = 0.;
+                                match coll_type {
+                                    Collision::Left => {
+                                        p_xvel = rng.gen_range(2, 7) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2.;
+                                    }
+                                    Collision::Right => {
+                                        p_xvel = rng.gen_range(-7, -2) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2.;
+                                    }
+                                    Collision::Top => {
+                                        p_yvel = rng.gen_range(-7, -2) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2.;
+                                    }
+                                    Collision::Bottom => {
+                                        p_yvel = rng.gen_range(7, 2) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2.;
+                                    }
+                                    Collision::Inside => {
+                                        let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                            true
+                                        } else {
+                                            false
+                                        };
+                                        if (horizontal && pro_o.velocity.x > 0.) {
+                                            p_xvel = rng.gen_range(2, 7) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2.;
+                                        } else if horizontal && pro_o.velocity.x < 0. {
+                                            p_xvel = rng.gen_range(-7, -2) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2.;
+                                        } else if !horizontal && pro_o.velocity.y > 0. {
+                                            p_yvel = rng.gen_range(7, 2) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2.;
+                                        } else if !horizontal && pro_o.velocity.y < 0. {
+                                            p_yvel = rng.gen_range(-7, -2) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2.;
+                                        } else {
+                                            p_yvel = rng.gen_range(2, 7) as f32;
+                                            p_xvel = rng.gen_range(2, 7) as f32;
+                                        }
+                                    }
+                                }
+                                let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        sprite: Sprite {
+                                            color: Color::RED,
+                                            custom_size: Some(Vec2::new(sz, sz)),
+                                            ..default()
+                                        },
+                                        transform: Transform {
+                                            translation: Vec3::new(
+                                                o_t.translation.x,
+                                                o_t.translation.y,
+                                                2.,
+                                            ),
+                                            ..default()
+                                        },
+                                        // texture: asset_server.load("bullet.png"),
+                                        ..default()
+                                    })
+                                    .insert(Projectile::new(
+                                        Vec2::new(p_xvel, p_yvel as f32),
+                                        ProjType::BrokenObj,
+                                    ))
+                                    .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                            }
+                        }
+                    } else if matches!(o_o.obj_type, ObjectType::Barrel) {
+                        if (o_o.broken) {
+                            let mut rng = rand::thread_rng();
+                            for i in 1..10 {
+                                let mut rng = rand::thread_rng();
+                                let mut p_xvel = 0.;
+                                let mut p_yvel = 0.;
+                                match coll_type {
+                                    Collision::Left => {
+                                        p_xvel = rng.gen_range(10, 20) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Right => {
+                                        p_xvel = rng.gen_range(-20, -10) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Top => {
+                                        p_yvel = rng.gen_range(-20, -10) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Bottom => {
+                                        p_yvel = rng.gen_range(10, 20) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Inside => {
+                                        let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                            true
+                                        } else {
+                                            false
+                                        };
+                                        if (horizontal && pro_o.velocity.x > 0.) {
+                                            p_xvel = rng.gen_range(10, 20) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if horizontal && pro_o.velocity.x < 0. {
+                                            p_xvel = rng.gen_range(-20, -10) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if !horizontal && pro_o.velocity.y > 0. {
+                                            p_yvel = rng.gen_range(10, 20) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if !horizontal && pro_o.velocity.y < 0. {
+                                            p_yvel = rng.gen_range(-20, -10) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else {
+                                            p_yvel = rng.gen_range(4, 10) as f32;
+                                            p_xvel = rng.gen_range(-10, 10) as f32;
+                                        }
+                                    }
+                                }
+                                let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        sprite: Sprite {
+                                            color: Color::RED,
+                                            custom_size: Some(Vec2::new(sz, sz)),
+                                            ..default()
+                                        },
+                                        transform: Transform {
+                                            translation: Vec3::new(
+                                                o_t.translation.x,
+                                                o_t.translation.y,
+                                                2.,
+                                            ),
+                                            ..default()
+                                        },
+                                        // texture: asset_server.load("bullet.png"),
+                                        ..default()
+                                    })
+                                    .insert(Projectile::new(
+                                        Vec2::new(p_xvel, p_yvel as f32),
+                                        ProjType::Particle,
+                                    ))
+                                    .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                            }
+                        }
+                    }
+                } else if matches!(pro_o.proj_type, ProjType::Particle) {
+                    if matches!(o_o.obj_type, ObjectType::Barrel) {
+                        if o_o.broken {
+                            let mut rng = rand::thread_rng();
+                            for i in 1..10 {
+                                let mut rng = rand::thread_rng();
+                                let mut p_xvel = 0.;
+                                let mut p_yvel = 0.;
+                                match coll_type {
+                                    Collision::Left => {
+                                        p_xvel = rng.gen_range(10, 20) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Right => {
+                                        p_xvel = rng.gen_range(-20, -10) as f32;
+                                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Top => {
+                                        p_yvel = rng.gen_range(-20, -10) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Bottom => {
+                                        p_yvel = rng.gen_range(10, 20) as f32;
+                                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                    }
+                                    Collision::Inside => {
+                                        let horizontal = if pro_o.velocity.x > pro_o.velocity.y {
+                                            true
+                                        } else {
+                                            false
+                                        };
+                                        if (horizontal && pro_o.velocity.x > 0.) {
+                                            p_xvel = rng.gen_range(10, 20) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if horizontal && pro_o.velocity.x < 0. {
+                                            p_xvel = rng.gen_range(-20, -10) as f32;
+                                            p_yvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if !horizontal && pro_o.velocity.y > 0. {
+                                            p_yvel = rng.gen_range(10, 20) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else if !horizontal && pro_o.velocity.y < 0. {
+                                            p_yvel = rng.gen_range(-20, -10) as f32;
+                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                        } else {
+                                            p_yvel = rng.gen_range(4, 10) as f32;
+                                            p_xvel = rng.gen_range(-10, 10) as f32;
+                                        }
+                                    }
+                                }
+                                let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                                commands
+                                    .spawn_bundle(SpriteBundle {
+                                        sprite: Sprite {
+                                            color: Color::RED,
+                                            custom_size: Some(Vec2::new(sz, sz)),
+                                            ..default()
+                                        },
+                                        transform: Transform {
+                                            translation: Vec3::new(
+                                                o_t.translation.x,
+                                                o_t.translation.y,
+                                                2.,
+                                            ),
+                                            ..default()
+                                        },
+                                        // texture: asset_server.load("bullet.png"),
+                                        ..default()
+                                    })
+                                    .insert(Projectile::new(
+                                        Vec2::new(p_xvel, p_yvel as f32),
+                                        ProjType::Particle,
+                                    ))
+                                    .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                            }
+                        }
+                    }
                 }
             }
         }
