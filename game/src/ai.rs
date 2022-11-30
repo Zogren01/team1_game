@@ -65,6 +65,8 @@ pub enum Attack {
     Left,
     Right,
     None,
+    Projectile,
+    Melee
 }
 
 #[derive(Component)]
@@ -83,6 +85,7 @@ pub struct Enemy{
     pub old_pos: Vec2,
     pub immobile_frames: usize,
     pub attack: Attack,
+    pub recover_health: bool,
 }
 
 impl Enemy{
@@ -107,11 +110,14 @@ impl Enemy{
             old_pos: Vec2::splat(f32::MAX),
             immobile_frames: 0,
             attack: Attack::None,
+            recover_health: false,
         }
     }
     pub fn decide_motion(&mut self, pos: Vec2)-> Motion{
         //only update motion if enemy has seen at least one vertex
         self.attack = Attack::None;
+        self.recover_health = false;
+        //println!("{}", health);
         if self.enemy_graph.vertices.len() > 0 {
             let dist_to_player = distance_squared(pos.x, pos.y, self.player_pos.x, self.player_pos.y);
             if pos == self.old_pos{
@@ -432,5 +438,6 @@ impl Enemy{
                 
             }
         }
-    }
+    }    
+
 }
