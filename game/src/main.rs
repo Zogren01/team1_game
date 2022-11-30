@@ -741,9 +741,8 @@ fn update_positions(
         camera.translation.y = pt.translation.y;
     } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
-    } else {
-        camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
-    }
+    } 
+    camera.translation.y=pt.translation.y;
 }
 //temporary code, should just apply gravity until they hit the ground, for now, enemies jump with j
 //eventually, enemy movement decisions can be implemented in a separate file, their results will determine which action they take
@@ -1055,7 +1054,7 @@ fn item_shop(
 ) {
     let (mut p, mut pt) = player.single_mut();
     if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
-        print!("\nSHOP INFO: PRESS B ON BLOCK TO BUY\nLEFT: UMBRELLA\nRIGHT: JETPACK\n");
+        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
         clock.timer.pause();
         pt.translation = Vec3::new(0., -575., 0.);
 
@@ -1110,21 +1109,39 @@ fn item_shop(
         if input.just_pressed(KeyCode::B) {
             if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
                 //IF TRY TO BUY UMBRELLA
-                p.credits -= UMBRELLA_PRICE;
-                p.items.push(ItemType::Umbrella);
-                print!("UMBRELLA PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Umbrella already purchased!"               );
+                }
+                else {
+                    p.credits -= UMBRELLA_PRICE;
+                    p.items.push(ItemType::Umbrella);
+                    print!("UMBRELLA PURCHASED!");
+                }
+                
             } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
                 //IF TRY TO BUY JETPACK
-                p.credits -= JETPACK_PRICE;
-                p.items.push(ItemType::Jetpack);
-                print!("JETPACK PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Jetpack already purchased!"               );
+                }
+                else {
+                    p.credits -= JETPACK_PRICE;
+                    p.items.push(ItemType::Jetpack);
+                    print!("JETPACK PURCHASED!");
+                }
+                
             } else if p.credits >= BOOTS_PRICE {
                 //IF TRY TO BUY BOOTS
-                p.credits -= BOOTS_PRICE;
-                p.items.push(ItemType::Boots);
-                print!("BOOTS PURCHASED!");
+                if p.items.contains(&ItemType::Umbrella) {
+                    println!("Boots already purchased!"               );
+                }
+                else {
+                    p.credits -= BOOTS_PRICE;
+                    p.items.push(ItemType::Boots);
+                    print!("BOOTS PURCHASED!");
+                }
+                
             }
-            print!("\n PRESS I TO RETURN!");
+            println!("PRESS I TO RETURN!");
         }
     }
 }

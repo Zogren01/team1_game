@@ -508,6 +508,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     }
 
     // shop platform spawns below level
+    result.push(Descriptor::new(1., 10., -16., -17., ObjectType::Block)); //shop sides
+    result.push(Descriptor::new(1., 10., 16., -17., ObjectType::Block));
+
     result.push(Descriptor::new(32., 1., 0., -32., ObjectType::Block)); // shop box code start
     result.push(Descriptor::new(32., 1., 0., -21., ObjectType::Block));
     result.push(Descriptor::new(1., 12., 16., -26.5, ObjectType::Block));
@@ -523,15 +526,15 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
     result.push(Descriptor::new(1., 2., 4., -20., ObjectType::Breakable)); // platform to hold another item
 
-    result.push(Descriptor::new(
-        1.,
-        1.,
-        -12.,
-        -28.,
-        ObjectType::UmbrellaItem,
-    )); // placeholders for landmarker items start
-    result.push(Descriptor::new(1., 1., 12., -28., ObjectType::Item)); // Eventually you can buy the items through these boxes
-    result.push(Descriptor::new(1., 1., 0., -25., ObjectType::JetpackItem)); // placeholders for landmaker items end
+    // result.push(Descriptor::new(
+    //     1.,
+    //     1.,
+    //     -12.,
+    //     -28.,
+    //     ObjectType::UmbrellaItem,
+    // )); // placeholders for landmarker items start
+    // result.push(Descriptor::new(1., 1., 12., -28., ObjectType::Item)); // Eventually you can buy the items through these boxes
+    // result.push(Descriptor::new(1., 1., 0., -25., ObjectType::JetpackItem)); // placeholders for landmaker items end
 
     return result;
 }
