@@ -266,6 +266,176 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 1., 0., -27., ObjectType::Block));
     }
 
+    if id == 3{
+         //ceiling
+         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+         //starting platform
+         result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+
+         //left and right walls
+        result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        //bottom floor
+        result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+        //left top platform
+        result.push(Descriptor::new(20., 1., -20., 3.5, ObjectType::Block));
+        //left bottom platform
+        result.push(Descriptor::new(20., 1., -20., - 6.5, ObjectType::Block));
+        //right large platform
+        result.push(Descriptor::new(40., 1., 10., - 1.5, ObjectType::Block));
+        //right bottom platfrom
+        result.push(Descriptor::new(20., 1., 20., - 6.5, ObjectType::Block));
+        //middle vertical platform
+        result.push(Descriptor::new(1., 7., 0., 6.5, ObjectType::Block));
+        //right top platform 1
+        result.push(Descriptor::new(15., 1., 23.5, 1.5, ObjectType::Block));
+        //right top platform 2
+        result.push(Descriptor::new(23.5, 1., 0., 3.5, ObjectType::Block));
+        //right middle platform
+        result.push(Descriptor::new(15., 1., 23., 6.5, ObjectType::Block));
+        //left top block
+        result.push(Descriptor::new(2., 3.5, -15., 5., ObjectType::Block));
+        //right block on floor
+        result.push(Descriptor::new(3., 3.5, 7., -10.5, ObjectType::Block));
+        //left block on floor
+        result.push(Descriptor::new(3., 3.5, -7., -10.5, ObjectType::Block));
+
+    }
+    if id == 4{
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+
+        //left and right walls
+       result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+       result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+       //bottom floor
+       result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+       //middle vertical platform
+       result.push(Descriptor::new(1., 7., 13.5, 13.5, ObjectType::Block));
+       //left top platform
+       result.push(Descriptor::new(45., 1., -7., 3.5, ObjectType::Block));
+       //right large platform
+       result.push(Descriptor::new(15., 1., 23.5, -1.5, ObjectType::Block));
+       //left large platform
+       result.push(Descriptor::new(15., 1., -22.5, -1.5, ObjectType::Block));
+        //middle large platform
+        result.push(Descriptor::new(15., 1., 0., -1.5, ObjectType::Block));
+        //bottom vertical platform
+       result.push(Descriptor::new(1., 7., 0., -5.5, ObjectType::Block));
+       //right bottom platfrom
+       result.push(Descriptor::new(30., 1., 15., - 5.5, ObjectType::Block));
+       //left bottom platfrom
+       result.push(Descriptor::new(25., 1., -17., - 5.5, ObjectType::Block));
+       //right bottom block
+       result.push(Descriptor::new(2., 2.5, 11., - 4., ObjectType::Block));
+        //left block on floor
+        result.push(Descriptor::new(2., 3., 11., -11., ObjectType::Block));
+        //right block on floor
+        result.push(Descriptor::new(2., 3., -11., -11., ObjectType::Block));
+        //top middle block
+        result.push(Descriptor::new(2., 3., -7., 5., ObjectType::Block));
+        //top left block
+        result.push(Descriptor::new(2., 3., -20., 5., ObjectType::Block));
+        //top right block
+        result.push(Descriptor::new(2., 3., 5., 5., ObjectType::Block));
+        //left bottom vertical platfrom
+       result.push(Descriptor::new(1., 3.5, -5., -7., ObjectType::Block));
+
+       
+
+    }
+    if id == 5{
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., -10., 9.5, ObjectType::Block));
+
+        //left and right walls
+       result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+       result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+       //bottom floor
+       result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+        //top vertical platform
+        result.push(Descriptor::new(1., 7., -19.5, 13.5, ObjectType::Block));
+        //right top platform
+        result.push(Descriptor::new(20., 1., 20., 9.5, ObjectType::Block));
+        //right large platform
+       result.push(Descriptor::new(50., 1., 4., 3.5, ObjectType::Block));
+       //small top left platform
+       result.push(Descriptor::new(5., 1., -28., 3.5, ObjectType::Block));
+       //small top left block
+       result.push(Descriptor::new(2.5, 4., -28., 5., ObjectType::Block));
+       //small top right block
+       result.push(Descriptor::new(2., 3.5, 7.5, 5., ObjectType::Block));
+       //left bottom platform
+       result.push(Descriptor::new(25., 1., -17.5, - 7.5, ObjectType::Block));
+       //low floating block
+       result.push(Descriptor::new(1.5, 1.5, -17.5, - 4.5, ObjectType::Block));
+       //high floating block
+       result.push(Descriptor::new(1.5, 1.5, -14.5, - 2.5, ObjectType::Block));
+        //middle platform
+        result.push(Descriptor::new(15., 1., -2., -0.5, ObjectType::Block));
+        //vertical right line
+       result.push(Descriptor::new(1., 4., 5.5, 1., ObjectType::Block));
+       //big left floor block
+       result.push(Descriptor::new(5., 9., 13., -10.5, ObjectType::Block));
+       //small left floor block
+       result.push(Descriptor::new(2.5, 3.5, 10., -10.5, ObjectType::Block));
+   
+
+
+    }
+    if id == 6{
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+
+        //left and right walls
+       result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+       result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+       //bottom floor
+       result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+       //vertical middle line
+       result.push(Descriptor::new(1., 30., 4., -5., ObjectType::Block));
+       //vertical line right
+       result.push(Descriptor::new(1., 5., 13.5, 7.5, ObjectType::Block));
+       //vertical line left
+       result.push(Descriptor::new(1., 5., -13.5, 7.5, ObjectType::Block));
+       //right platform
+       result.push(Descriptor::new(10., 1., 18., 5., ObjectType::Block));
+       //left platform
+       result.push(Descriptor::new(10., 1., -18., 5., ObjectType::Block));
+        //block on left top platform
+        result.push(Descriptor::new(3., 3.5, -14.5, 6.5, ObjectType::Block));
+        //middle left platform
+        result.push(Descriptor::new(35., 1., -20., 0., ObjectType::Block));
+        //middle right platform
+        result.push(Descriptor::new(20., 1., 20., 0., ObjectType::Block));
+        //bottom left platform
+        result.push(Descriptor::new(35., 1., -20., -5.5, ObjectType::Block));
+        //middle blocks
+       result.push(Descriptor::new(8., 2., 4., -3., ObjectType::Block));
+        //bottom right platform
+        result.push(Descriptor::new(15., 1., 11., -5.5, ObjectType::Block));
+         //right block on floor
+         result.push(Descriptor::new(3., 3.5, 12., -10.5, ObjectType::Block));
+         //left block on floor
+         result.push(Descriptor::new(3., 3.5, -7., -10.5, ObjectType::Block));
+         //left block on middle platform 1
+         result.push(Descriptor::new(2., 3., -9., 1.5, ObjectType::Block));
+         //left block on middle platform 2
+         result.push(Descriptor::new(2., 3., -19., 1.5, ObjectType::Block));
+         //left block on bottom platform
+         result.push(Descriptor::new(2., 3., -20., -4., ObjectType::Block));
+
+
+    }
+
+
+
     if id == 7 {
         //spawn hallway
         result.push(Descriptor::new(40., 1., 19., 0., ObjectType::Block)); //spawn floor
