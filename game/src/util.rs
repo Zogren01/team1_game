@@ -144,8 +144,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //block on bottom floor
         result.push(Descriptor::new(18., 4., 0., -10., ObjectType::Block));
         //innermost bottom pillars
-        result.push(Descriptor::new(1., 2., -13.5, -11., ObjectType::Block));
-        result.push(Descriptor::new(1., 2., 13.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., -12.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 12.5, -11., ObjectType::Block));
         //middle bottom pillars
         result.push(Descriptor::new(1., 4., -16.5, -10., ObjectType::Block));
         result.push(Descriptor::new(1., 4., 16.5, -10., ObjectType::Block));
