@@ -57,6 +57,7 @@ pub enum Action {
     Chase,
     Attack,
     Retreat,
+    Heal,
 }
 
 pub enum Attack {
@@ -113,28 +114,38 @@ impl Enemy{
             recover_health: false,
         }
     }
-    pub fn decide_motion(&mut self, pos: Vec2)-> Motion{
+    pub fn decide_motion(&mut self, pos: Vec2, health: i32)-> Motion{
         //only update motion if enemy has seen at least one vertex
         self.attack = Attack::None;
         self.recover_health = false;
         //println!("{}", health);
+        
         if self.enemy_graph.vertices.len() > 0 {
-            let dist_to_player = distance_squared(pos.x, pos.y, self.player_pos.x, self.player_pos.y);
+            let x_dist = (self.player_pos.x - pos.x).abs();
+            let y_dist = self.player_pos.y - pos.y;
             if pos == self.old_pos{
                 self.immobile_frames += 1;
             }
             //first check is for if player should be attacked
-            if self.player_seen && dist_to_player < 10000.{
+            if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
                 self.action = Action::Attack;
             }
-            //will need a new check for if enemy is stuck
-            else if self.immobile_frames >= 3 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack){
+            //if stuck, new or done attacking player, and not healing
+            else if (self.immobile_frames >= 3 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack)) && !matches!(self.action, Action::Heal){
                 self.immobile_frames = 0;
                 self.current_vertex = MAX_VERT + 1;
                 self.action = Action::Reset;
             }
             else if self.player_seen{
-                self.action = Action::Chase
+                if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
+                    self.action = Action::Retreat;
+                }
+                else{
+                    self.action = Action::Chase;
+                }
+            }
+            else if health < ENEMY_HEALTH{
+                self.action = Action::Heal;
             }
             else{
                 self.action = Action::Strafe;
@@ -227,7 +238,45 @@ impl Enemy{
                 }
             }
             Action::Retreat => {
-                println!("Retreat update");
+                //println!("Chase update");
+                let mut x_diff = f32::MAX;
+                let mut y_diff = f32::MAX;
+                //find the difference in enemies position to the next vertex on the enemies path
+                //needed to determine if the enemy is "at" their destination
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.id == self.next_vertex {
+                        x_diff = pos.x - v.x;
+                        y_diff = pos.y - v.y;
+                        break;
+                    }
+                }
+                if x_diff.abs() <= 5.{
+                    if y_diff.abs() <= 5.  {
+                        self.current_vertex = self.next_vertex;
+                        let pl_vert = self.farthest_vert(self.player_pos);
+                        //if a better vertex is found or the enemy has arrived (second one shouldn't ever happen)
+                        if pl_vert != self.target_vertex || self.current_vertex == self.target_vertex{
+
+                            self.target_vertex = pl_vert;
+                            self.path = self.shortest_path();
+                            self.index_in_path = 0;
+                        }
+                        else{
+                            self.index_in_path += 1;
+                        }
+                        if self.path.vertices.len() > self.index_in_path{
+                            self.next_vertex = self.path.vertices[self.index_in_path];
+                            self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
+                        }
+                        else{
+                            println!("shouldn't get stuck here");
+                        }
+                    }
+                    else {
+                        //x position is correct but enemy is still falling to destination
+                        self.motion = Motion::Fall;
+                    }
+                }
             }
             Action::Chase => {
                 //println!("Chase update");
@@ -308,6 +357,13 @@ impl Enemy{
                     else{
                         self.motion = Motion::Right;
                     }
+                }
+            }
+            Action::Heal => {
+                self.motion = Motion::Stop;
+                if self.immobile_frames >= 30{
+                    self.recover_health = true;
+                    self.immobile_frames = 0;
                 }
             }
         }           
