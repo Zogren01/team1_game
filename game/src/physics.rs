@@ -68,7 +68,7 @@ pub fn shoot(
     if input.just_pressed(KeyCode::L) {
         // for (pla)
         if p.credits > 0 {
-            p.credits -= 1;
+            p.credits -= 5;
             commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
@@ -432,7 +432,7 @@ pub fn projectile_active_collision(
                     commands.entity(entity).despawn();
                     let mut rng = rand::thread_rng();
                     let (mut p, po) = player.single_mut();
-                    p.credits += 10;
+                    p.credits += 50;
                     for i in 1..6 {
                         let sz = 48. / rng.gen_range(8, 16) as f32;
                         commands
@@ -467,13 +467,13 @@ pub fn projectile_active_collision(
             if res2.is_some() {
                 // let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
                 if matches!(pro_o.proj_type, ProjType::Particle) {
-                    if (p.health > 20) {
+                    if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 / 2 > 20 {
                         p.health -= 20;
-                        print!("{}\n", p.health);
-                        commands.entity(entity_p).despawn();
-                    } else {
-                        println!("you lose!");
+                    } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 / 2 > 3 {
+                        p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8 / 2;
                     }
+                    print!("{}\n", p.health);
+                    commands.entity(entity_p).despawn();
                 }
             }
         }

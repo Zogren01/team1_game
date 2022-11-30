@@ -253,6 +253,7 @@ fn main() {
             // it can be a conditional system!
             calculate_sight.after(move_enemies),
         )
+        .add_system(player_health)
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
@@ -1128,6 +1129,17 @@ fn item_shop(
     }
 }
 
-// fn collect_credits(
-//     mut player: Query<(&mut Player, &mut Transform), With<Player>>,
-// )
+fn player_health(
+    mut player: Query<(&mut Player), With<Player>>,
+    mut exit: EventWriter<AppExit>,
+    // mut healthbar: Query<(Entity), With<HealthBar>>,
+    // mut commands: Commands,
+) {
+    let (p) = player.single_mut();
+    // let e = healthbar.single_mut();
+    // commands.entity(e).despawn();
+    if p.health <= 0 {
+        exit.send(AppExit);
+        print!("You lose!");
+    }
+}
