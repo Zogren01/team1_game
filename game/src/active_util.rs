@@ -4,6 +4,8 @@ use bevy::prelude::*;
 pub const PLAYER_SPEED: f32 = 5.;
 pub const PLAYER_SZ: f32 = 32.;
 
+pub const ENEMY_HEALTH: i32 = 100;
+
 #[derive(Component)]
 pub struct ClockText;
 #[derive(Component)]
