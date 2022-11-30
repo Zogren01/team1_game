@@ -138,7 +138,7 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-            } else if matches!(desc.obj_type, ObjectType::Enemy) {
+            } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -153,8 +153,26 @@ fn create_level(
                         ..default()
                     })
                     .insert(ActiveObject::new(100, 25))
-                    .insert(Object::new(900, desc.width, desc.height, ObjectType::Enemy))
-                    .insert(Enemy::new());
+                    .insert(Object::new(900, desc.width, desc.height, ObjectType::MeleeEnemy))
+                    .insert(Enemy::new(Type::Melee));
+            }
+            else if matches!(desc.obj_type, ObjectType::RangedEnemy) {
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::PURPLE,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(ActiveObject::new(100, 25))
+                    .insert(Object::new(900, desc.width, desc.height, ObjectType::RangedEnemy))
+                    .insert(Enemy::new(Type::Ranged));
             }
         } else {
             commands
@@ -325,18 +343,6 @@ fn setup(
         timer: Timer::from_seconds(START_TIME, true),
     });
 
-    /*
-    commands.spawn_bundle(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(1920.0, 1088.0)),
-            ..default()
-        },
-        texture: asset_server.load("Room_1.png"),
-        transform: Transform::from_xyz(0., 0., 100.),
-        ..default()
-    });
-    */
-
     commands
         .spawn_bundle(TextBundle::from_section(
             "",
@@ -458,16 +464,11 @@ fn apply_collisions(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                if (matches!(o.obj_type, ObjectType::Cobweb)) {
+                if matches!(o.obj_type, ObjectType::Cobweb) {
                     println!("{:?}", coll_type);
                 }
                 match coll_type {
                     Collision::Left => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
-                        ObjectType::Bullet => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -476,24 +477,14 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        // ObjectType::Barrel => {
-                        //     o.velocity.x = active.velocity.x;
-                        // }
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Right => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::Bullet => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -501,28 +492,18 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        // ObjectType::Barrel => {
-                        //     o.velocity.x = active.velocity.x;
-                        //     //t.translation.x=transform.translation.x+PLAYER_SZ;
-                        //}
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Top => {
                         match o.obj_type {
-                            ObjectType::JetpackItem => {}
-                            ObjectType::Bullet => {}
-                            ObjectType::UmbrellaItem => {}
                             ObjectType::Spike => {
                                 exit.send(AppExit);
                             }
-                            ObjectType::Item => {}
                             ObjectType::Cobweb => {
                                 if active.velocity.x != 0. {
                                     active.velocity.x /= 2.;
@@ -530,10 +511,7 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Active => {}
-                            ObjectType::Enemy => {}
-                            ObjectType::Player => {}
-                            _ => {
+                            ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -544,14 +522,10 @@ fn apply_collisions(
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
                             }
+                            _ => {}
                         }
                     }
                     Collision::Bottom => match o.obj_type {
-                        ObjectType::JetpackItem => {}
-                        ObjectType::UmbrellaItem => {}
-                        ObjectType::Bullet => {}
-                        ObjectType::Spike => {}
-                        ObjectType::Item => {}
                         ObjectType::Cobweb => {
                             if active.velocity.x != 0. {
                                 active.velocity.x /= 2.;
@@ -560,14 +534,12 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Active => {}
-                        ObjectType::Enemy => {}
-                        ObjectType::Player => {}
-                        _ => {
+                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
                             active.velocity.y = 0.;
                             active.projected_position.y =
                                 t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
                         }
+                        _ => {}
                     },
                     Collision::Inside => match o.obj_type {
                         _ => {
@@ -788,16 +760,22 @@ fn move_enemies(
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Fall;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Fall;
+                } 
             }
             Motion::JumpRight => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Right;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Right;
+                }
             }
             Motion::JumpLeft => {
-                enemy.velocity.y = 10.;
-                e.motion = Motion::Left;
+                if enemy.grounded{
+                    enemy.velocity.y = 10.;
+                    e.motion = Motion::Left;
+                }
             }
             Motion::Fall => {
                 enemy.velocity.x = 0.;
@@ -965,6 +943,7 @@ fn attack_static(
                     translation: hitbox_pos,
                     ..default()
                 },
+
                 ..default()
             })
             .insert(Hitbox::new(Timer::from_seconds(0.5, false)));

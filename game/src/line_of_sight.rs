@@ -23,12 +23,6 @@ impl Line {
         (self.end.x - self.start.x) * (self.end.x - self.start.x)
             + (self.end.y - self.start.y) * (self.end.y - self.start.y)
     }
-    pub fn print_line(&self) {
-        println!(
-            "Start: {},{} \n End: {},{} \n",
-            self.start.x, self.start.y, self.end.x, self.end.y
-        );
-    }
 }
 
 fn helper(i: Vec2, j: Vec2, k: Vec2) -> bool {
@@ -139,7 +133,7 @@ pub fn calculate_sight(
         for (o, t) in objects.iter() {
             //v1 and v2 and v3 hold the three vertices visible to the player
             match o.obj_type {
-                ObjectType::Block | ObjectType::Spike | ObjectType::Breakable => {
+                ObjectType::Block | ObjectType::Spike => {
                     //blocks and spikes are the only two objects that block line of sight
                     let (v1, v2, v3) = find_vertices(
                         pos.x,
@@ -157,18 +151,57 @@ pub fn calculate_sight(
                         object_lines.push(o1);
                         object_lines.push(o2);
                     }
-                    //spikes might need to be added in a different way so enemy can use them
+                }
+                ObjectType::Breakable | ObjectType::Barrel => {
+                    let (v1, v2, v3) = find_vertices(
+                        pos.x,
+                        pos.y,
+                        t.translation.x,
+                        t.translation.y,
+                        o.width,
+                        o.height,
+                    );
+                    //if the object is within range, add its lines to object lines so that they are checked for line of sight
+                    let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
+                    if l1.length_squared() < sight_distance * sight_distance {
+
+                        let sight_line = Line::new(
+                            Vec2::new(pos.x, pos.y),
+                            Vec2::new(t.translation.x, t.translation.y),
+                            MAX_VERT + 2,
+                        );
+                        sight_lines.push(sight_line);
+
+                        let o1 = Line::new(v1, v3, 0);
+                        let o2 = Line::new(v2, v3, 0);
+                        object_lines.push(o1);
+                        object_lines.push(o2);
+                    }
+                    //also need to add temporary vertices so enemy can destroy them
                 }
                 ObjectType::Bullet => {
                     //enemy will avoid these
                 }
-                ObjectType::Cobweb => {
-                    //cobwebs are "transparent", might need to be added to enemies code to utilize them
+                ObjectType::MeleeEnemy => {
+                    let sight_line = Line::new(
+                        Vec2::new(pos.x, pos.y),
+                        Vec2::new(t.translation.x, t.translation.y),
+                        MAX_VERT + 3,
+                    );
+                    if sight_line.length_squared() < sight_distance * sight_distance {
+                        sight_lines.push(sight_line);
+                    }
                 }
-                ObjectType::Active => {
-                    //this type might be useless
+                ObjectType::RangedEnemy => {
+                    let sight_line = Line::new(
+                        Vec2::new(pos.x, pos.y),
+                        Vec2::new(t.translation.x, t.translation.y),
+                        MAX_VERT + 4,
+                    );
+                    if sight_line.length_squared() < sight_distance * sight_distance {
+                        sight_lines.push(sight_line);
+                    }
                 }
-                ObjectType::Enemy => {}
                 ObjectType::Player => {
                     let sight_line = Line::new(
                         Vec2::new(pos.x, pos.y),
@@ -179,11 +212,7 @@ pub fn calculate_sight(
                         sight_lines.push(sight_line);
                     }
                 }
-                ObjectType::Item => {}
-                ObjectType::UmbrellaItem => {}
-                ObjectType::JetpackItem => {}
-                ObjectType::Barrel => {}
-                ObjectType::Credit=> {}
+                _ => {}
             }
         }
         let g = graph.single();
