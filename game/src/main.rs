@@ -160,7 +160,7 @@ fn create_level(
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::RED,
+                            color: Color::PURPLE,
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
@@ -926,13 +926,13 @@ fn attack(
                 // RIGHT
             }
         }
+        //this code makes a visual representation of the hitbox, maybe delete later
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::GREEN,
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
-            //   texture: asset_server.load("explosiveBarrel.png"),
             transform: Transform {
                 translation: hitbox_pos,
                 ..default()
