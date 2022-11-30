@@ -89,3 +89,14 @@ impl Player {
         }
     }
 }
+
+#[derive(Component)]
+pub struct Hitbox {
+    lifespan: Timer,
+}
+
+impl Hitbox {
+    pub fn new(lifespan: Timer) -> Self {
+        Self { lifespan: lifespan }
+    }
+}
