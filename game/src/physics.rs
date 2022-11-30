@@ -118,12 +118,10 @@ pub fn projectile_static_collisions(
                     commands.entity(entity).despawn();
                     if matches!(o_o.obj_type, ObjectType::Breakable) {
                         // generate_breakables(&coll_type, o_t, o_o, commands);
-                        commands.entity(o_e).despawn();
                         o_o.broken = true;
                     } else if matches!(o_o.obj_type, ObjectType::Barrel) {
                         // generate_breakables(&coll_type, o_t, o_o, commands);
                         o_o.broken = true;
-                        commands.entity(o_e).despawn();
                     }
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
                     match coll_type {
@@ -157,7 +155,6 @@ pub fn projectile_static_collisions(
                 } else if matches!(pro_o.proj_type, ProjType::Particle) {
                     if matches!(o_o.obj_type, ObjectType::Barrel) {
                         o_o.broken = true;
-                        commands.entity(o_e).despawn();
                         commands.entity(entity).despawn();
                     } else {
                         match coll_type {
@@ -169,9 +166,7 @@ pub fn projectile_static_collisions(
                             }
                             Collision::Top => {
                                 // print!("{}\n", pro_o.velocity.y.abs());
-
                                 pro_o.velocity.y *= -0.5;
-
                                 pro_o.velocity.x *= 0.8;
                                 // pro_t.translation.y =
                                 //     o_t.translation.y + o_o.height / 2. + PROJECTILE_SZ / 2.
@@ -347,6 +342,8 @@ pub fn break_objects(
                     commands.entity(entity).despawn();
                     if matches!(o_o.obj_type, ObjectType::Breakable) {
                         if o_o.broken {
+                            commands.entity(o_e).despawn();
+
                             let mut rng = rand::thread_rng();
                             for i in 1..5 {
                                 let mut rng = rand::thread_rng();
@@ -421,6 +418,8 @@ pub fn break_objects(
                         }
                     } else if matches!(o_o.obj_type, ObjectType::Barrel) {
                         if (o_o.broken) {
+                            commands.entity(o_e).despawn();
+
                             let mut rng = rand::thread_rng();
                             for i in 1..10 {
                                 let mut rng = rand::thread_rng();
@@ -497,6 +496,8 @@ pub fn break_objects(
                 } else if matches!(pro_o.proj_type, ProjType::Particle) {
                     if matches!(o_o.obj_type, ObjectType::Barrel) {
                         if o_o.broken {
+                            commands.entity(o_e).despawn();
+
                             let mut rng = rand::thread_rng();
                             for i in 1..10 {
                                 let mut rng = rand::thread_rng();
@@ -570,6 +571,110 @@ pub fn break_objects(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+pub fn break_hb_objects(
+    mut player: Query<(&mut Player, &Transform), With<Player>>,
+    mut commands: Commands,
+    mut objects: Query<
+        (&mut Object, &Transform, Entity),
+        (With<Object>, Without<Player>, Without<Projectile>),
+    >,
+) {
+    for (mut o_o, o_t, o_e) in objects.iter_mut() {
+        if o_o.broken {
+            let (p, pt) = player.single_mut();
+            let horizontal = if (o_t.translation.x - pt.translation.x).abs()
+                > (o_t.translation.y - pt.translation.y).abs()
+            {
+                true
+            } else {
+                false
+            };
+            let mut rng = rand::thread_rng();
+            let mut p_xvel = 0.;
+            let mut p_yvel = 0.;
+            commands.entity(o_e).despawn();
+
+            if matches!(o_o.obj_type, ObjectType::Barrel) {
+                for i in 1..10 {
+                    if (horizontal && pt.translation.x < o_t.translation.x) {
+                        p_xvel = rng.gen_range(10, 20) as f32;
+                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                    } else if (horizontal && pt.translation.x > o_t.translation.x) {
+                        p_xvel = rng.gen_range(-20, -10) as f32;
+                        p_yvel = (i as f32 - 3.) / 2. + 2.;
+                    } else if (!horizontal && pt.translation.y > o_t.translation.y) {
+                        p_yvel = rng.gen_range(-20, -10) as f32;
+                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                    } else if (!horizontal && pt.translation.y < o_t.translation.y) {
+                        p_yvel = rng.gen_range(10, 20) as f32;
+                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                    }
+                    let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::RED,
+                                custom_size: Some(Vec2::new(sz, sz)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: Vec3::new(o_t.translation.x, o_t.translation.y, 2.),
+                                ..default()
+                            },
+                            // texture: asset_server.load("bullet.png"),
+                            ..default()
+                        })
+                        .insert(Projectile::new(
+                            Vec2::new(p_xvel, p_yvel as f32),
+                            ProjType::Particle,
+                        ))
+                        .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                }
+            } else if matches!(o_o.obj_type, ObjectType::Breakable) {
+                for i in 1..5 {
+                    let mut rng = rand::thread_rng();
+                    let mut p_xvel = 0.;
+                    let mut p_yvel = 0.;
+                    if (horizontal && pt.translation.x < o_t.translation.x) {
+                        p_xvel = rng.gen_range(2, 7) as f32;
+                        p_yvel = (i as f32 - 3.) / 2.;
+                    } else if (horizontal && pt.translation.x > o_t.translation.x) {
+                        p_xvel = rng.gen_range(-7, -2) as f32;
+                        p_yvel = (i as f32 - 3.) / 2.;
+                    } else if (!horizontal && pt.translation.y > o_t.translation.y) {
+                        p_yvel = rng.gen_range(-7, -2) as f32;
+                        p_xvel = (i as f32 - 3.) / 2.;
+                    } else if (!horizontal && pt.translation.y < o_t.translation.y) {
+                        p_yvel = rng.gen_range(7, 2) as f32;
+                        p_xvel = (i as f32 - 3.) / 2.;
+                    }
+
+                    let sz = o_o.height / rng.gen_range(8, 16) as f32;
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::RED,
+                                custom_size: Some(Vec2::new(sz, sz)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: Vec3::new(o_t.translation.x, o_t.translation.y, 2.),
+                                ..default()
+                            },
+                            // texture: asset_server.load("bullet.png"),
+                            ..default()
+                        })
+                        .insert(Projectile::new(
+                            Vec2::new(p_xvel, p_yvel as f32),
+                            ProjType::BrokenObj,
+                        ))
+                        .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
                 }
             }
         }

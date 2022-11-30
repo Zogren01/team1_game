@@ -281,7 +281,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            despawn_broken_objects.after(break_objects),
+            break_hb_objects.after(break_objects),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            despawn_broken_objects.after(break_hb_objects),
         )
         .run();
 }
@@ -932,7 +938,7 @@ fn move_player(
 fn attack_static(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), With<Player>>,
-    objects: Query<(&Object, &Transform, Entity), (With<Object>, Without<Player>)>,
+    mut objects: Query<(&mut Object, &Transform, Entity), (With<Object>, Without<Player>)>,
     mut commands: Commands,
 ) {
     let (pl, pt) = player.single_mut();
@@ -953,20 +959,16 @@ fn attack_static(
                 // RIGHT
             }
         }
-        commands.spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::GREEN,
-                custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform {
+                    translation: hitbox_pos,
+                    ..default()
+                },
                 ..default()
-            },
-            //   texture: asset_server.load("explosiveBarrel.png"),
-            transform: Transform {
-                translation: hitbox_pos,
-                ..default()
-            },
-            ..default()
-        });
-        for (_o, t, entity) in objects.iter() {
+            })
+            .insert(Hitbox::new(Timer::from_seconds(0.5, false)));
+        for (mut _o, t, entity) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 hitbox_pos,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
@@ -975,6 +977,11 @@ fn attack_static(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                if (matches!(_o.obj_type, ObjectType::Barrel)
+                    || matches!(_o.obj_type, ObjectType::Breakable))
+                {
+                    _o.broken = true;
+                }
                 match coll_type {
                     Collision::Left => {
                         println!("Attacked object right of player");

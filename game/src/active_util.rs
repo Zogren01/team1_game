@@ -95,10 +95,13 @@ impl Player {
     }
 }
 
+#[derive(Component)]
 pub struct Hitbox {
     lifespan: Timer,
-    pub items: Vec<ItemType>,
-    pub active_item: usize,
-    pub health: i8,
-    //temp variable
+}
+
+impl Hitbox {
+    pub fn new(lifespan: Timer) -> Self {
+        Self { lifespan: lifespan }
+    }
 }
