@@ -46,6 +46,11 @@ impl PartialOrd for State {
     }
 }
 
+pub enum Type {
+    Melee,
+    Ranged,
+}
+
 pub enum Action {
     Reset,
     Strafe,
@@ -64,6 +69,7 @@ pub enum Attack {
 
 #[derive(Component)]
 pub struct Enemy{
+    pub t: Type,
     pub enemy_graph: Graph, 
     pub next_vertex: usize,
     pub current_vertex: usize,
@@ -80,8 +86,9 @@ pub struct Enemy{
 }
 
 impl Enemy{
-    pub fn new() -> Self {
+    pub fn new(ty: Type) -> Self {
         Self{
+            t: ty,
             //supgraph of the movement mesh that has been seen by enemy
             enemy_graph: Graph::new(),
             //enemy starts at it's first "target" vertex
@@ -192,7 +199,7 @@ impl Enemy{
                             let r = self.enemy_graph.vertices.len();
                             let mut rng = rand::thread_rng();
 
-                            let mut pos: usize = rng.gen_range(0, r);
+                            let pos: usize = rng.gen_range(0, r);
                             self.target_vertex = self.enemy_graph.vertices[pos].id;
                             //update path to be the path to that vertex
                             self.path = self.shortest_path();
@@ -298,7 +305,7 @@ impl Enemy{
                     }
                     //below player
                     else{
-                        //eventually need code to jump
+                        self.motion = Motion::Jump;
                     }
                 }
                 else{
@@ -326,6 +333,7 @@ impl Enemy{
         }
         return result;
     }
+    
     fn farthest_vert(&self, pos: Vec2) -> usize{
         let mut distance = 0.;
         let mut result: usize = MAX_VERT + 1;
