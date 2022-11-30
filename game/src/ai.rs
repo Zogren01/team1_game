@@ -162,7 +162,6 @@ impl Enemy{
                 else{
                     self.next_vertex = best_vert;
                     self.target_vertex = best_vert;
-                    println!("Target for reset: {}\n Distance to target: {}", self.next_vertex, x_dist);
                     if x_dist >= 5. {
                         self.motion = Motion::Right;
                     }
@@ -170,7 +169,6 @@ impl Enemy{
                         self.motion = Motion::Left;
                     }
                     else{
-                        println!("enemy completed reset");
                         self.current_vertex = self.next_vertex;
                     }
                 }
@@ -194,7 +192,6 @@ impl Enemy{
                         self.current_vertex = self.next_vertex;
 
                         if self.current_vertex == self.target_vertex{
-                            println!("At destination of {}", self.current_vertex);
                             //randomly select a seen vertex
                             let r = self.enemy_graph.vertices.len();
                             let mut rng = rand::thread_rng();
@@ -203,11 +200,6 @@ impl Enemy{
                             self.target_vertex = self.enemy_graph.vertices[pos].id;
                             //update path to be the path to that vertex
                             self.path = self.shortest_path();
-                            println!("Path found:");
-                            for v in self.path.vertices.iter_mut(){
-                                print!("{}, ", v);
-                            }
-                            println!("");
                             self.index_in_path = 0;
                         }
                         //otherwise, destination is not reached
@@ -254,11 +246,6 @@ impl Enemy{
 
                             self.target_vertex = pl_vert;
                             self.path = self.shortest_path();
-                            println!("path for chase:");
-                            for v in self.path.vertices.iter_mut(){
-                                print!("{}, ", v);
-                            }
-                            println!("");
                             self.index_in_path = 0;
                         }
                         else{
@@ -333,7 +320,7 @@ impl Enemy{
         }
         return result;
     }
-    
+
     fn farthest_vert(&self, pos: Vec2) -> usize{
         let mut distance = 0.;
         let mut result: usize = MAX_VERT + 1;
@@ -413,10 +400,20 @@ impl Enemy{
             }
             if result{
                 //case for the player being seen
-                if l.id == MAX_VERT +1 {
+                if l.id == MAX_VERT + 1 {
                     self.player_seen = true;
                     self.player_pos.x = l.end.x;
                     self.player_pos.y = l.end.y;
+                }
+                //case for breakable objects
+                else if l.id == MAX_VERT + 2 {
+
+                }
+                else if l.id == MAX_VERT + 3 {
+
+                }
+                else if l.id == MAX_VERT + 4 {
+
                 }
                 else {
                     let vertex = Vertex::new(l.end.x, l.end.y, l.id);
