@@ -130,7 +130,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(5., 1., -22.5, 10.5, ObjectType::Block));
         result.push(Descriptor::new(5., 1., 22.5, 10.5, ObjectType::Block));
         //enemies
-        //result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::RangedEnemy));
         result.push(Descriptor::new(1., 1., 22.5, 11.5, ObjectType::MeleeEnemy));
         //left and right floors
         result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));

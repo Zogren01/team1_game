@@ -58,6 +58,7 @@ pub enum Action {
     Attack,
     Retreat,
     Heal,
+    Assist,
 }
 
 pub enum Attack {
@@ -85,6 +86,7 @@ pub struct Enemy{
     pub immobile_frames: usize,
     pub attack: Attack,
     pub recover_health: bool,
+    pub friend: Vec2,
 }
 
 impl Enemy{
@@ -110,6 +112,7 @@ impl Enemy{
             immobile_frames: 0,
             attack: Attack::None,
             recover_health: false,
+            friend: Vec2::splat(f32::MAX),
         }
     }
     pub fn decide_motion(&mut self, pos: Vec2, health: i32)-> Motion{
@@ -223,9 +226,7 @@ impl Enemy{
                             self.next_vertex = self.path.vertices[self.index_in_path];
                             self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
                         }
-                        else{
-                            println!("shouldn't get stuck here");
-                        }
+                        //maybe bug here idk
                     }
                     else{
                         //x position is correct but enemy is still falling to destination
@@ -264,9 +265,7 @@ impl Enemy{
                             self.next_vertex = self.path.vertices[self.index_in_path];
                             self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
                         }
-                        else{
-                            println!("shouldn't get stuck here");
-                        }
+                        //maybe bug here idk
                     }
                     else {
                         //x position is correct but enemy is still falling to destination
@@ -320,40 +319,56 @@ impl Enemy{
                 //println!("Attack update");
                 let x_to_player = pos.x - self.player_pos.x;
                 let y_to_player = pos.y - self.player_pos.y;
-                if x_to_player.abs() <= PLAYER_SZ{
-                    if y_to_player.abs() <= PLAYER_SZ{
-                        //within range to attack
-                        self.motion = Motion::Stop;
-                        if x_to_player.abs() > y_to_player.abs(){
-                            if x_to_player > 0.{
-                                self.attack = Attack::Left;
+                match self.t{
+                    Type::Melee => {
+                        
+                        if x_to_player.abs() <= PLAYER_SZ{
+                            if y_to_player.abs() <= PLAYER_SZ{
+                                //within range to attack
+                                self.motion = Motion::Stop;
+                                if x_to_player.abs() > y_to_player.abs(){
+                                    if x_to_player > 0.{
+                                        self.attack = Attack::Left;
+                                    }
+                                    else{
+                                        self.attack = Attack::Right;
+                                    }
+                                }
+                                else{
+                                    if y_to_player > 0.{
+                                        self.attack = Attack::Down;
+                                    }
+                                    else{
+                                        self.attack = Attack::Up;
+                                    }
+                                }
                             }
+                            //below player
                             else{
-                                self.attack = Attack::Right;
+                                self.motion = Motion::Jump;
                             }
                         }
                         else{
-                            if y_to_player > 0.{
-                                self.attack = Attack::Down;
+                            if x_to_player > 0.{
+                                self.motion = Motion::Left;
                             }
                             else{
-                                self.attack = Attack::Up;
+                                self.motion = Motion::Right;
                             }
                         }
                     }
-                    //below player
-                    else{
-                        self.motion = Motion::Jump;
+                    Type::Ranged => {
+                        //probably needs to be refined once ranged attacks exist for enemies
+                        self.motion = Motion::Stop;
+                        if x_to_player > 0.{
+                            self.attack = Attack::Right;
+                        }
+                        else{
+                            self.attack = Attack::Left;
+                        }
                     }
                 }
-                else{
-                    if x_to_player > 0.{
-                        self.motion = Motion::Left;
-                    }
-                    else{
-                        self.motion = Motion::Right;
-                    }
-                }
+                
             }
             Action::Heal => {
                 self.motion = Motion::Stop;
@@ -362,8 +377,20 @@ impl Enemy{
                     self.immobile_frames = 0;
                 }
             }
+            Action::Assist => {
+                //code to have enemies assist the other enemy type
+                match self.t{
+                    Type::Melee => {
+
+                    }
+                    Type::Ranged => {
+
+                    }
+                }
+            }
         }           
     }
+
 
     fn nearest_vert(&self, pos: Vec2) -> usize{
         
@@ -464,14 +491,22 @@ impl Enemy{
                     self.player_pos.y = l.end.y;
                 }
                 //case for breakable objects
-                else if l.id == MAX_VERT + 2 {
+                else if l.id == MAX_VERT + 2{
+                    if matches!(self.t, Type::Melee){
 
+                    }
                 }
-                else if l.id == MAX_VERT + 3 {
+                //case for melee enemy
+                else if l.id == MAX_VERT + 3{
+                    if matches!(self.t, Type::Ranged){
 
+                    }
                 }
-                else if l.id == MAX_VERT + 4 {
+                //case for ranged enemy
+                else if l.id == MAX_VERT + 4{
+                    if matches!(self.t, Type::Melee){
 
+                    }
                 }
                 else {
                     let vertex = Vertex::new(l.end.x, l.end.y, l.id);
