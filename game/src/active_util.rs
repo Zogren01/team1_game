@@ -67,7 +67,7 @@ impl ActiveObject {
         //implement healing
     }
 }
-
+#[derive(PartialEq)]
 pub enum ItemType {
     None,
     Jetpack,
