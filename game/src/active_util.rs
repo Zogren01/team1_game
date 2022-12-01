@@ -4,6 +4,8 @@ use bevy::prelude::*;
 pub const PLAYER_SPEED: f32 = 5.;
 pub const PLAYER_SZ: f32 = 32.;
 
+pub const ENEMY_HEALTH: i32 = 100;
+
 #[derive(Component)]
 pub struct ClockText;
 #[derive(Component)]
@@ -35,6 +37,17 @@ impl Velocity {
         Self {
             velocity: Vec2::splat(0.),
         }
+    }
+}
+
+#[derive(Component)]
+pub struct MeleeBox{
+    pub position: Vec3,
+}
+
+impl MeleeBox{
+    pub fn new(pos: Vec3) -> Self{
+        Self { position: pos }
     }
 }
 
@@ -77,7 +90,7 @@ pub enum ItemType {
 
 #[derive(Component)]
 pub struct Player {
-    pub credits: i8,
+    pub credits: i32,
     pub items: Vec<ItemType>,
     pub active_item: usize,
     pub health: i8,
