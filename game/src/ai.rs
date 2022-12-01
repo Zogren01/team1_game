@@ -403,37 +403,37 @@ impl Enemy{
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
         self.player_seen = false;
-        for l in sight.iter() {
-            let mut result = true;
-            for o in obj.iter() {
-                if lines_intersect(l, o){
-                    result = false;
-                    break;
-                }
-            }
-            if result{
-                //case for the player being seen
-                if l.id == MAX_VERT +1 {
-                    self.player_seen = true;
-                    self.player_pos.x = l.end.x;
-                    self.player_pos.y = l.end.y;
-                }
-                else {
-                    let vertex = Vertex::new(l.end.x, l.end.y, l.id);
-                    let mut seen_before = false;
-                    for seen_vertex in self.enemy_graph.vertices.iter_mut(){
-                        if seen_vertex.id == vertex.id{
-                            seen_before = true;
-                        }
-                        self.enemy_graph.edges[seen_vertex.id][vertex.id] = map_graph.edges[seen_vertex.id][vertex.id];
-                        self.enemy_graph.edges[vertex.id][seen_vertex.id] = map_graph.edges[vertex.id][seen_vertex.id];
-                    }
-                    if !seen_before{
-                        self.enemy_graph.vertices.push(vertex);
-                    }
-                }
+        // for l in sight.iter() {
+        //     let mut result = true;
+        //     for o in obj.iter() {
+        //         if lines_intersect(l, o){
+        //             result = false;
+        //             break;
+        //         }
+        //     }
+        //     if result{
+        //         //case for the player being seen
+        //         if l.id == MAX_VERT +1 {
+        //             self.player_seen = true;
+        //             self.player_pos.x = l.end.x;
+        //             self.player_pos.y = l.end.y;
+        //         }
+        //         else {
+        //             let vertex = Vertex::new(l.end.x, l.end.y, l.id);
+        //             let mut seen_before = false;
+        //             for seen_vertex in self.enemy_graph.vertices.iter_mut(){
+        //                 if seen_vertex.id == vertex.id{
+        //                     seen_before = true;
+        //                 }
+        //                 self.enemy_graph.edges[seen_vertex.id][vertex.id] = map_graph.edges[seen_vertex.id][vertex.id];
+        //                 self.enemy_graph.edges[vertex.id][seen_vertex.id] = map_graph.edges[vertex.id][seen_vertex.id];
+        //             }
+        //             if !seen_before{
+        //                 self.enemy_graph.vertices.push(vertex);
+        //             }
+        //         }
                 
-            }
-        }
+        //     }
+        // }
     }
 }
