@@ -270,34 +270,6 @@ pub fn projectile_active_collision(
                         e_o.health -= 20;
                     }
                 }
-                if (e_o.health <= 0) {
-                    commands.entity(entity).despawn();
-                    let mut rng = rand::thread_rng();
-                    let (mut p, po) = player.single_mut();
-                    p.credits += 50;
-                    for i in 1..6 {
-                        let sz = 48. / rng.gen_range(8, 16) as f32;
-                        commands
-                            .spawn_bundle(SpriteBundle {
-                                sprite: Sprite {
-                                    color: Color::RED,
-                                    custom_size: Some(Vec2::new(sz, sz)),
-                                    ..default()
-                                },
-                                transform: Transform {
-                                    translation: e_o.projected_position,
-                                    ..default()
-                                },
-                                // texture: asset_server.load("bullet.png"),
-                                ..default()
-                            })
-                            .insert(Projectile::new(
-                                Vec2::new(rng.gen_range(-5, 5) as f32, rng.gen_range(2, 7) as f32),
-                                ProjType::BrokenObj,
-                            ))
-                            .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
-                    }
-                }
             }
             let (mut p, po) = player.single_mut();
             let res2 = bevy::sprite::collide_aabb::collide(
