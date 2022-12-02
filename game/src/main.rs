@@ -539,9 +539,6 @@ fn apply_collisions(
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
                                 }
-                                else if active.velocity.y == 0. {
-                                    active.grounded = true;
-                                }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + object.height / 2.;
                             }
@@ -671,26 +668,27 @@ fn my_cursor_system(
 }
 fn object_collisions(
     mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
-    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>, Without<Enemy>)>,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>)>,
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     let (mut pao, pt) = player.single_mut();
-    for(mut o, mut ao, mut t) in movables.iter_mut() {
+        for(mut o, mut ao, mut t) in movables.iter_mut() {
 
-                let res = bevy::sprite::collide_aabb::collide(
+                let hit_top_half = bevy::sprite::collide_aabb::collide(
                     pt.translation,
                     //ne    ed to change this to get the size of whatever the object is
                     Vec2::new(PLAYER_SZ, PLAYER_SZ),
                     t.translation,
-                    Vec2::new(o.width, o.height),
+                    Vec2::new(o.width, o.height/2.),
                 );
-                if res.is_some() { //if player collides with movable object
-                    let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                if hit_top_half.is_some() { //if player collides with movable object
+                    let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
                     match coll_type {
                         Collision::Top => {
                             ao.velocity.y=0.;
                         },
                         Collision::Left => {
+                            //t.rotate_z(-0.1);
                             if pao.velocity.x > 0. {
                                 ao.velocity.x = pao.velocity.x;
                             }
@@ -702,10 +700,11 @@ fn object_collisions(
                             }
                         },
                         Collision::Bottom => {
+                            pao.velocity.y=0.;
                             ao.velocity.y = 0.;
                         },
                         Collision::Inside => {
-
+                            
                         }
                     }
                 }
@@ -713,6 +712,7 @@ fn object_collisions(
                     ao.velocity.x=0.;
                 }
         }
+    
     }
 
 
@@ -806,18 +806,12 @@ fn move_enemies(
 }
 
 fn gravity_on_movables (
-    mut movables: Query<(&mut ActiveObject, &Transform), With<MovableObject>>,
+    mut movables: Query<(&Object,&mut ActiveObject, &Transform), With<MovableObject>>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>
 ) {
 
-    for(mut ao, t) in movables.iter_mut() {
-        if !ao.grounded {
-            ao.projected_position= t.translation + Vec3::new(ao.velocity.x, ao.velocity.y+GRAVITY*4., 0.);
-        }
-        else {
-            ao.projected_position= t.translation + Vec3::new(ao.velocity.x, 0., 0.);
-        }
-        
-        
+    for(mut mo, mut active, mt) in movables.iter_mut() {
+        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y+GRAVITY*15., 0.);
     }
 }
 
