@@ -785,18 +785,25 @@ fn move_enemies(
             Motion::Jump => {
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
-                    e.motion = Motion::Fall;
+                    change.y = enemy.velocity.y;
+                    e.motion = Motion::Fall;  
+                } 
+                else {
+                    enemy.velocity.y += GRAVITY;
                 }
             }
             Motion::JumpRight => {
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
+                    change.y = enemy.velocity.y;
                     e.motion = Motion::Right;
                 }
             }
             Motion::JumpLeft => {
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
+                    change.y = enemy.velocity.y;
+
                     e.motion = Motion::Left;
                 }
             }
