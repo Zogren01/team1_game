@@ -9,6 +9,9 @@ use rand::Rng;
 const PROJECTILE_SZ: f32 = 6.;
 const PROJECTILE_DAMAGE: i32 = 25;
 
+#[derive(Component)]
+pub struct MovableObject;
+
 pub enum ProjType {
     Particle,
     Projectile,

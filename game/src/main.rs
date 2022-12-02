@@ -121,6 +121,8 @@ fn create_level(
                         },
                         ..default()
                     })
+                    .insert(ActiveObject::new(50,0))
+                    .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
                 //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
             } else if matches!(desc.obj_type, ObjectType::Breakable) {
@@ -137,6 +139,8 @@ fn create_level(
                         },
                         ..default()
                     })
+                    .insert(ActiveObject::new(50,0))
+                    .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
                 commands
@@ -256,13 +260,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            update_positions.after(enemy_collisions),
+            object_collisions.after(enemy_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            object_collisions.after(update_positions),
+            update_positions.after(object_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -318,6 +322,12 @@ fn main() {
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
             despawn_broken_objects.after(break_hb_objects),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            gravity_on_movables.after(move_player),
         )
         .run();
 }
@@ -458,19 +468,19 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
+    mut actives: Query<(&Object, &mut ActiveObject, &Transform), With<ActiveObject>>,
     mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
     //loop through all objects that move
-    for (mut active, transform) in actives.iter_mut() {
+    for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                Vec2::new(object.width, object.height),
                 t.translation,
                 Vec2::new(o.width, o.height),
             );
@@ -489,10 +499,10 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
-                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                                t.translation.x - (o.width / 2.) - object.width / 2.;
                         }
                         _ => {}
                     },
@@ -504,10 +514,10 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block  => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
-                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                                t.translation.x + (o.width / 2.) + object.width / 2.;
                         }
                         _ => {}
                     },
@@ -523,16 +533,17 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                            ObjectType::Block  => {
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
                                     active.grounded = true;
-                                } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")
+                                }
+                                else if active.velocity.y == 0. {
+                                    active.grounded = true;
                                 }
                                 active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                                    t.translation.y + (o.height / 2.) + object.height / 2.;
                             }
                             _ => {}
                         }
@@ -546,10 +557,10 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block => {
                             active.velocity.y = 0.;
                             active.projected_position.y =
-                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                                t.translation.y - (o.height / 2.) - object.height / 2.;
                         }
                         _ => {}
                     },
@@ -567,7 +578,7 @@ fn apply_collisions(
 
 //this function doesn't seem to work
 fn enemy_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
+    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>,)>,
     mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
     mut exit: EventWriter<AppExit>,
 ) {
@@ -659,57 +670,51 @@ fn my_cursor_system(
     }
 }
 fn object_collisions(
-    mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>, Without<Enemy>)>,
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-    // let mut objects2 = objects.to_readonly();
-    // for(mut o, mut t) in objects.iter_mut() {
-    //     if matches!(o.obj_type, ObjectType::Barrel){
+    let (mut pao, pt) = player.single_mut();
+    for(mut o, mut ao, mut t) in movables.iter_mut() {
 
-    //     for (mut o2,mut t2) in objects2.iter_mut() {
+                let res = bevy::sprite::collide_aabb::collide(
+                    pt.translation,
+                    //ne    ed to change this to get the size of whatever the object is
+                    Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                    t.translation,
+                    Vec2::new(o.width, o.height),
+                );
+                if res.is_some() { //if player collides with movable object
+                    let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
+                    match coll_type {
+                        Collision::Top => {
+                            ao.velocity.y=0.;
+                        },
+                        Collision::Left => {
+                            if pao.velocity.x > 0. {
+                                ao.velocity.x = pao.velocity.x;
+                            }
+                            
+                        },
+                        Collision::Right => {
+                            if pao.velocity.x < 0. {
+                                ao.velocity.x = pao.velocity.x;
+                            }
+                        },
+                        Collision::Bottom => {
+                            ao.velocity.y = 0.;
+                        },
+                        Collision::Inside => {
 
-    //             let res = bevy::sprite::collide_aabb::collide(
-    //                 t.translation,
-    //                 //ne    ed to change this to get the size of whatever the object is
-    //                 Vec2::new(o.height, o.width),
-    //                 t2.translation,
-    //                 Vec2::new(o2.width, o2.height),
-    //             );
-    //             if res.is_some() {
-    //                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-    //                 match coll_type {
-    //                     Collision::Top => {
-    //                         o.velocity.y = 0.;
-    //                     },
-    //                     Collision::Left => {
-    //                         o.velocity.x = 0.;
-    //                     },
-    //                     Collision::Right => {
-    //                         o.velocity.x = 0.;
-    //                     },
-    //                     Collision::Bottom => {
-    //                         o.velocity.y = 0.;
-    //                     },
-    //                     Collision::Inside => {
-    //                         o.velocity.x = 0.;
-    //                         o.velocity.y = 0.;
+                        }
+                    }
+                }
+                else {
+                    ao.velocity.x=0.;
+                }
+        }
+    }
 
-    //                     }
-    //                 }
-    //             }
-    //         match o.obj_type {
-    //             ObjectType::Barrel => {
-    //                o.velocity.y += GRAVITY;
-    //                }
-    //                 _ => {}
-    //         }
-    //     }
-    // }
-
-    // }
-
-    // let mut barrels = Vec<(&mut Object, &mut Transform)>::new();
-}
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
@@ -797,6 +802,22 @@ fn move_enemies(
         //this holds the position the player will end up in if there is no collision
         enemy.projected_position = et.translation + Vec3::new(change.x, change.y, 0.);
         enemy.grounded = false;
+    }
+}
+
+fn gravity_on_movables (
+    mut movables: Query<(&mut ActiveObject, &Transform), With<MovableObject>>,
+) {
+
+    for(mut ao, t) in movables.iter_mut() {
+        if !ao.grounded {
+            ao.projected_position= t.translation + Vec3::new(ao.velocity.x, ao.velocity.y+GRAVITY*4., 0.);
+        }
+        else {
+            ao.projected_position= t.translation + Vec3::new(ao.velocity.x, 0., 0.);
+        }
+        
+        
     }
 }
 
