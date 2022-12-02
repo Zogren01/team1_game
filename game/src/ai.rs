@@ -452,6 +452,7 @@ impl Enemy{
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
         self.player_seen = false;
+
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
@@ -495,5 +496,4 @@ impl Enemy{
             }
         }
     }    
-
 }
