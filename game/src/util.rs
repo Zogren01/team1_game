@@ -288,18 +288,22 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(20., 1., 20., -6.5, ObjectType::Block));
         //middle vertical platform
         result.push(Descriptor::new(1., 7., 0., 6.5, ObjectType::Block));
-        //right top platform 1
-        result.push(Descriptor::new(15., 1., 23.5, 1.5, ObjectType::Block));
+        //block on right large platform
+        result.push(Descriptor::new(1., 3., 15., 0.5, ObjectType::Block));
         //right top platform 2
         result.push(Descriptor::new(23.5, 1., 0., 3.5, ObjectType::Block));
         //right middle platform
         result.push(Descriptor::new(15., 1., 23., 6.5, ObjectType::Block));
         //left top block
-        result.push(Descriptor::new(2., 3.5, -15., 5., ObjectType::Block));
+        result.push(Descriptor::new(2., 3.5, -18.5, 5., ObjectType::Block));
         //right block on floor
         result.push(Descriptor::new(3., 3.5, 7., -10.5, ObjectType::Block));
         //left block on floor
         result.push(Descriptor::new(3., 3.5, -7., -10.5, ObjectType::Block));
+
+        //enemy
+        result.push(Descriptor::new(1., 1., -20., 4.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
     }
     if id == 4 {
         //ceiling
@@ -495,6 +499,22 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //top level
         result.push(Descriptor::new(32., 1., 47., 20., ObjectType::Block)); //top floor
+    }
+
+    if id == 8{
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(28., 1., 0., 9.5, ObjectType::Block));
+
+        //left and right walls
+        result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        //bottom floor
+        result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
+
+        //right wall on starting platform
+        result.push(Descriptor::new(1., 7., 1., 13., ObjectType::Block));
     }
 
     // shop platform spawns below level
