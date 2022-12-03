@@ -327,7 +327,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left large platform
         result.push(Descriptor::new(15., 1., -22.5, -1.5, ObjectType::Block));
         //middle large platform
-        result.push(Descriptor::new(15., 1., 0., -1.5, ObjectType::Block));
+        result.push(Descriptor::new(14., 1., -0.5, -1.5, ObjectType::Block));
         //bottom vertical platform
         result.push(Descriptor::new(1., 7., 0., -5.5, ObjectType::Block));
         //right bottom platfrom
@@ -348,6 +348,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(2., 3., 5., 5., ObjectType::Block));
         //left bottom vertical platfrom
         result.push(Descriptor::new(1., 3.5, -5., -7., ObjectType::Block));
+
+        //enemy
+        //result.push(Descriptor::new(1., 1., -7., 4.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., 23.5, -0.5, ObjectType::MeleeEnemy));
     }
     if id == 5 {
         //ceiling

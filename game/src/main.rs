@@ -466,8 +466,8 @@ fn setup(
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
     //this variable can change based on what room the player is in
-    let mut level = get_level(3);
-    let mesh = get_level_mesh(3);
+    let mut level = get_level(4);
+    let mesh = get_level_mesh(4);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 
