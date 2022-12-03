@@ -1,6 +1,8 @@
+use std::hash::Hash;
+
 //imports from outside crates
 use bevy::app::AppExit;
-use bevy::asset;
+use bevy::asset::{self, LoadState};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
@@ -258,7 +260,7 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            apply_collisions.after(move_player),
+            apply_collisions.after(gravity_on_movables),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -355,6 +357,13 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
+    // let assets = HashMap::new();
+    // let sprites = &["barrel.png","boots.png","breakable.png","jetpack.png","spikes.png","umbrella.png"];
+    // for sprite in sprites {
+    //     assets.insert(sprite, asset_server.load(*sprite));
+    // }
+    // while asset_server.get_group_load_state(assets.values().into_iter()) != LoadState::Loaded{}
+
     let images = &[
         "jacob.png",
         "bailey.png",
@@ -495,6 +504,7 @@ fn apply_collisions(
     //loop through all objects that move
     for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
+            
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -552,13 +562,15 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block  => {
+                                
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + object.height / 2.;
+                                
+                                active.grounded=true;
                             }
                             _ => {}
                         }
@@ -593,8 +605,8 @@ fn apply_collisions(
 
 //this function doesn't seem to work
 fn enemy_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>,)>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
+    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>, Without<MovableObject>)>,
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, With<MovableObject>)>,
     mut exit: EventWriter<AppExit>,
 ) {
     for (mut active, transform) in actives.iter_mut() {
@@ -693,16 +705,18 @@ fn object_collisions(
         for(mut o, mut ao, mut t) in movables.iter_mut() {
 
                 let hit_top_half = bevy::sprite::collide_aabb::collide(
-                    pt.translation,
+                    pao.projected_position,
                     //ne    ed to change this to get the size of whatever the object is
                     Vec2::new(PLAYER_SZ, PLAYER_SZ),
-                    t.translation,
-                    Vec2::new(o.width, o.height/2.),
+                    ao.projected_position,
+                    Vec2::new(o.width, o.height),
                 );
                 if hit_top_half.is_some() { //if player collides with movable object
                     let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
                     match coll_type {
                         Collision::Top => {
+                            pao.velocity.y=0.;
+                            pao.grounded=true;
                             ao.velocity.y=0.;
                         },
                         Collision::Left => {
@@ -716,6 +730,7 @@ fn object_collisions(
                             if pao.velocity.x < 0. {
                                 ao.velocity.x = pao.velocity.x;
                             }
+                     //       pao.projected_position= ao.projected_position+Vec3::new();
                         },
                         Collision::Bottom => {
                             pao.velocity.y=0.;
@@ -768,7 +783,7 @@ fn update_positions(
 //ex. for enemy in enemies, 1. calc sight 2. make decision on where to go 3. execute one of the select motion commands
 fn move_enemies(
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>, Without<MovableObject>)>,
 ) {
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
@@ -836,7 +851,13 @@ fn gravity_on_movables (
 ) {
 
     for(mut mo, mut active, mt) in movables.iter_mut() {
-        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y+GRAVITY*15., 0.);
+        
+        if !active.grounded {
+            active.velocity.y+=GRAVITY;
+        }
+        
+        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
+        active.grounded=false;
     }
 }
 

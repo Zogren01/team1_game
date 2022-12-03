@@ -2,6 +2,7 @@ use crate::physics::*;
 use bevy::prelude::*;
 use std::cmp::Eq;
 use std::hash::{Hash, Hasher};
+
 pub const TITLE: &str = "Team 1 Game";
 pub const WIN_W: f32 = 1280.;
 pub const WIN_H: f32 = 720.;
@@ -512,7 +513,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
     result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
 
-    result.push(Descriptor::new(1., 2., 18., 9., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 18., 10., ObjectType::Barrel)); // platform to hold another item
     result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
 
     result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
