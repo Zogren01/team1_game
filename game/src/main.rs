@@ -606,7 +606,7 @@ fn apply_collisions(
 //this function doesn't seem to work
 fn enemy_collisions(
     mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>, Without<MovableObject>)>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, With<MovableObject>)>,
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, Without<MovableObject>)>,
     mut exit: EventWriter<AppExit>,
 ) {
     for (mut active, transform) in actives.iter_mut() {
@@ -724,13 +724,16 @@ fn object_collisions(
                             if pao.velocity.x > 0. {
                                 ao.velocity.x = pao.velocity.x;
                             }
+                            pao.projected_position.x =
+                                t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
                             
                         },
                         Collision::Right => {
                             if pao.velocity.x < 0. {
                                 ao.velocity.x = pao.velocity.x;
                             }
-                     //       pao.projected_position= ao.projected_position+Vec3::new();
+                            pao.projected_position.x =
+                                t.translation.x + (PLAYER_SZ / 2.) + o.width / 2.;
                         },
                         Collision::Bottom => {
                             pao.velocity.y=0.;
