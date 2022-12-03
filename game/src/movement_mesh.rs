@@ -272,36 +272,36 @@ pub fn get_level_mesh(id: i8) -> Graph{
 
         //vertices on bar graph lookin thing
         //floor between wall and pillar 1
-            graph.vertices.push(Vertex::new_scaled(9.5, -11.5, 48));
-            graph.vertices.push(Vertex::new_scaled(-9.5, -11.5, 47));
-            graph.vertices.push(Vertex::new_scaled(11.5, -11.5, 50));
-            graph.vertices.push(Vertex::new_scaled(-11.5, -11.5, 49));
-            graph.edges[48][50] = Edge::new(Motion::Right);
-            graph.edges[50][48] = Edge::new(Motion::Left);
-            graph.edges[47][49] = Edge::new(Motion::Left);
-            graph.edges[49][47] = Edge::new(Motion::Right);
-            graph.edges[32][48] = Edge::new(Motion::Right);
-            graph.edges[33][47] = Edge::new(Motion::Left);
-            graph.edges[38][48] = Edge::new(Motion::Left);
-            graph.edges[37][47] = Edge::new(Motion::Right);
+            //graph.vertices.push(Vertex::new_scaled(9.5, -11.5, 48));
+            //graph.vertices.push(Vertex::new_scaled(-9.5, -11.5, 47));
+            graph.vertices.push(Vertex::new_scaled(10.5, -11.5, 50));
+            graph.vertices.push(Vertex::new_scaled(-10.5, -11.5, 49));
+            //graph.edges[48][50] = Edge::new(Motion::Right);
+            //graph.edges[50][48] = Edge::new(Motion::Left);
+           //graph.edges[47][49] = Edge::new(Motion::Left);
+           // graph.edges[49][47] = Edge::new(Motion::Right);
+            graph.edges[32][50] = Edge::new(Motion::Right);
+            graph.edges[33][49] = Edge::new(Motion::Left);
+            graph.edges[38][50] = Edge::new(Motion::Left);
+            graph.edges[37][49] = Edge::new(Motion::Right);
         //pillar 1
-            graph.vertices.push(Vertex::new_scaled(13.5, -9.5, 52));
-            graph.vertices.push(Vertex::new_scaled(-13.5, -9.5, 51));
+            graph.vertices.push(Vertex::new_scaled(12.5, -9.5, 52));
+            graph.vertices.push(Vertex::new_scaled(-12.5, -9.5, 51));
             graph.edges[50][52] = Edge::new(Motion::JumpRight);
             graph.edges[52][50] = Edge::new(Motion::Left);
             graph.edges[49][51] = Edge::new(Motion::JumpLeft);
             graph.edges[51][49] = Edge::new(Motion::Right);
             //falling from above platforms
-            graph.edges[38][52] = Edge::new(Motion::Right);
+            //graph.edges[38][52] = Edge::new(Motion::Right);
             graph.edges[42][52] = Edge::new(Motion::Left);
-            graph.edges[37][51] = Edge::new(Motion::Left);
+            //graph.edges[37][51] = Edge::new(Motion::Left);
             graph.edges[41][51] = Edge::new(Motion::Right);
             //jumping back to main floor
             graph.edges[52][32] = Edge::new(Motion::JumpLeft);
             graph.edges[51][33] = Edge::new(Motion::JumpRight);
         //floor between pillars 1 & 2
-            graph.vertices.push(Vertex::new_scaled(15., -11.5, 54));
-            graph.vertices.push(Vertex::new_scaled(-15., -11.5, 53));
+            graph.vertices.push(Vertex::new_scaled(14.5, -11.5, 54));
+            graph.vertices.push(Vertex::new_scaled(-14.5, -11.5, 53));
             graph.edges[54][52] = Edge::new(Motion::JumpLeft);
             graph.edges[52][54] = Edge::new(Motion::Right);
             graph.edges[53][51] = Edge::new(Motion::JumpRight);

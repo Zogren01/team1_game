@@ -131,8 +131,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(5., 1., -22.5, 10.5, ObjectType::Block));
         result.push(Descriptor::new(5., 1., 22.5, 10.5, ObjectType::Block));
         //enemies
-        //result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., -22.5, 11.5, ObjectType::RangedEnemy));
         result.push(Descriptor::new(1., 1., 22.5, 11.5, ObjectType::MeleeEnemy));
+        // result.push(Descriptor::new(1., 1., 27.5, 12.5, ObjectType::Breakable));
+
         //left and right floors
         result.push(Descriptor::new(27., 1., -16.5, 2.5, ObjectType::Block));
         result.push(Descriptor::new(27., 1., 16.5, 2.5, ObjectType::Block));
@@ -145,8 +147,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //block on bottom floor
         result.push(Descriptor::new(18., 4., 0., -10., ObjectType::Block));
         //innermost bottom pillars
-        result.push(Descriptor::new(1., 2., -13.5, -11., ObjectType::Block));
-        result.push(Descriptor::new(1., 2., 13.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., -12.5, -11., ObjectType::Block));
+        result.push(Descriptor::new(1., 2., 12.5, -11., ObjectType::Block));
         //middle bottom pillars
         result.push(Descriptor::new(1., 4., -16.5, -10., ObjectType::Block));
         result.push(Descriptor::new(1., 4., 16.5, -10., ObjectType::Block));
@@ -530,8 +532,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
     result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
 
-    result.push(Descriptor::new(1., 2., 0., -7., ObjectType::Barrel)); // platform to hold another item
-    result.push(Descriptor::new(1., 2., 5., -7., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 18., 9., ObjectType::Barrel)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
 
     result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
     result.push(Descriptor::new(1., 2., 4., -20., ObjectType::Breakable)); // platform to hold another item
