@@ -407,7 +407,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //vertical middle line
-        result.push(Descriptor::new(1., 30., 4., -5., ObjectType::Block));
+        result.push(Descriptor::new(1., 26., 4., -3., ObjectType::Block));
         //vertical line right
         result.push(Descriptor::new(1., 5., 13.5, 7.5, ObjectType::Block));
         //vertical line left
@@ -425,19 +425,28 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //bottom left platform
         result.push(Descriptor::new(35., 1., -20., -5.5, ObjectType::Block));
         //middle blocks
-        result.push(Descriptor::new(8., 2., 4., -3., ObjectType::Block));
+        result.push(Descriptor::new(8., 4., 4., -4., ObjectType::Block));
         //bottom right platform
         result.push(Descriptor::new(15., 1., 11., -5.5, ObjectType::Block));
         //right block on floor
-        result.push(Descriptor::new(3., 3.5, 12., -10.5, ObjectType::Block));
+        result.push(Descriptor::new(2., 3., 12., -11., ObjectType::Block));
         //left block on floor
-        result.push(Descriptor::new(3., 3.5, -7., -10.5, ObjectType::Block));
+        result.push(Descriptor::new(2., 3., -7., -11., ObjectType::Block));
         //left block on middle platform 1
         result.push(Descriptor::new(2., 3., -9., 1.5, ObjectType::Block));
         //left block on middle platform 2
-        result.push(Descriptor::new(2., 3., -19., 1.5, ObjectType::Block));
+        result.push(Descriptor::new(2., 3., -28., 1.5, ObjectType::Block));
         //left block on bottom platform
         result.push(Descriptor::new(2., 3., -20., -4., ObjectType::Block));
+        //right block on right side middle platform
+        result.push(Descriptor::new(2., 3., 28., 1.5, ObjectType::Block));
+        //block on right top platform
+        result.push(Descriptor::new(3., 3.5, 14.5, 6.5, ObjectType::Block));
+
+        //enemy
+        //result.push(Descriptor::new(1., 1., 5., -11.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., -28.5, -4., ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., 18., -4., ObjectType::MeleeEnemy));
     }
 
     if id == 7 {
