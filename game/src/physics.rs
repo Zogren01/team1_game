@@ -185,7 +185,15 @@ pub fn projectile_static_collisions(
                         }
                     }
                 } else if matches!(pro_o.proj_type, ProjType::EnemyProjectile) {
+                    if matches!(o_o.obj_type, ObjectType::Barrel) {
+                        o_o.broken = true;
+                        commands.entity(entity).despawn();
+                    } else if matches!(o_o.obj_type, ObjectType::Breakable) {
+                        o_o.broken = true;
+                        commands.entity(entity).despawn();
+                    }
                     commands.entity(entity).despawn();
+                    
                 }
             }
         }

@@ -394,7 +394,7 @@ impl Enemy{
                         }
                     }
                     Type::Other => {
-
+                        
                     }
                 }
                 

@@ -211,6 +211,12 @@ fn create_level(
                     desc.height,
                     ObjectType::OtherEnemy,
                 ))
+                .insert(Object::new(
+                    900,
+                    desc.width,
+                    desc.height,
+                    ObjectType::Barrel,
+                ))
                 .insert(Enemy::new(Type::Other));
         }
     } else {
@@ -1039,6 +1045,10 @@ fn meleebox_collisions(
     melee_box: Query<(&MeleeBox, Entity), (With<MeleeBox>, Without<Player>)>,
     mut commands: Commands,
     mut player: Query<(&ActiveObject, &mut Player), With<Player>>,
+    mut objects: Query<
+        (&mut Object, &Transform, Entity),
+        (With<Object>, Without<Player>, Without<Projectile>),
+    >,
 ) {
     for (obj, entity) in melee_box.iter() {
         for (pl, mut p) in player.iter_mut() {
@@ -1049,27 +1059,20 @@ fn meleebox_collisions(
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
             );
             if res.is_some() {
-                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                match coll_type {
-                    Collision::Left => {
-                        commands.entity(entity).despawn();
-                        p.health -= 5;
-                    }
-                    Collision::Right => {
-                        commands.entity(entity).despawn();
-                        p.health -= 5;
-                    }
-                    Collision::Top => {
-                        commands.entity(entity).despawn();
-                    }
-                    Collision::Bottom => {
-                        commands.entity(entity).despawn();
-                        p.health -= 5;
-                    }
-                    Collision::Inside => {
-                        commands.entity(entity).despawn();
-                        p.health -= 5;
-                    }
+                commands.entity(entity).despawn();
+                p.health -= 5;
+            }
+        }
+        for (mut object, object_t, object_entity) in objects.iter_mut(){
+            let res = bevy::sprite::collide_aabb::collide(
+                obj.position,
+                Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.),
+                object_t.translation,
+                Vec2::new(object.width, object.height),
+            );
+            if res.is_some(){
+                if matches!(object.obj_type, ObjectType::Breakable) || matches!(object.obj_type, ObjectType::Breakable) {
+                    object.broken = true;
                 }
             }
         }
@@ -1098,6 +1101,17 @@ fn move_player(
         }
     } else if pl.velocity.x > 0. {
         pl.velocity.x = pl.velocity.x - 1.;
+    }
+
+    if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100{
+        
+        if p.healing_bar == 240 {
+            p.health += 20;
+            p.healing_bar = 0;
+        }
+        else {
+            p.healing_bar += 1;
+        }
     }
 
     let mut change = Vec2::splat(0.);

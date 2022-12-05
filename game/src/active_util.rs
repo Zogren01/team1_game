@@ -87,6 +87,7 @@ pub struct Player {
     pub items: Vec<ItemType>,
     pub active_item: usize,
     pub health: i8,
+    pub healing_bar: i32,
     //temp variable
 }
 
@@ -97,6 +98,7 @@ impl Player {
             items: vec![ItemType::None],
             active_item: 0,
             health: 100,
+            healing_bar: 0,
         }
     }
 }
