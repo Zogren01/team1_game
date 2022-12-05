@@ -49,6 +49,7 @@ impl PartialOrd for State {
 pub enum Type {
     Melee,
     Ranged,
+    Other,
 }
 
 pub enum Action {
@@ -56,6 +57,7 @@ pub enum Action {
     Strafe,
     Chase,
     Attack,
+    Run,
     Retreat,
     Heal,
     Assist,
@@ -67,8 +69,6 @@ pub enum Attack {
     Left,
     Right,
     None,
-    Projectile,
-    Melee
 }
 
 #[derive(Component)]
@@ -88,6 +88,7 @@ pub struct Enemy{
     pub immobile_frames: usize,
     pub attack: Attack,
     pub recover_health: bool,
+    pub assist_possible: bool,
     pub friend: Vec2,
 }
 
@@ -114,6 +115,7 @@ impl Enemy{
             immobile_frames: 0,
             attack: Attack::None,
             recover_health: false,
+            assist_possible: false,
             friend: Vec2::splat(f32::MAX),
         }
     }
@@ -131,7 +133,12 @@ impl Enemy{
             }
             //first check is for if player should be attacked
             if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
-                self.action = Action::Attack;
+                if matches!(self.t, Type::Ranged) && x_dist < 100.{
+                    self.action = Action::Retreat;
+                }
+                else {
+                    self.action = Action::Attack;
+                }
             }
             //if stuck, new or done attacking player, and not healing
             else if (self.immobile_frames >= 3 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack)) && !matches!(self.action, Action::Heal){
@@ -141,7 +148,7 @@ impl Enemy{
             }
             else if self.player_seen{
                 if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
-                    self.action = Action::Retreat;
+                    self.action = Action::Run;
                 }
                 else{
                     self.action = Action::Chase;
@@ -238,7 +245,7 @@ impl Enemy{
                     }
                 }
             }
-            Action::Retreat => {
+            Action::Run => {
                 //println!("Chase update");
                 let mut x_diff = f32::MAX;
                 let mut y_diff = f32::MAX;
@@ -275,6 +282,21 @@ impl Enemy{
                         //x position is correct but enemy is still falling to destination
                         self.motion = Motion::Fall;
                     }
+                }
+            }
+            Action::Retreat => {
+                if self.player_pos.x > pos.x{
+                    self.motion = Motion::Left;
+                    //shoot right
+                }
+                else{
+                    self.motion = Motion::Right;
+                    //shoot left
+                }
+                //retreating but stuck
+                if self.immobile_frames > 1{
+                    self.motion = Motion::Jump;
+                    self.immobile_frames = 0;
                 }
             }
             Action::Chase => {
@@ -371,6 +393,9 @@ impl Enemy{
                             self.attack = Attack::Left;
                         }
                     }
+                    Type::Other => {
+
+                    }
                 }
                 
             }
@@ -388,6 +413,9 @@ impl Enemy{
 
                     }
                     Type::Ranged => {
+
+                    }
+                    Type::Other => {
 
                     }
                 }
@@ -479,7 +507,7 @@ impl Enemy{
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
         self.player_seen = false;
-
+        self.assist_possible = true;
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
@@ -498,19 +526,23 @@ impl Enemy{
                 //case for breakable objects
                 else if l.id == MAX_VERT + 2{
                     if matches!(self.t, Type::Melee){
-
+                        //do we care?
                     }
                 }
                 //case for melee enemy
                 else if l.id == MAX_VERT + 3{
                     if matches!(self.t, Type::Ranged){
-
+                        self.assist_possible = true;
+                        self.friend.x = l.end.x;
+                        self.friend.y = l.end.y;
                     }
                 }
                 //case for ranged enemy
                 else if l.id == MAX_VERT + 4{
                     if matches!(self.t, Type::Melee){
-
+                        self.assist_possible = true;
+                        self.friend.x = l.end.x;
+                        self.friend.y = l.end.y;
                     }
                 }
                 else {
