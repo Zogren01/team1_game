@@ -189,8 +189,30 @@ fn create_level(
                         ObjectType::RangedEnemy,
                     ))
                     .insert(Enemy::new(Type::Ranged));
-            }
-        } else {
+            } else if matches!(desc.obj_type, ObjectType::OtherEnemy) {
+            commands
+                .spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::YELLOW,
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(ActiveObject::new(ENEMY_HEALTH, 25))
+                .insert(Object::new(
+                    900,
+                    desc.width,
+                    desc.height,
+                    ObjectType::OtherEnemy,
+                ))
+                .insert(Enemy::new(Type::Other));
+        }
+    } else {
             commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
@@ -475,8 +497,8 @@ fn setup(
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
     //this variable can change based on what room the player is in
-    let mut level = get_level(2);
-    let mesh = get_level_mesh(6);
+    let mut level = get_level(1);
+    let mesh = get_level_mesh(1);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 
@@ -778,6 +800,8 @@ fn update_positions(
         camera.translation.y = pt.translation.y;
     } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
+    } else {
+        camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
     }
     camera.translation.y = pt.translation.y;
 }
@@ -940,8 +964,6 @@ fn attack_enemies(
                     .insert(MeleeBox::new(hitbox));
             }
             Attack::None => {}
-            Attack::Melee => {}
-            Attack::Projectile => {}
         }
     }
 }
