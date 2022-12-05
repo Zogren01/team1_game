@@ -1,6 +1,8 @@
+use std::hash::Hash;
+
 //imports from outside crates
 use bevy::app::AppExit;
-use bevy::asset;
+use bevy::asset::{self, LoadState};
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::camera::RenderTarget;
 use bevy::sprite::collide_aabb::Collision;
@@ -8,6 +10,7 @@ use bevy::time::FixedTimestep;
 use bevy::ui::update;
 use bevy::utils::*;
 use bevy::{prelude::*, window::PresentMode};
+use rand::Rng;
 
 use iyes_loopless::prelude::*;
 
@@ -121,6 +124,8 @@ fn create_level(
                         },
                         ..default()
                     })
+                    .insert(ActiveObject::new(50,0))
+                    .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
                 //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
             } else if matches!(desc.obj_type, ObjectType::Breakable) {
@@ -137,6 +142,8 @@ fn create_level(
                         },
                         ..default()
                     })
+                    .insert(ActiveObject::new(50,0))
+                    .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
                 commands
@@ -153,10 +160,14 @@ fn create_level(
                         ..default()
                     })
                     .insert(ActiveObject::new(ENEMY_HEALTH, 25))
-                    .insert(Object::new(900, desc.width, desc.height, ObjectType::MeleeEnemy))
+                    .insert(Object::new(
+                        900,
+                        desc.width,
+                        desc.height,
+                        ObjectType::MeleeEnemy,
+                    ))
                     .insert(Enemy::new(Type::Melee));
-            }
-            else if matches!(desc.obj_type, ObjectType::RangedEnemy) {
+            } else if matches!(desc.obj_type, ObjectType::RangedEnemy) {
                 commands
                     .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
@@ -171,7 +182,12 @@ fn create_level(
                         ..default()
                     })
                     .insert(ActiveObject::new(ENEMY_HEALTH, 25))
-                    .insert(Object::new(900, desc.width, desc.height, ObjectType::RangedEnemy))
+                    .insert(Object::new(
+                        900,
+                        desc.width,
+                        desc.height,
+                        ObjectType::RangedEnemy,
+                    ))
                     .insert(Enemy::new(Type::Ranged));
             }
         } else {
@@ -244,7 +260,7 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            apply_collisions.after(move_player),
+            apply_collisions.after(gravity_on_movables),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -256,13 +272,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            update_positions.after(enemy_collisions),
+            object_collisions.after(enemy_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            object_collisions.after(update_positions),
+            update_positions.after(object_collisions),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -287,7 +303,9 @@ fn main() {
         .add_system(item_shop)
         .add_system(my_cursor_system)
         .add_system(show_gui)
+        .add_system(attack)
         .add_system(attack_static)
+        .add_system(attack_active)
         .add_system(shoot)
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -305,7 +323,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            break_objects.after(projectile_static_collisions),
+            kill_enemies.after(projectile_static_collisions),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            break_objects.after(kill_enemies),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -319,6 +343,12 @@ fn main() {
             // it can be a conditional system!
             despawn_broken_objects.after(break_hb_objects),
         )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            gravity_on_movables.after(move_player),
+        )
         .run();
 }
 
@@ -327,6 +357,13 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
+    // let assets = HashMap::new();
+    // let sprites = &["barrel.png","boots.png","breakable.png","jetpack.png","spikes.png","umbrella.png"];
+    // for sprite in sprites {
+    //     assets.insert(sprite, asset_server.load(*sprite));
+    // }
+    // while asset_server.get_group_load_state(assets.values().into_iter()) != LoadState::Loaded{}
+
     let images = &[
         "jacob.png",
         "bailey.png",
@@ -438,8 +475,8 @@ fn setup(
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
     //this variable can change based on what room the player is in
-    let mut level = get_level(1);
-    let mesh = get_level_mesh(1);
+    let mut level = get_level(5);
+    let mesh = get_level_mesh(5);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 
@@ -458,19 +495,20 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), With<ActiveObject>>,
+    mut actives: Query<(&Object, &mut ActiveObject, &Transform), With<ActiveObject>>,
     mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
     //loop through all objects that move
-    for (mut active, transform) in actives.iter_mut() {
+    for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
+            
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                Vec2::new(object.width, object.height),
                 t.translation,
                 Vec2::new(o.width, o.height),
             );
@@ -489,10 +527,10 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
-                                t.translation.x - (o.width / 2.) - PLAYER_SZ / 2.;
+                                t.translation.x - (o.width / 2.) - object.width / 2.;
                         }
                         _ => {}
                     },
@@ -504,10 +542,10 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block  => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
-                                t.translation.x + (o.width / 2.) + PLAYER_SZ / 2.;
+                                t.translation.x + (o.width / 2.) + object.width / 2.;
                         }
                         _ => {}
                     },
@@ -523,16 +561,16 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                            ObjectType::Block  => {
+                                
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
-                                    active.grounded = true;
-                                } else if active.velocity.y == 0. {
-                                    print!("Collided but isnt moving")
                                 }
                                 active.projected_position.y =
-                                    t.translation.y + (o.height / 2.) + PLAYER_SZ / 2.;
+                                    t.translation.y + (o.height / 2.) + object.height / 2.;
+                                
+                                active.grounded=true;
                             }
                             _ => {}
                         }
@@ -546,10 +584,10 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
-                        ObjectType::Block | ObjectType::Breakable | ObjectType::Barrel => {
+                        ObjectType::Block => {
                             active.velocity.y = 0.;
                             active.projected_position.y =
-                                t.translation.y - (o.height / 2.) - PLAYER_SZ / 2.;
+                                t.translation.y - (o.height / 2.) - object.height / 2.;
                         }
                         _ => {}
                     },
@@ -567,8 +605,8 @@ fn apply_collisions(
 
 //this function doesn't seem to work
 fn enemy_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>)>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>)>,
+    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>, Without<MovableObject>)>,
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, Without<MovableObject>)>,
     mut exit: EventWriter<AppExit>,
 ) {
     for (mut active, transform) in actives.iter_mut() {
@@ -659,57 +697,60 @@ fn my_cursor_system(
     }
 }
 fn object_collisions(
-    mut objects: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
+    mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>)>,
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-    // let mut objects2 = objects.to_readonly();
-    // for(mut o, mut t) in objects.iter_mut() {
-    //     if matches!(o.obj_type, ObjectType::Barrel){
+    let (mut pao, pt) = player.single_mut();
+        for(mut o, mut ao, mut t) in movables.iter_mut() {
 
-    //     for (mut o2,mut t2) in objects2.iter_mut() {
+                let hit_top_half = bevy::sprite::collide_aabb::collide(
+                    pao.projected_position,
+                    //ne    ed to change this to get the size of whatever the object is
+                    Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                    ao.projected_position,
+                    Vec2::new(o.width, o.height),
+                );
+                if hit_top_half.is_some() { //if player collides with movable object
+                    let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
+                    match coll_type {
+                        Collision::Top => {
+                            pao.velocity.y=0.;
+                            pao.grounded=true;
+                            ao.velocity.y=0.;
+                        },
+                        Collision::Left => {
+                            //t.rotate_z(-0.1);
+                            if pao.velocity.x > 0. {
+                                ao.velocity.x = pao.velocity.x;
+                            }
+                            pao.projected_position.x =
+                                t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
+                            
+                        },
+                        Collision::Right => {
+                            if pao.velocity.x < 0. {
+                                ao.velocity.x = pao.velocity.x;
+                            }
+                            pao.projected_position.x =
+                                t.translation.x + (PLAYER_SZ / 2.) + o.width / 2.;
+                        },
+                        Collision::Bottom => {
+                            pao.velocity.y=0.;
+                            ao.velocity.y = 0.;
+                        },
+                        Collision::Inside => {
+                            
+                        }
+                    }
+                }
+                else {
+                    ao.velocity.x=0.;
+                }
+        }
+    
+    }
 
-    //             let res = bevy::sprite::collide_aabb::collide(
-    //                 t.translation,
-    //                 //ne    ed to change this to get the size of whatever the object is
-    //                 Vec2::new(o.height, o.width),
-    //                 t2.translation,
-    //                 Vec2::new(o2.width, o2.height),
-    //             );
-    //             if res.is_some() {
-    //                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-    //                 match coll_type {
-    //                     Collision::Top => {
-    //                         o.velocity.y = 0.;
-    //                     },
-    //                     Collision::Left => {
-    //                         o.velocity.x = 0.;
-    //                     },
-    //                     Collision::Right => {
-    //                         o.velocity.x = 0.;
-    //                     },
-    //                     Collision::Bottom => {
-    //                         o.velocity.y = 0.;
-    //                     },
-    //                     Collision::Inside => {
-    //                         o.velocity.x = 0.;
-    //                         o.velocity.y = 0.;
-
-    //                     }
-    //                 }
-    //             }
-    //         match o.obj_type {
-    //             ObjectType::Barrel => {
-    //                o.velocity.y += GRAVITY;
-    //                }
-    //                 _ => {}
-    //         }
-    //     }
-    // }
-
-    // }
-
-    // let mut barrels = Vec<(&mut Object, &mut Transform)>::new();
-}
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
@@ -745,13 +786,13 @@ fn update_positions(
 //ex. for enemy in enemies, 1. calc sight 2. make decision on where to go 3. execute one of the select motion commands
 fn move_enemies(
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>, Without<MovableObject>)>,
 ) {
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), enemy.health);
-        if e.recover_health{
+        if e.recover_health {
             enemy.health += 5;
         }
 
@@ -765,20 +806,27 @@ fn move_enemies(
                 enemy.velocity.y += GRAVITY;
             }
             Motion::Jump => {
-                if enemy.grounded{
+                if enemy.grounded {
                     enemy.velocity.y = 10.;
-                    e.motion = Motion::Fall;
+                    change.y = enemy.velocity.y;
+                    e.motion = Motion::Fall;  
                 } 
+                else {
+                    enemy.velocity.y += GRAVITY;
+                }
             }
             Motion::JumpRight => {
-                if enemy.grounded{
+                if enemy.grounded {
                     enemy.velocity.y = 10.;
+                    change.y = enemy.velocity.y;
                     e.motion = Motion::Right;
                 }
             }
             Motion::JumpLeft => {
-                if enemy.grounded{
+                if enemy.grounded {
                     enemy.velocity.y = 10.;
+                    change.y = enemy.velocity.y;
+
                     e.motion = Motion::Left;
                 }
             }
@@ -800,83 +848,100 @@ fn move_enemies(
     }
 }
 
+fn gravity_on_movables (
+    mut movables: Query<(&Object,&mut ActiveObject, &Transform), With<MovableObject>>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>
+) {
+
+    for(mut mo, mut active, mt) in movables.iter_mut() {
+        
+        if !active.grounded {
+            active.velocity.y+=GRAVITY;
+        }
+        
+        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
+        active.grounded=false;
+    }
+}
+
 fn attack_enemies(
     mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
     mut commands: Commands,
 ) {
-    
     for (mut enemy, et, mut e) in enemies.iter_mut() {
-        
         let hitbox: Vec3;
         match e.attack {
-            Attack::Up =>{
+            Attack::Up => {
                 hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
-                commands.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: hitbox,
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: hitbox,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(MeleeBox::new(hitbox));
+                    })
+                    .insert(MeleeBox::new(hitbox));
             }
-            Attack::Down =>{
+            Attack::Down => {
                 hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
-                commands.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: hitbox,
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: hitbox,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(MeleeBox::new(hitbox));
-                
+                    })
+                    .insert(MeleeBox::new(hitbox));
             }
-            Attack::Left =>{
+            Attack::Left => {
                 hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
-                commands.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: hitbox,
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: hitbox,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(MeleeBox::new(hitbox));
+                    })
+                    .insert(MeleeBox::new(hitbox));
             }
-            Attack::Right =>{
+            Attack::Right => {
                 hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
-                commands.spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PLAYER_SZ  * 2., PLAYER_SZ  * 2.)),
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: hitbox,
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: hitbox,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(MeleeBox::new(hitbox));
+                    })
+                    .insert(MeleeBox::new(hitbox));
             }
-            Attack::None =>{}
-            Attack::Melee =>{}
-            Attack::Projectile =>{}
+            Attack::None => {}
+            Attack::Melee => {}
+            Attack::Projectile => {}
         }
     }
 }
@@ -885,41 +950,38 @@ fn meleebox_collisions(
     melee_box: Query<(&MeleeBox, Entity), (With<MeleeBox>, Without<Player>)>,
     mut commands: Commands,
     mut player: Query<(&ActiveObject, &mut Player), With<Player>>,
-){
-    for (obj, entity) in melee_box.iter(){
-        for (pl, mut p) in player.iter_mut(){
+) {
+    for (obj, entity) in melee_box.iter() {
+        for (pl, mut p) in player.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 obj.position,
                 Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.),
                 pl.projected_position,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
             );
-            if res.is_some(){
+            if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                match coll_type{
-                    Collision::Left =>{
-                        commands.entity(entity).despawn();
-                        p.health -= 5;
-
-                    }
-                    Collision::Right =>{
+                match coll_type {
+                    Collision::Left => {
                         commands.entity(entity).despawn();
                         p.health -= 5;
                     }
-                    Collision::Top =>{
-                        commands.entity(entity).despawn();
-
-                    }
-                    Collision::Bottom =>{
+                    Collision::Right => {
                         commands.entity(entity).despawn();
                         p.health -= 5;
                     }
-                    Collision::Inside =>{
+                    Collision::Top => {
+                        commands.entity(entity).despawn();
+                    }
+                    Collision::Bottom => {
+                        commands.entity(entity).despawn();
+                        p.health -= 5;
+                    }
+                    Collision::Inside => {
                         commands.entity(entity).despawn();
                         p.health -= 5;
                     }
                 }
-                
             }
         }
     }
@@ -1043,7 +1105,7 @@ fn move_player(
     pl.grounded = false;
 }
 
-fn attack_static(
+fn attack(
     input: Res<Input<KeyCode>>,
     mut player: Query<(&mut ActiveObject, &mut Transform), With<Player>>,
     mut objects: Query<(&mut Object, &Transform, Entity), (With<Object>, Without<Player>)>,
@@ -1054,17 +1116,13 @@ fn attack_static(
         let hitbox_pos: Vec3;
         if input.pressed(KeyCode::S) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y - PLAYER_SZ, 0.);
-        // DOWN
         } else if input.pressed(KeyCode::W) {
             hitbox_pos = Vec3::new(pt.translation.x, pt.translation.y + PLAYER_SZ, 0.);
-        // UP
         } else {
             if pl.facing_left {
                 hitbox_pos = Vec3::new(pt.translation.x - PLAYER_SZ, pt.translation.y, 0.);
-            //LEFT
             } else {
                 hitbox_pos = Vec3::new(pt.translation.x + PLAYER_SZ, pt.translation.y, 0.);
-                // RIGHT
             }
         }
         commands
@@ -1076,47 +1134,95 @@ fn attack_static(
 
                 ..default()
             })
-            .insert(Hitbox::new(Timer::from_seconds(0.5, false)));
+            .insert(Hitbox::new());
+    }
+}
+
+fn attack_static(
+    mut objects: Query<(&mut Object, &Transform, Entity), (With<Object>, Without<Player>)>,
+    mut commands: Commands,
+    mut hitbox: Query<(&mut Hitbox, &Transform, Entity), With<Hitbox>>,
+) {
+    for (hb, hb_t, hb_e) in hitbox.iter_mut() {
         for (mut _o, t, entity) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
-                hitbox_pos,
+                hb_t.translation,
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
                 t.translation,
                 Vec2::new(_o.width, _o.height),
             );
             if res.is_some() {
-                let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
                 if (matches!(_o.obj_type, ObjectType::Barrel)
                     || matches!(_o.obj_type, ObjectType::Breakable))
                 {
                     _o.broken = true;
                 }
-                match coll_type {
-                    Collision::Left => {
-                        println!("Attacked object right of player");
-                    }
-                    Collision::Right => {
-                        println!("Attacked object left of player");
-                    }
-                    Collision::Top => {
-                        println!("Attacked object bottom of player");
-                    }
-                    Collision::Bottom => {
-                        println!("Attacked object top of player");
-                    }
-                    Collision::Inside => {
-                        if pt.translation.y - PLAYER_SZ / 2. >= t.translation.y + PLAYER_SZ / 2. {
-                            println!("Attacked object below player");
-                        } else if pt.translation.x > t.translation.x {
-                            println!("Attacked object left of player");
-                        } else {
-                            println!("Attacked object right of player");
-                        }
-                    }
-                }
             }
         }
-    } else {
+    }
+}
+
+fn attack_active(
+    mut actives: Query<
+        (&mut ActiveObject, &Transform, Entity),
+        (With<ActiveObject>, Without<Player>, Without<Projectile>),
+    >,
+    mut commands: Commands,
+    mut hitbox: Query<(&mut Hitbox, &Transform, Entity), With<Hitbox>>,
+) {
+    for (hb, hb_t, hb_e) in hitbox.iter_mut() {
+        for (mut a, a_t, a_e) in actives.iter_mut() {
+            let res = bevy::sprite::collide_aabb::collide(
+                hb_t.translation,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                a_t.translation,
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+            );
+            if res.is_some() {
+                a.health -= 25;
+            }
+        }
+        commands.entity(hb_e).despawn();
+    }
+}
+
+fn kill_enemies(
+    mut actives: Query<
+        (&mut ActiveObject, &Transform, Entity),
+        (With<ActiveObject>, Without<Player>, Without<Projectile>),
+    >,
+    mut commands: Commands,
+    mut player: Query<(&mut Player), With<Player>>,
+) {
+    for (mut a, a_t, a_e) in actives.iter_mut() {
+        if a.health <= 0 {
+            let mut rng = rand::thread_rng();
+            for i in 1..6 {
+                let sz = 48. / rng.gen_range(8, 16) as f32;
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::RED,
+                            custom_size: Some(Vec2::new(sz, sz)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: a.projected_position,
+                            ..default()
+                        },
+                        // texture: asset_server.load("bullet.png"),
+                        ..default()
+                    })
+                    .insert(Projectile::new(
+                        Vec2::new(rng.gen_range(-5, 5) as f32, rng.gen_range(2, 7) as f32),
+                        ProjType::BrokenObj,
+                    ))
+                    .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+            }
+            commands.entity(a_e).despawn();
+            let mut p = player.single_mut();
+            p.credits += 50;
+        }
     }
 }
 

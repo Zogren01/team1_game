@@ -72,13 +72,6 @@ impl ActiveObject {
             projected_position: Vec3::splat(0.),
         }
     }
-    pub fn take_damage(&mut self, damage: i32) {
-        //implement taking damage
-        self.health -= damage;
-    }
-    pub fn heal(&self, gain: i32) {
-        //implement healing
-    }
 }
 #[derive(PartialEq)]
 pub enum ItemType {
@@ -110,11 +103,13 @@ impl Player {
 
 #[derive(Component)]
 pub struct Hitbox {
-    lifespan: Timer,
+    // lifespan: Timer,
 }
 
 impl Hitbox {
-    pub fn new(lifespan: Timer) -> Self {
-        Self { lifespan: lifespan }
+    pub fn new() -> Self {
+        Self { 
+            // lifespan: lifespan
+         }
     }
 }

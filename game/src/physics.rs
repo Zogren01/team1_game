@@ -9,6 +9,9 @@ use rand::Rng;
 const PROJECTILE_SZ: f32 = 6.;
 const PROJECTILE_DAMAGE: i32 = 25;
 
+#[derive(Component)]
+pub struct MovableObject;
+
 pub enum ProjType {
     Particle,
     Projectile,
@@ -51,17 +54,17 @@ pub fn shoot(
 ) {
     let (mut p, pl, pt) = player.single_mut();
 
-    let mut vel = Vec2::new(10., 4.);
+    let mut vel = Vec2::new(15., 4.);
 
     if pl.facing_left {
         vel.x *= -1.;
     }
     if input.pressed(KeyCode::W) {
         vel.x = 0.;
-        vel.y = 10.;
+        vel.y = 17.;
     } else if input.pressed(KeyCode::S) {
         vel.x = 0.;
-        vel.y = -10.;
+        vel.y = -15.;
     }
     vel += pl.velocity;
 
@@ -262,33 +265,9 @@ pub fn projectile_active_collision(
                     }
                 } else if matches!(pro_o.proj_type, ProjType::Projectile) {
                     e_o.health -= PROJECTILE_DAMAGE;
-                }
-                if (e_o.health <= 0) {
-                    commands.entity(entity).despawn();
-                    let mut rng = rand::thread_rng();
-                    let (mut p, po) = player.single_mut();
-                    p.credits += 50;
-                    for i in 1..6 {
-                        let sz = 48. / rng.gen_range(8, 16) as f32;
-                        commands
-                            .spawn_bundle(SpriteBundle {
-                                sprite: Sprite {
-                                    color: Color::RED,
-                                    custom_size: Some(Vec2::new(sz, sz)),
-                                    ..default()
-                                },
-                                transform: Transform {
-                                    translation: e_o.projected_position,
-                                    ..default()
-                                },
-                                // texture: asset_server.load("bullet.png"),
-                                ..default()
-                            })
-                            .insert(Projectile::new(
-                                Vec2::new(rng.gen_range(-5, 5) as f32, rng.gen_range(2, 7) as f32),
-                                ProjType::BrokenObj,
-                            ))
-                            .insert(BrokenObj::new(Timer::from_seconds(4.0, false)));
+                } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
+                    if (pro_o.velocity.y <= -5.) {
+                        e_o.health -= 20;
                     }
                 }
             }
@@ -308,6 +287,16 @@ pub fn projectile_active_collision(
                         p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
                     }
                     commands.entity(entity_p).despawn();
+                } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
+                    // if (pro_o.velocity.y).round() as i8 > 10 {
+                    if (pro_o.velocity.y <= -5.) {
+                        p.health -= 5;
+                    }
+                    // } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 3 {
+                    //     p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
+                    // }
+                    commands.entity(entity_p).despawn();
+                    print!("Ouch\n");
                 }
             }
         }
@@ -363,7 +352,7 @@ pub fn break_objects(
                                         p_xvel = (i as f32 - 3.) / 2.;
                                     }
                                     Collision::Bottom => {
-                                        p_yvel = rng.gen_range(7, 2) as f32;
+                                        p_yvel = rng.gen_range(4, 10) as f32;
                                         p_xvel = (i as f32 - 3.) / 2.;
                                     }
                                     Collision::Inside => {
@@ -379,7 +368,7 @@ pub fn break_objects(
                                             p_xvel = rng.gen_range(-7, -2) as f32;
                                             p_yvel = (i as f32 - 3.) / 2.;
                                         } else if !horizontal && pro_o.velocity.y > 0. {
-                                            p_yvel = rng.gen_range(7, 2) as f32;
+                                            p_yvel = rng.gen_range(2, 7) as f32;
                                             p_xvel = (i as f32 - 3.) / 2.;
                                         } else if !horizontal && pro_o.velocity.y < 0. {
                                             p_yvel = rng.gen_range(-7, -2) as f32;
@@ -651,7 +640,7 @@ pub fn break_hb_objects(
                         p_yvel = rng.gen_range(-7, -2) as f32;
                         p_xvel = (i as f32 - 3.) / 2.;
                     } else if (!horizontal && pt.translation.y < o_t.translation.y) {
-                        p_yvel = rng.gen_range(7, 2) as f32;
+                        p_yvel = rng.gen_range(2, 7) as f32;
                         p_xvel = (i as f32 - 3.) / 2.;
                     }
 
