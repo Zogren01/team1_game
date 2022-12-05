@@ -16,6 +16,7 @@ pub enum ProjType {
     Particle,
     Projectile,
     BrokenObj,
+    EnemyProjectile,
 }
 
 #[derive(Component)]
@@ -183,6 +184,8 @@ pub fn projectile_static_collisions(
                             }
                         }
                     }
+                } else if matches!(pro_o.proj_type, ProjType::EnemyProjectile) {
+                    commands.entity(entity).despawn();
                 }
             }
         }
@@ -297,6 +300,9 @@ pub fn projectile_active_collision(
                     // }
                     commands.entity(entity_p).despawn();
                     print!("Ouch\n");
+                } else if matches!(pro_o.proj_type, ProjType::EnemyProjectile){
+                    p.health -= 1;
+                    commands.entity(entity_p).despawn();
                 }
             }
         }

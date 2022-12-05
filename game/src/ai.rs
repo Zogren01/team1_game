@@ -287,11 +287,11 @@ impl Enemy{
             Action::Retreat => {
                 if self.player_pos.x > pos.x{
                     self.motion = Motion::Left;
-                    //shoot right
+                    self.attack = Attack::Right;
                 }
                 else{
                     self.motion = Motion::Right;
-                    //shoot left
+                    self.attack = Attack::Left;
                 }
                 //retreating but stuck
                 if self.immobile_frames > 1{
@@ -386,7 +386,7 @@ impl Enemy{
                     Type::Ranged => {
                         //probably needs to be refined once ranged attacks exist for enemies
                         self.motion = Motion::Stop;
-                        if x_to_player > 0.{
+                        if x_to_player < 0.{
                             self.attack = Attack::Right;
                         }
                         else{

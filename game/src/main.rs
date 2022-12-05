@@ -39,6 +39,7 @@ use crate::physics::*;
 struct PopupTimer(Timer);
 const START_TIME: f32 = 100.;
 const RUNTIME: f64 = 1. / 30.;
+const PROJECTILE_SZ: f32 = 6.;
 
 struct Manager {
     room_number: i8,
@@ -892,13 +893,18 @@ fn attack_enemies(
     mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), With<Enemy>>,
     mut commands: Commands,
 ) {
+    
     for (mut enemy, et, mut e) in enemies.iter_mut() {
+        
         let hitbox: Vec3;
-        match e.attack {
+        
+        match &e.attack {
             Attack::Up => {
-                hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
-                commands
-                    .spawn_bundle(SpriteBundle {
+                match &e.t{
+                    Type::Melee =>{
+                        hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
+                         commands
+                    .   spawn_bundle(SpriteBundle {
                         sprite: Sprite {
                             color: Color::GREEN,
                             custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
@@ -911,11 +917,18 @@ fn attack_enemies(
                         ..default()
                     })
                     .insert(MeleeBox::new(hitbox));
+                    }
+                    Type::Ranged =>{}
+                    Type::Other =>{}
+                }               
+                
             }
             Attack::Down => {
-                hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
-                commands
-                    .spawn_bundle(SpriteBundle {
+                match &e.t{
+                    Type::Melee =>{
+                        hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
+                         commands
+                        .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
                             color: Color::GREEN,
                             custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
@@ -928,11 +941,18 @@ fn attack_enemies(
                         ..default()
                     })
                     .insert(MeleeBox::new(hitbox));
+                    }
+                    Type::Ranged =>{}
+                    Type::Other =>{}
+                }
+                
             }
             Attack::Left => {
-                hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
-                commands
-                    .spawn_bundle(SpriteBundle {
+                match &e.t{
+                    Type::Melee =>{
+                        hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
+                        commands
+                         .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
                             color: Color::GREEN,
                             custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
@@ -945,11 +965,35 @@ fn attack_enemies(
                         ..default()
                     })
                     .insert(MeleeBox::new(hitbox));
+                    }
+                    Type::Ranged =>{
+                        let vel = Vec2::new(-15., 4.);
+                        commands
+                        .spawn_bundle(SpriteBundle {
+                          sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                        ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 2.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(Projectile::new(vel, ProjType::EnemyProjectile));
+                    }
+                    Type::Other =>{}
+                }
+                
             }
             Attack::Right => {
-                hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
-                commands
-                    .spawn_bundle(SpriteBundle {
+                match &e.t{
+                    
+                    Type::Melee =>{
+                        hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
+                        commands
+                       .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
                             color: Color::GREEN,
                             custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
@@ -962,6 +1006,29 @@ fn attack_enemies(
                         ..default()
                     })
                     .insert(MeleeBox::new(hitbox));
+                    }
+                    Type::Ranged =>{
+
+                        let vel = Vec2::new(15., 4.);
+                        commands
+                        .spawn_bundle(SpriteBundle {
+                          sprite: Sprite {
+                        color: Color::GREEN,
+                        custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                        ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 2.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(Projectile::new(vel, ProjType::EnemyProjectile));
+                        
+                    }
+                    Type::Other =>{}
+                }
+                
             }
             Attack::None => {}
         }
