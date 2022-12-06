@@ -749,7 +749,7 @@ fn object_collisions(
         (With<MovableObject>, Without<Player>, Without<Enemy>),
     >,
     mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>)>,
-    //  mut objects2: Query<(&mut Object,&mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
+    //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     let (mut pao, pt) = player.single_mut();
     for (mut o, mut ao, mut t) in movables.iter_mut() {
@@ -830,12 +830,9 @@ fn update_positions(
 //ex. for enemy in enemies, 1. calc sight 2. make decision on where to go 3. execute one of the select motion commands
 fn move_enemies(
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<
-        (&mut ActiveObject, &Transform, &mut Enemy),
-        (With<Enemy>, Without<MovableObject>),
-    >,
+    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>, Without<MovableObject>)>,
 ) {
-    for(mut enemy, et, mut e) in enemies.iter_mut() {
+    for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), enemy.health);
@@ -857,7 +854,8 @@ fn move_enemies(
                     enemy.velocity.y = 10.;
                     change.y = enemy.velocity.y;
                     e.motion = Motion::Fall;
-                } else {
+                } 
+                else {
                     enemy.velocity.y += GRAVITY;
                 }
             }
@@ -878,7 +876,7 @@ fn move_enemies(
             }
             Motion::Fall => {
                 enemy.velocity.x = 0.;
-                enemy.velocity.y+=GRAVITY;
+                enemy.velocity.y += GRAVITY;
             }
             Motion::Stop => {
                 enemy.velocity.x = 0.;
@@ -898,8 +896,8 @@ fn gravity_on_movables (
     mut movables: Query<(&Object,&mut ActiveObject, &Transform), With<MovableObject>>,
     mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>
 ) {
-    
-    for (mut mo, mut active, mt) in movables.iter_mut() {
+
+    for(mut mo, mut active, mt) in movables.iter_mut() {
         
         if !active.grounded {
             active.velocity.y+=GRAVITY;
