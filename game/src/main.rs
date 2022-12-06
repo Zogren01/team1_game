@@ -744,9 +744,9 @@ fn object_collisions(
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     let (mut pao, pt) = player.single_mut();
-        for (mut o, mut ao, mut t) in movables.iter_mut() {
-        
-            let hit_top_half = bevy::sprite::collide_aabb::collide(
+        for(mut o, mut ao, mut t) in movables.iter_mut() {
+
+                let hit_top_half = bevy::sprite::collide_aabb::collide(
                 pao.projected_position,
                 //ne    ed to change this to get the size of whatever the object is
                 Vec2::new(PLAYER_SZ, PLAYER_SZ),
