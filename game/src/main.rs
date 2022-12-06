@@ -1078,7 +1078,7 @@ fn meleebox_collisions(
                 p.health -= 5;
             }
         }
-        for (mut object, object_t, object_entity) in objects.iter_mut() {
+        for (mut object, object_t, object_entity) in objects.iter_mut(){
             let res = bevy::sprite::collide_aabb::collide(
                 obj.position,
                 Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.),
@@ -1086,9 +1086,7 @@ fn meleebox_collisions(
                 Vec2::new(object.width, object.height),
             );
             if res.is_some() {
-                if matches!(object.obj_type, ObjectType::Breakable)
-                    || matches!(object.obj_type, ObjectType::Breakable)
-                {
+                if matches!(object.obj_type, ObjectType::Breakable) || matches!(object.obj_type, ObjectType::Breakable) {
                     object.broken = true;
                 }
             }
@@ -1121,10 +1119,12 @@ fn move_player(
     }
 
     if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100 {
+        
         if p.healing_bar == 240 {
             p.health += 20;
             p.healing_bar = 0;
-        } else {
+        } 
+        else {
             p.healing_bar += 1;
         }
     }
