@@ -169,7 +169,6 @@ impl Enemy{
                 self.action = Action::Heal;
             }
             else if self.assist_possible{
-                println!("How");
                 match self.t{
                     Type::Melee =>{
                         let x_diff = (self.friend.x - pos.x).abs();
