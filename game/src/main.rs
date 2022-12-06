@@ -143,7 +143,7 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(50, 0))
+                    .insert(ActiveObject::new(50,0))
                     .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
