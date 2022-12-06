@@ -125,7 +125,7 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(50, 0))
+                    .insert(ActiveObject::new(50,0))
                     .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
                 //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
@@ -191,8 +191,8 @@ fn create_level(
                     ))
                     .insert(Enemy::new(Type::Ranged));
             } else if matches!(desc.obj_type, ObjectType::OtherEnemy) {
-                commands
-                    .spawn_bundle(SpriteBundle {
+            commands
+                .spawn_bundle(SpriteBundle {
                         sprite: Sprite {
                             color: Color::YELLOW,
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
