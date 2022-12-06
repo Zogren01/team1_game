@@ -539,6 +539,7 @@ fn apply_collisions(
     //loop through all objects that move
     for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
+            
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -595,7 +596,8 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Block => {
+                            ObjectType::Block  => {
+                                
                                 if matches!(object.obj_type, ObjectType::Barrel)
                                     || matches!(object.obj_type, ObjectType::Breakable)
                                 {
@@ -609,8 +611,8 @@ fn apply_collisions(
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + object.height / 2.;
-
-                                active.grounded = true;
+                                
+                                active.grounded=true;
                             }
                             _ => {}
                         }
@@ -843,7 +845,7 @@ fn move_enemies(
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
                     change.y = enemy.velocity.y;
-                    e.motion = Motion::Fall;
+                    e.motion = Motion::Fall; 
                 } 
                 else {
                     enemy.velocity.y += GRAVITY;
