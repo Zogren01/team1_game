@@ -181,6 +181,8 @@ pub fn projectile_static_collisions(
                             }
                             Collision::Inside => {
                                 pro_o.velocity.y *= -0.8;
+                                pro_t.translation.x =
+                                    o_t.translation.x + o_o.width / 2. + PROJECTILE_SZ / 2.
                             }
                         }
                     }
@@ -193,7 +195,6 @@ pub fn projectile_static_collisions(
                         commands.entity(entity).despawn();
                     }
                     commands.entity(entity).despawn();
-                    
                 }
             }
         }
@@ -292,10 +293,14 @@ pub fn projectile_active_collision(
             if res2.is_some() {
                 // let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
                 if matches!(pro_o.proj_type, ProjType::Particle) {
-                    if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 30 {
-                        p.health -= 30;
-                    } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 3 {
-                        p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
+                    // if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 30 {
+                    //     p.health -= 30;
+                    // } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 3 {
+                    //     p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
+                    // }
+                    let mag = pro_o.velocity.x.powi(2) + pro_o.velocity.y.powi(2);
+                    if mag >= 1. {
+                        p.health -= 1;
                     }
                     commands.entity(entity_p).despawn();
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
@@ -464,8 +469,8 @@ pub fn break_objects(
                                             p_yvel = rng.gen_range(-20, -10) as f32;
                                             p_xvel = (i as f32 - 3.) / 2. + 2.;
                                         } else {
-                                            p_yvel = rng.gen_range(4, 10) as f32;
-                                            p_xvel = rng.gen_range(-10, 10) as f32;
+                                            p_yvel = rng.gen_range(10, 20) as f32;
+                                            p_xvel = rng.gen_range(-20, -10) as f32;
                                         }
                                     }
                                 }
