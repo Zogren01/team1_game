@@ -577,7 +577,7 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Block => {
+                        ObjectType::Block  => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + object.width / 2.;
@@ -845,7 +845,7 @@ fn move_enemies(
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
                     change.y = enemy.velocity.y;
-                    e.motion = Motion::Fall; 
+                    e.motion = Motion::Fall;  
                 } 
                 else {
                     enemy.velocity.y += GRAVITY;
