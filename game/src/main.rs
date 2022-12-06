@@ -820,6 +820,8 @@ fn update_positions(
         camera.translation.y = pt.translation.y;
     } else if pt.translation.y > 0. {
         camera.translation.y = MAP_H / 2. - WIN_H / 2.;
+    } else {
+        camera.translation.y = -MAP_H / 2. + WIN_H / 2.;
     }
     camera.translation.y = pt.translation.y;
 }
