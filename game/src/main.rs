@@ -645,14 +645,8 @@ fn apply_collisions(
 
 //this function doesn't seem to work
 fn enemy_collisions(
-    mut actives: Query<
-        (&mut ActiveObject, &Transform),
-        (With<Player>, Without<Enemy>, Without<MovableObject>),
-    >,
-    mut enemies: Query<
-        (&mut ActiveObject, &mut Transform),
-        (With<Enemy>, Without<Player>, Without<MovableObject>),
-    >,
+    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>, Without<MovableObject>)>,
+    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, Without<MovableObject>)>,
     mut exit: EventWriter<AppExit>,
 ) {
     for (mut active, transform) in actives.iter_mut() {
@@ -742,12 +736,8 @@ fn my_cursor_system(
         }
     }
 }
-
 fn object_collisions(
-    mut movables: Query<
-        (&mut Object, &mut ActiveObject, &mut Transform),
-        (With<MovableObject>, Without<Player>, Without<Enemy>),
-    >,
+    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
     mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>)>,
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
