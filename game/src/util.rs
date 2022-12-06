@@ -172,6 +172,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //pillars on panels
         result.push(Descriptor::new(1., 2., -22.5, -4., ObjectType::Block));
         result.push(Descriptor::new(1., 2., 22.5, -4., ObjectType::Block));
+        
+        result.push(Descriptor::new(1., 2., -12., 5., ObjectType::Breakable)); // platform to hold another item
     }
     if id == 2 {
         /* 
@@ -585,8 +587,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(1., 2., 18., 10., ObjectType::Barrel)); // platform to hold another item
     result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
 
-    result.push(Descriptor::new(1., 2., 2., -20., ObjectType::Breakable)); // platform to hold another item
-    result.push(Descriptor::new(1., 2., 4., -20., ObjectType::Breakable)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 2., 15., ObjectType::Breakable)); // platform to hold another item
+    result.push(Descriptor::new(1., 2., 4., 0., ObjectType::Breakable)); // platform to hold another item
 
     // result.push(Descriptor::new(
     //     1.,
