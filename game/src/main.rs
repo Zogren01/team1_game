@@ -904,9 +904,9 @@ fn gravity_on_movables (
         if !active.grounded {
             active.velocity.y+=GRAVITY;
         }
-
-        active.projected_position = mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
-        active.grounded = false;
+        
+        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
+        active.grounded=false;
     }
 }
 
@@ -1085,7 +1085,7 @@ fn meleebox_collisions(
                 object_t.translation,
                 Vec2::new(object.width, object.height),
             );
-            if res.is_some() {
+            if res.is_some(){
                 if matches!(object.obj_type, ObjectType::Breakable) || matches!(object.obj_type, ObjectType::Breakable) {
                     object.broken = true;
                 }
@@ -1118,12 +1118,12 @@ fn move_player(
         pl.velocity.x = pl.velocity.x - 1.;
     }
 
-    if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100 {
+    if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100{
         
         if p.healing_bar == 240 {
             p.health += 20;
             p.healing_bar = 0;
-        } 
+        }
         else {
             p.healing_bar += 1;
         }
