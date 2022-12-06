@@ -219,7 +219,7 @@ fn create_level(
                 ))
                 .insert(Enemy::new(Type::Other));
         }
-     } else {
+    } else {
             commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
