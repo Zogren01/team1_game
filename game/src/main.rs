@@ -751,6 +751,12 @@ fn object_collisions(
     
     }
 
+// fn movable_collisions(    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
+// mut actives: Query<&mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>)
+// {
+
+// }
+
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,

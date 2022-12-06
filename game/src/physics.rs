@@ -281,11 +281,7 @@ pub fn projectile_active_collision(
             if res2.is_some() {
                 // let coll_type: bevy::sprite::collide_aabb::Collision = res2.unwrap();
                 if matches!(pro_o.proj_type, ProjType::Particle) {
-                    if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 30 {
-                        p.health -= 30;
-                    } else if (pro_o.velocity.x * pro_o.velocity.y).round() as i8 > 3 {
-                        p.health -= (pro_o.velocity.x * pro_o.velocity.x).round() as i8;
-                    }
+                    p.health-=5;
                     commands.entity(entity_p).despawn();
                 } else if matches!(pro_o.proj_type, ProjType::BrokenObj) {
                     // if (pro_o.velocity.y).round() as i8 > 10 {
