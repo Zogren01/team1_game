@@ -757,17 +757,18 @@ fn object_collisions(
                 let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
                 match coll_type {
                     Collision::Top => {
-                        pao.velocity.y = 0.;
-                        pao.grounded = true;
-                        ao.velocity.y = 0.;
+                        pao.velocity.y=0.;
+                        pao.grounded=true;
+                        ao.velocity.y=0.;
                     },
                     Collision::Left => {
                         //t.rotate_z(-0.1);
                         if pao.velocity.x > 0. {
                             ao.velocity.x = pao.velocity.x;
                         }
-                    pao.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
-                }
+                    pao.projected_position.x =
+                        t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
+                },
                 Collision::Right => {
                     if pao.velocity.x < 0. {
                         ao.velocity.x = pao.velocity.x;
