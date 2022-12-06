@@ -90,6 +90,7 @@ pub struct Enemy{
     pub recover_health: bool,
     pub assist_possible: bool,
     pub friend: Vec2,
+    pub static_retreat_frames: usize,
 }
 
 impl Enemy{
@@ -117,6 +118,7 @@ impl Enemy{
             recover_health: false,
             assist_possible: false,
             friend: Vec2::splat(f32::MAX),
+            static_retreat_frames: 0, //this shouldn't be needed but it's too late in the game to avoid it
         }
     }
     pub fn decide_motion(&mut self, pos: Vec2, health: i32)-> Motion{
@@ -124,12 +126,12 @@ impl Enemy{
         self.attack = Attack::None;
         self.recover_health = false;
         //println!("{}", health);
-        
         if self.enemy_graph.vertices.len() > 0 {
             let x_dist = (self.player_pos.x - pos.x).abs();
             let y_dist = self.player_pos.y - pos.y;
-            if pos == self.old_pos{
+            if pos == self.old_pos && !matches!(self.action, Action::Attack){
                 self.immobile_frames += 1;
+                self.static_retreat_frames += 1;
             }
             //first check is for if player should be attacked
             if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
@@ -140,13 +142,21 @@ impl Enemy{
                     self.action = Action::Attack;
                 }
             }
+            //if the enemy is stuck and can see the player, attack it (for when enemy is cornered)
+            else if self.immobile_frames >= 10 && self.player_seen && !matches!(self.action, Action::Heal){
+                self.action = Action::Attack;
+            }
+            //catch all cases where retreat is better than run or reset
+            else if self.player_seen && health < ENEMY_HEALTH/2 && (matches!(self.action, Action::Attack) || !matches!(self.action, Action::Heal)) && x_dist < 150. && y_dist < 100.{
+                self.action = Action::Retreat;
+            }
             //if stuck, new or done attacking player, and not healing
-            else if (self.immobile_frames >= 3 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack)) && !matches!(self.action, Action::Heal){
+            else if (self.immobile_frames >= 10 || self.current_vertex == MAX_VERT + 1) && !matches!(self.action, Action::Heal){
                 self.immobile_frames = 0;
                 self.current_vertex = MAX_VERT + 1;
                 self.action = Action::Reset;
             }
-            else if self.player_seen{
+            else if self.player_seen || (x_dist < 150. && y_dist < 100.) {
                 if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
                     self.action = Action::Run;
                 }
@@ -287,16 +297,20 @@ impl Enemy{
             Action::Retreat => {
                 if self.player_pos.x > pos.x{
                     self.motion = Motion::Left;
-                    self.attack = Attack::Right;
+                    if matches!(self.t, Type::Ranged){
+                        self.attack = Attack::Right;
+                    }
                 }
                 else{
                     self.motion = Motion::Right;
-                    self.attack = Attack::Left;
+                    if matches!(self.t, Type::Ranged){
+                        self.attack = Attack::Left;
+                    }
                 }
                 //retreating but stuck
-                if self.immobile_frames > 1{
+                if self.static_retreat_frames > 2{
                     self.motion = Motion::Jump;
-                    self.immobile_frames = 0;
+                    self.static_retreat_frames = 0;
                 }
             }
             Action::Chase => {
@@ -330,9 +344,6 @@ impl Enemy{
                         if self.path.vertices.len() > self.index_in_path{
                             self.next_vertex = self.path.vertices[self.index_in_path];
                             self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
-                        }
-                        else{
-                            println!("shouldn't get stuck here");
                         }
                     }
                     else {
@@ -386,11 +397,14 @@ impl Enemy{
                     Type::Ranged => {
                         //probably needs to be refined once ranged attacks exist for enemies
                         self.motion = Motion::Stop;
-                        if x_to_player < 0.{
+                        if x_to_player < 40.{
                             self.attack = Attack::Right;
                         }
-                        else{
+                        else if x_to_player > 40.{
                             self.attack = Attack::Left;
+                        }
+                        else {
+                            self.attack = Attack::Up;
                         }
                     }
                     Type::Other => {
@@ -413,10 +427,33 @@ impl Enemy{
 
                     }
                     Type::Ranged => {
+                        // ranged enemy --> melee enemy --> player 
+                        if self.friend.x > pos.x && self.player_pos.x > pos.x && self.friend.x < self.player_pos.x{
 
+                        }
+                        // melee enemy --> ranged enemy --> player
+                        else if self.friend.x < pos.x && self.player_pos.x > pos.x{
+
+                        }
+                        // player --> melee enemy --> ranged enemy
+                        else if self.friend.x < pos.x && self.player_pos.x < pos.x && self.friend.x > self.player_pos.x{
+
+                        }
+                        else if self.friend.x > pos.x && self.player_pos.x < pos.x && self.friend.x < self.player_pos.x{
+
+                        }
+                        // player --> ranged enemy --> melee enemy
+                        else if self.player_pos.x < pos.x && self.friend.x > pos.x {
+                            
+                        }
+                        // ranged --> player --> melee enemy
+                        // melee --> player --> ranged
+                        else{
+
+                        }
                     }
                     Type::Other => {
-
+                        
                     }
                 }
             }

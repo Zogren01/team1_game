@@ -171,11 +171,6 @@ pub fn calculate_sight(
                             MAX_VERT + 2,
                         );
                         sight_lines.push(sight_line);
-
-                        let o1 = Line::new(v1, v3, 0);
-                        let o2 = Line::new(v2, v3, 0);
-                        object_lines.push(o1);
-                        object_lines.push(o2);
                     }
                     //also need to add temporary vertices so enemy can destroy them
                 }
