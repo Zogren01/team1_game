@@ -193,31 +193,31 @@ fn create_level(
             } else if matches!(desc.obj_type, ObjectType::OtherEnemy) {
             commands
                 .spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::YELLOW,
-                            custom_size: Some(Vec2::new(desc.width, desc.height)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
-                            ..default()
-                        },
+                    sprite: Sprite {
+                        color: Color::YELLOW,
+                        custom_size: Some(Vec2::new(desc.width, desc.height)),
                         ..default()
-                    })
-                    .insert(ActiveObject::new(ENEMY_HEALTH, 25))
-                    .insert(Object::new(
-                        900,
-                        desc.width,
-                        desc.height,
-                        ObjectType::OtherEnemy,
-                    ))
-                    .insert(Object::new(
-                        900,
-                        desc.width,
-                        desc.height,
-                        ObjectType::Barrel,
-                    ))
-                    .insert(Enemy::new(Type::Other));
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(ActiveObject::new(ENEMY_HEALTH, 25))
+                .insert(Object::new(
+                    900,
+                    desc.width,
+                    desc.height,
+                    ObjectType::OtherEnemy,
+                ))
+                .insert(Object::new(
+                    900,
+                    desc.width,
+                    desc.height,
+                    ObjectType::Barrel,
+                ))
+                .insert(Enemy::new(Type::Other));
             }
         } else {
             commands
