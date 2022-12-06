@@ -289,7 +289,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            apply_collisions.after(gravity_on_movables),
+            barrels_with_barrels.after(move_player),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            apply_collisions.after(barrels_with_barrels),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -592,6 +598,13 @@ fn apply_collisions(
                             }
                             ObjectType::Block  => {
                                 
+                                // if matches!(object.obj_type, ObjectType::Barrel)
+                                //     || matches!(object.obj_type, ObjectType::Breakable)
+                                // {
+                                //     if (!active.grounded && active.velocity.y < -15.) {
+                                //         //object.broken = true;
+                                //     }
+                                // }
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -734,58 +747,45 @@ fn object_collisions(
         for(mut o, mut ao, mut t) in movables.iter_mut() {
 
                 let hit_top_half = bevy::sprite::collide_aabb::collide(
-                    pao.projected_position,
-                    //ne    ed to change this to get the size of whatever the object is
-                    Vec2::new(PLAYER_SZ, PLAYER_SZ),
-                    ao.projected_position,
-                    Vec2::new(o.width, o.height),
-                );
-                if hit_top_half.is_some() { //if player collides with movable object
-                    let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
-                    match coll_type {
-                        Collision::Top => {
-                            pao.velocity.y=0.;
-                            pao.grounded=true;
-                            ao.velocity.y=0.;
-                        },
-                        Collision::Left => {
-                            //t.rotate_z(-0.1);
-                            if pao.velocity.x > 0. {
-                                ao.velocity.x = pao.velocity.x;
-                            }
-                            pao.projected_position.x =
-                                t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
-                            
-                        },
-                        Collision::Right => {
-                            if pao.velocity.x < 0. {
-                                ao.velocity.x = pao.velocity.x;
-                            }
-                            pao.projected_position.x =
-                                t.translation.x + (PLAYER_SZ / 2.) + o.width / 2.;
-                        },
-                        Collision::Bottom => {
-                            pao.velocity.y=0.;
-                            ao.velocity.y = 0.;
-                        },
-                        Collision::Inside => {
-                            
+                pao.projected_position,
+                //ne    ed to change this to get the size of whatever the object is
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                ao.projected_position,
+                Vec2::new(o.width, o.height),
+            );
+            if hit_top_half.is_some() { //if player collides with movable object
+                let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
+                match coll_type {
+                    Collision::Top => {
+                        pao.velocity.y=0.;
+                        pao.grounded=true;
+                        ao.velocity.y=0.;
+                    },
+                    Collision::Left => {
+                        //t.rotate_z(-0.1);
+                        if pao.velocity.x > 0. {
+                            ao.velocity.x = pao.velocity.x;
                         }
+                    pao.projected_position.x =
+                        t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
+                },
+                Collision::Right => {
+                    if pao.velocity.x < 0. {
+                        ao.velocity.x = pao.velocity.x;
                     }
+                    pao.projected_position.x = t.translation.x + (PLAYER_SZ / 2.) + o.width / 2.;
                 }
-                else {
-                    ao.velocity.x=0.;
+                Collision::Bottom => {
+                    pao.velocity.y = 0.;
+                    ao.velocity.y = 0.;
                 }
+                Collision::Inside => {}
+            }
+        } else {
+            ao.velocity.x = 0.;
         }
-    
     }
-
-// fn movable_collisions(    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
-// mut actives: Query<&mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>)
-// {
-
-// }
-
+}
 
 fn update_positions(
     mut actives: Query<(&ActiveObject, &mut Transform), (With<ActiveObject>, Without<Player>)>,
@@ -1444,34 +1444,50 @@ fn item_shop(
             clock.timer.unpause();
         }
         if input.just_pressed(KeyCode::B) {
-            if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
+            if pt.translation.x <= -100. {
                 //IF TRY TO BUY UMBRELLA
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Umbrella already purchased!");
-                } else {
-                    p.credits -= UMBRELLA_PRICE;
-                    p.items.push(ItemType::Umbrella);
-                    print!("UMBRELLA PURCHASED!");
+                if p.credits >= UMBRELLA_PRICE {
+                    if p.items.contains(&ItemType::Umbrella) {
+                        println!("Umbrella already purchased!");
+                    } else {
+                        p.credits -= UMBRELLA_PRICE;
+                        p.items.push(ItemType::Umbrella);
+                        print!("UMBRELLA PURCHASED!");
+                    }
                 }
-            } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
+                else {
+                    println!("Insufficient funds.");
+                }
+                
+            } else if pt.translation.x >= 100. {
                 //IF TRY TO BUY JETPACK
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Jetpack already purchased!");
-                } else {
-                    p.credits -= JETPACK_PRICE;
-                    p.items.push(ItemType::Jetpack);
-                    print!("JETPACK PURCHASED!");
+                if p.credits >= JETPACK_PRICE {
+                    if p.items.contains(&ItemType::Jetpack) {
+                        println!("Jetpack already purchased!");
+                    } else {
+                        p.credits -= JETPACK_PRICE;
+                        p.items.push(ItemType::Jetpack);
+                        print!("JETPACK PURCHASED!");
+                    }
                 }
-            } else if p.credits >= BOOTS_PRICE {
-                //IF TRY TO BUY BOOTS
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Boots already purchased!");
-                } else {
-                    p.credits -= BOOTS_PRICE;
-                    p.items.push(ItemType::Boots);
-                    print!("BOOTS PURCHASED!");
+                else {
+                    println!("Insufficient funds.");
                 }
-            }
+            } else {
+                    if p.credits >= BOOTS_PRICE {
+                        //IF TRY TO BUY BOOTS
+                        if p.items.contains(&ItemType::Boots) {
+                            println!("Boots already purchased!");
+                        } else {
+                            p.credits -= BOOTS_PRICE;
+                            p.items.push(ItemType::Boots);
+                            print!("BOOTS PURCHASED!");
+                        }
+                    }
+                    else {
+                        println!("Insufficient funds.");
+                    }
+                }
             println!("PRESS I TO RETURN!");
         }
     }
@@ -1489,5 +1505,79 @@ fn player_health(
     if p.health <= 0 {
         exit.send(AppExit);
         print!("You lose!");
+    }
+}
+
+fn barrels_with_barrels(
+    mut movables: Query<
+        (&mut Object, &mut ActiveObject, &mut Transform),
+        (With<MovableObject>, Without<Player>, Without<Enemy>),
+    >,
+) {
+    let mut combinations = movables.iter_combinations_mut();
+    while let Some([(mut mo, mut mao, mut mt), (mut mo2, mut mao2, mut mt2)]) =
+        combinations.fetch_next()
+    {
+        // mutably access components data
+        let coll = bevy::sprite::collide_aabb::collide(
+            mao.projected_position,
+            Vec2::new(mo.width, mo.height),
+            mao2.projected_position,
+            Vec2::new(mo2.width, mo2.height),
+        );
+        if coll.is_some() {
+            let coll_type = coll.unwrap();
+            if (matches!(mo.obj_type, ObjectType::Barrel)
+                || matches!(mo.obj_type, ObjectType::Breakable))
+            {
+                match coll_type {
+                    Collision::Left => {
+                        if mao2.velocity.x != 0. {
+                            mao.velocity = mao2.velocity;
+                            mao.projected_position.x = mao2.projected_position.x + mo2.width;
+                        } else if mao.velocity.x != 0. {
+                            mao2.velocity = mao.velocity;
+                            mao2.projected_position.x = mao.projected_position.x - mo.width;
+                        }
+                    }
+                    Collision::Right => {
+                        if mao2.velocity.x != 0. {
+                            mao.velocity = mao2.velocity;
+                           mao.projected_position.x = mao2.projected_position.x + mo.width;
+                        } else if mao.velocity.x != 0. {
+                            mao2.velocity = mao.velocity;
+                          mao2.projected_position.x = mao.projected_position.x - mo.width;
+                        }
+                    }
+                    Collision::Top => {
+                        //println!("should have stopped");
+                        mao.velocity.y = 0.;
+                        mao.grounded=true;
+                        mao.projected_position.y= mao2.projected_position.y+ mo2.height/2. + mo.height/2.;
+                    }
+                    // Collision::Inside => {
+                    //     if (mt.translation.x < mt2.translation.x) {
+                    //         mt.translation.x = mt2.translation.x - mo.width;
+                    //     } else {
+                    //         mt.translation.x = mt2.translation.x + mo.width;
+                    //     }
+                    // }
+                    Collision::Bottom => {
+                        // if mao2.velocity.x != 0. {
+                        //     mao.velocity = mao2.velocity;
+                        //     mt.translation.x = mt2.translation.x + mo.width;
+                        // } else if mao.velocity.x != 0. {
+                        //     mao2.velocity = mao.velocity;
+                        //     mt2.translation.x = mt.translation.x + mo.width;
+                        // }
+                        //mao.velocity.y = 0.;
+                       // mao.velocity.x = 0.;
+                       mao2.velocity.y = 0.;
+                       mao2.grounded=true;
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
 }
