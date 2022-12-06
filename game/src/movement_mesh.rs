@@ -342,6 +342,38 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.edges[61][59] = Edge::new(Motion::JumpRight);
     }
 
+    if id == 2{
+        graph.vertices.push(Vertex::new_scaled(1.5, 10.5, 0));
+        graph.vertices.push(Vertex::new_scaled(-13.5, 10.5, 1));
+        graph.edges[0][1] = Edge::new(Motion::Left);
+        graph.edges[1][0] = Edge::new(Motion::Right);
+
+        //top of left block near spawn
+        graph.vertices.push(Vertex::new_scaled(-18., 9., 2));
+        graph.edges[1][2] = Edge::new(Motion::Left);
+        graph.edges[2][1] = Edge::new(Motion::JumpRight);
+
+        //jump up from left to block
+        graph.vertices.push(Vertex::new_scaled(-22.5, 6., 3));
+        graph.edges[2][3] = Edge::new(Motion::Left);
+        graph.edges[3][2] = Edge::new(Motion::JumpRight);
+
+        //jump up from right to block
+        graph.vertices.push(Vertex::new_scaled(-13.5, 6., 4));
+        graph.edges[2][4] = Edge::new(Motion::Right);
+        graph.edges[4][2] = Edge::new(Motion::JumpLeft);
+
+        //left platform left edge
+        graph.vertices.push(Vertex::new_scaled(-28.5, 6., 5));
+        graph.edges[5][3] = Edge::new(Motion::Right);
+        graph.edges[3][5] = Edge::new(Motion::Left);
+
+        //left platform right edge
+        graph.vertices.push(Vertex::new_scaled(-6., 6., 6));
+        graph.edges[4][6] = Edge::new(Motion::Right);
+        graph.edges[6][4] = Edge::new(Motion::Left);
+    }
+
     if id == 3{
         //starting panel vertices
         graph.vertices.push(Vertex::new_scaled(13.5, 10.5, 0));

@@ -287,7 +287,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
 
         //vertical wall under starting platform
-        result.push(Descriptor::new(1., 4., 0., 7.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 4., -5., 7.5, ObjectType::Block));
         //long floor under starting platform
         result.push(Descriptor::new(56., 1., -1., 5., ObjectType::Block));
 
@@ -298,10 +298,50 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 8., 14., 12., ObjectType::Block));
 
         //right block on platform
-        //result.push(Descriptor::new(2., 3., -18., 7., ObjectType::Block));
+        result.push(Descriptor::new(2., 3., 23., 7., ObjectType::Block));
+
+        //left platform attatched to top vertical line
+        result.push(Descriptor::new(10.5, 1., 9.25, 8., ObjectType::Block));
+
+        //right platform attached to top vert line
+        result.push(Descriptor::new(6., 1., 17., 9.5, ObjectType::Block));
+
+        //left middle platform
+        result.push(Descriptor::new(15., 1., -22., 0., ObjectType::Block));
+
+        //middle middle platform
+        result.push(Descriptor::new(12., 1., 0., 0., ObjectType::Block));
+
+        //right middle platform
+        result.push(Descriptor::new(15., 1., 22., 0., ObjectType::Block));
+
+        //left large bottom platform
+        result.push(Descriptor::new(55., 1., 12., -5., ObjectType::Block));
+
+        //vert line under mid mid platform
+        result.push(Descriptor::new(1., 5., 6., -2., ObjectType::Block));
+
+        //block next to mid platform
+        result.push(Descriptor::new(2., 3., 11., -4., ObjectType::Block));
+
+        //floor block right
+        result.push(Descriptor::new(2., 3., 17., -11.5, ObjectType::Block));
+
+        //floor block middle
+        result.push(Descriptor::new(2., 3., 0., -11.5, ObjectType::Block));
+
+        //floor block left
+        result.push(Descriptor::new(2., 3., -17., -11.5, ObjectType::Block));
+
+
+
+
+
+
     }
 
     if id == 3 {
+        
         //ceiling
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
@@ -338,6 +378,11 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //enemy
         result.push(Descriptor::new(1., 1., -20., 4.5, ObjectType::MeleeEnemy));
         result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
+        
+
+        
+
+
     }
     if id == 4 {
         //ceiling
@@ -482,6 +527,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     }
 
     if id == 7 {
+        /*
         //spawn hallway
         result.push(Descriptor::new(40., 1., 19., 0., ObjectType::Block)); //spawn floor
         result.push(Descriptor::new(1., 32., -1., 0., ObjectType::Block)); //spawn left wall
@@ -550,13 +596,12 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //top level
         result.push(Descriptor::new(32., 1., 47., 20., ObjectType::Block)); //top floor
-    }
+        */
 
-    if id == 8{
         //ceiling
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
-        result.push(Descriptor::new(14., 1., -7., 9.5, ObjectType::Block));
+        result.push(Descriptor::new(14., 1., 0., 9.5, ObjectType::Block));
 
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
@@ -564,11 +609,112 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
 
-        //right wall on starting platform
-        result.push(Descriptor::new(1., 7., 1., 13., ObjectType::Block));
+        //left vert line on starting platform
+        result.push(Descriptor::new(1., 7., -7., 12.5, ObjectType::Block));
+
+        //bottom vert line on starting platform
+        result.push(Descriptor::new(1., 7., 0., 6., ObjectType::Block));
+
+        //parallel platform to starting platform
+        result.push(Descriptor::new(14., 1., 7., 3., ObjectType::Block));
+
+         //big right platform
+         result.push(Descriptor::new(50., 1., 4., 0., ObjectType::Block));
+
+         //left vert line
+         result.push(Descriptor::new(1., 10., -21., 4.5, ObjectType::Block));
+
+         //bottom right platform
+         result.push(Descriptor::new(15., 1., 15., -5., ObjectType::Block));
+
+         //bottom left platform
+         result.push(Descriptor::new(25., 1., -19.5, -5., ObjectType::Block));
+
+         //right bottom vert line
+         result.push(Descriptor::new(1., 5., 22., -3., ObjectType::Block));
+
+         //middle bottom vert line left
+         result.push(Descriptor::new(1., 9., -7., -9., ObjectType::Block));
+
+         //middle bottom vert line right
+         result.push(Descriptor::new(1., 5., 7., -7., ObjectType::Block));
+
+         //big right bottom block
+
+         result.push(Descriptor::new(2., 6., 22., -10., ObjectType::Block));
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+    if id == 8{
+        //ceiling
+        result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
+        //starting platform
+        result.push(Descriptor::new(14., 1., 0., 9.5, ObjectType::Block));
+
+        //left and right walls
+        result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        //bottom floor
+        result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
 
         //top left platform
-        result.push(Descriptor::new(20., 1., -11., 4., ObjectType::Block));
+        result.push(Descriptor::new(25., 1., -18., 4., ObjectType::Block));
+
+        //vertical line above starting platfrom
+        result.push(Descriptor::new(1., 7., 6.5, 12.5, ObjectType::Block));
+
+        //vertical line below starting platfrom
+        result.push(Descriptor::new(1., 7., 4., 5.5, ObjectType::Block));
+
+        //block on vertical line below starting platfrom
+        result.push(Descriptor::new(4., 2., 6., 5.5, ObjectType::Block));
+
+        //vertical line next to starting platfrom
+        result.push(Descriptor::new(1., 14., 11., 9., ObjectType::Block));
+
+        //right top platform
+        result.push(Descriptor::new(14., 1., 22., 9.5, ObjectType::Block));
+
+        //middle left platform
+        result.push(Descriptor::new(15., 1., -22., -1., ObjectType::Block));
+
+        //bottom left platform
+        result.push(Descriptor::new(45., 1., -9., -6., ObjectType::Block));
+
+        //middle connecting platform
+        result.push(Descriptor::new(12., 1., 16.5, 2., ObjectType::Block));
+
+        //rightmost vert line
+        result.push(Descriptor::new(1., 10., 22.5, -2.5, ObjectType::Block));
+
+        //block on rightmost vert line
+        result.push(Descriptor::new(3., 2., 24., -1., ObjectType::Block));
+
+        //block on right wall
+        result.push(Descriptor::new(3., 2., 28., -5., ObjectType::Block));
+
+        //floor block right
+          result.push(Descriptor::new(2., 3., 3., -11.5, ObjectType::Block));
+  
+        //floor block left
+          result.push(Descriptor::new(2., 3., -17., -11.5, ObjectType::Block));
+
+
+
+
+
+
     }
 
     // shop platform spawns below level
