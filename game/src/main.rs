@@ -476,7 +476,7 @@ fn setup(
         .insert(Player::new());
     //this variable can change based on what room the player is in
     let mut level = get_level(2);
-    let mesh = get_level_mesh(6);
+    let mesh = get_level_mesh(2);
     create_level(commands, asset_server, texture_atlases, level, mesh);
 }
 
