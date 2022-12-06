@@ -313,7 +313,7 @@ pub fn projectile_active_collision(
                     // }
                     commands.entity(entity_p).despawn();
                     print!("Ouch\n");
-                } else if matches!(pro_o.proj_type, ProjType::EnemyProjectile) {
+                } else if matches!(pro_o.proj_type, ProjType::EnemyProjectile){
                     p.health -= 1;
                     commands.entity(entity_p).despawn();
                 }
