@@ -167,6 +167,27 @@ impl Enemy{
             else if health < ENEMY_HEALTH{
                 self.action = Action::Heal;
             }
+            else if self.assist_possible{
+                println!("How");
+                match self.t{
+                    Type::Melee =>{
+                        let x_diff = (self.friend.x - pos.x).abs();
+                        let y_diff = self.friend.y - pos.y;
+                        if x_diff < 100. && y_diff < 100.{
+                            self.action = Action::Strafe;
+                        }
+                        else {
+                            self.action = Action::Assist;
+                        }
+                    }
+                    Type::Ranged =>{
+                        self.action = Action::Assist;
+                    }
+                    Type::Other =>{
+
+                    }
+                }
+            } 
             else{
                 self.action = Action::Strafe;
             }
@@ -308,7 +329,7 @@ impl Enemy{
                     }
                 }
                 //retreating but stuck
-                if self.static_retreat_frames > 2{
+                if self.static_retreat_frames > 1{
                     self.motion = Motion::Jump;
                     self.static_retreat_frames = 0;
                 }
@@ -400,11 +421,14 @@ impl Enemy{
                         if x_to_player < 40.{
                             self.attack = Attack::Right;
                         }
-                        else if x_to_player > 40.{
+                        else if x_to_player > -40.{
                             self.attack = Attack::Left;
                         }
-                        else {
+                        else if y_to_player > 0.{
                             self.attack = Attack::Up;
+                        }
+                        else{
+                            self.attack = Attack::Down;
                         }
                     }
                     Type::Other => {
@@ -421,39 +445,41 @@ impl Enemy{
                 }
             }
             Action::Assist => {
-                //code to have enemies assist the other enemy type
-                match self.t{
-                    Type::Melee => {
-
+                //println!("Chase update");
+                //check that the current target vertex is still the closest one to the player
+                let mut x_diff = f32::MAX;
+                let mut y_diff = f32::MAX;
+                //find the difference in enemies position to the next vertex on the enemies path
+                //needed to determine if the enemy is "at" their destination
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.id == self.next_vertex {
+                        x_diff = pos.x - v.x;
+                        y_diff = pos.y - v.y;
+                        break;
                     }
-                    Type::Ranged => {
-                        // ranged enemy --> melee enemy --> player 
-                        if self.friend.x > pos.x && self.player_pos.x > pos.x && self.friend.x < self.player_pos.x{
+                }
+                if x_diff.abs() <= 5.{
+                    if y_diff.abs() <= 5.  {
+                        self.current_vertex = self.next_vertex;
+                        let pl_vert = self.nearest_vert(self.friend);
+                        //if a better vertex is found or the enemy has arrived (second one shouldn't ever happen)
+                        if pl_vert != self.target_vertex || self.current_vertex == self.target_vertex{
 
+                            self.target_vertex = pl_vert;
+                            self.path = self.shortest_path();
+                            self.index_in_path = 0;
                         }
-                        // melee enemy --> ranged enemy --> player
-                        else if self.friend.x < pos.x && self.player_pos.x > pos.x{
-
-                        }
-                        // player --> melee enemy --> ranged enemy
-                        else if self.friend.x < pos.x && self.player_pos.x < pos.x && self.friend.x > self.player_pos.x{
-
-                        }
-                        else if self.friend.x > pos.x && self.player_pos.x < pos.x && self.friend.x < self.player_pos.x{
-
-                        }
-                        // player --> ranged enemy --> melee enemy
-                        else if self.player_pos.x < pos.x && self.friend.x > pos.x {
-                            
-                        }
-                        // ranged --> player --> melee enemy
-                        // melee --> player --> ranged
                         else{
-
+                            self.index_in_path += 1;
+                        }
+                        if self.path.vertices.len() > self.index_in_path{
+                            self.next_vertex = self.path.vertices[self.index_in_path];
+                            self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
                         }
                     }
-                    Type::Other => {
-                        
+                    else {
+                        //x position is correct but enemy is still falling to destination
+                        self.motion = Motion::Fall;
                     }
                 }
             }
@@ -544,7 +570,7 @@ impl Enemy{
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
         self.player_seen = false;
-        self.assist_possible = true;
+        self.assist_possible = false;
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
@@ -559,12 +585,6 @@ impl Enemy{
                     self.player_seen = true;
                     self.player_pos.x = l.end.x;
                     self.player_pos.y = l.end.y;
-                }
-                //case for breakable objects
-                else if l.id == MAX_VERT + 2{
-                    if matches!(self.t, Type::Melee){
-                        //do we care?
-                    }
                 }
                 //case for melee enemy
                 else if l.id == MAX_VERT + 3{
@@ -582,7 +602,7 @@ impl Enemy{
                         self.friend.y = l.end.y;
                     }
                 }
-                else {
+                else if l.id <= MAX_VERT{
                     let vertex = Vertex::new(l.end.x, l.end.y, l.id);
                     let mut seen_before = false;
                     for seen_vertex in self.enemy_graph.vertices.iter_mut(){
