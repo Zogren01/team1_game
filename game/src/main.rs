@@ -835,7 +835,7 @@ fn move_enemies(
         (With<Enemy>, Without<MovableObject>),
     >,
 ) {
-    for (mut enemy, et, mut e) in enemies.iter_mut() {
+    for(mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
         //if input.pressed(KeyCode::G){ //comment out when enemy should move freely
         e.decide_motion(Vec2::new(et.translation.x, et.translation.y), enemy.health);
@@ -878,7 +878,7 @@ fn move_enemies(
             }
             Motion::Fall => {
                 enemy.velocity.x = 0.;
-                enemy.velocity.y += GRAVITY;
+                enemy.velocity.y+=GRAVITY;
             }
             Motion::Stop => {
                 enemy.velocity.x = 0.;
@@ -894,17 +894,18 @@ fn move_enemies(
     }
 }
 
-fn gravity_on_movables(
-    mut movables: Query<(&Object, &mut ActiveObject, &Transform), With<MovableObject>>,
-    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
+fn gravity_on_movables (
+    mut movables: Query<(&Object,&mut ActiveObject, &Transform), With<MovableObject>>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>
 ) {
+    
     for (mut mo, mut active, mt) in movables.iter_mut() {
+        
         if !active.grounded {
-            active.velocity.y += GRAVITY;
+            active.velocity.y+=GRAVITY;
         }
 
-        active.projected_position =
-            mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
+        active.projected_position = mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
         active.grounded = false;
     }
 }
