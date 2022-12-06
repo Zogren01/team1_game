@@ -744,28 +744,28 @@ fn object_collisions(
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     let (mut pao, pt) = player.single_mut();
-    for (mut o, mut ao, mut t) in movables.iter_mut() {
-        let hit_top_half = bevy::sprite::collide_aabb::collide(
-            pao.projected_position,
-            //ne    ed to change this to get the size of whatever the object is
-            Vec2::new(PLAYER_SZ, PLAYER_SZ),
-            ao.projected_position,
-            Vec2::new(o.width, o.height),
-        );
-        if hit_top_half.is_some() {
-            //if player collides with movable object
-            let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
-            match coll_type {
-                Collision::Top => {
-                    pao.velocity.y = 0.;
-                    pao.grounded = true;
-                    ao.velocity.y = 0.;
-                }
-                Collision::Left => {
-                    //t.rotate_z(-0.1);
-                    if pao.velocity.x > 0. {
-                        ao.velocity.x = pao.velocity.x;
-                    }
+        for (mut o, mut ao, mut t) in movables.iter_mut() {
+        
+            let hit_top_half = bevy::sprite::collide_aabb::collide(
+                pao.projected_position,
+                //ne    ed to change this to get the size of whatever the object is
+                Vec2::new(PLAYER_SZ, PLAYER_SZ),
+                ao.projected_position,
+                Vec2::new(o.width, o.height),
+            );
+            if hit_top_half.is_some() { //if player collides with movable object
+                let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
+                match coll_type {
+                    Collision::Top => {
+                        pao.velocity.y = 0.;
+                        pao.grounded = true;
+                        ao.velocity.y = 0.;
+                    },
+                    Collision::Left => {
+                        //t.rotate_z(-0.1);
+                        if pao.velocity.x > 0. {
+                            ao.velocity.x = pao.velocity.x;
+                        }
                     pao.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
                 }
                 Collision::Right => {
