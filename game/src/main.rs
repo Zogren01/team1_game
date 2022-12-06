@@ -858,6 +858,10 @@ fn move_enemies(
                     change.y = enemy.velocity.y;
                     e.motion = Motion::Right;
                 }
+                else {
+                    enemy.velocity.y += GRAVITY;
+                }
+                enemy.velocity.x = PLAYER_SPEED;
             }
             Motion::JumpLeft => {
                 if enemy.grounded {
@@ -866,6 +870,10 @@ fn move_enemies(
 
                     e.motion = Motion::Left;
                 }
+                else {
+                    enemy.velocity.y += GRAVITY;
+                }
+                enemy.velocity.x = -PLAYER_SPEED;
             }
             Motion::Fall => {
                 enemy.velocity.x = 0.;

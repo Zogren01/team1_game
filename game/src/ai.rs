@@ -151,12 +151,13 @@ impl Enemy{
                 self.action = Action::Retreat;
             }
             //if stuck, new or done attacking player, and not healing
-            else if (self.immobile_frames >= 10 || self.current_vertex == MAX_VERT + 1) && !matches!(self.action, Action::Heal){
+            else if (self.immobile_frames >= 10 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack) || matches!(self.action, Action::Retreat)) 
+                && !matches!(self.action, Action::Heal){
                 self.immobile_frames = 0;
                 self.current_vertex = MAX_VERT + 1;
                 self.action = Action::Reset;
             }
-            else if self.player_seen || (x_dist < 150. && y_dist < 100.) {
+            else if self.player_seen {
                 if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
                     self.action = Action::Run;
                 }
@@ -172,8 +173,9 @@ impl Enemy{
                 match self.t{
                     Type::Melee =>{
                         let x_diff = (self.friend.x - pos.x).abs();
-                        let y_diff = self.friend.y - pos.y;
-                        if x_diff < 100. && y_diff < 100.{
+                        let y_diff = (self.friend.y - pos.y).abs();
+                        if x_diff < 200. && y_diff < 300.{
+                            //need to reset first
                             self.action = Action::Strafe;
                         }
                         else {
@@ -408,10 +410,20 @@ impl Enemy{
                         }
                         else{
                             if x_to_player > 0.{
-                                self.motion = Motion::Left;
+                                if y_to_player > 5.{
+                                    self.motion = Motion::JumpLeft;
+                                }
+                                else{
+                                    self.motion = Motion::Left;
+                                }
                             }
                             else{
-                                self.motion = Motion::Right;
+                                if y_to_player > 5.{
+                                    self.motion = Motion::JumpRight;
+                                }
+                                else{
+                                    self.motion = Motion::Right;
+                                }
                             }
                         }
                     }
