@@ -367,21 +367,33 @@ pub fn get_level_mesh(id: i8) -> Graph{
         //starting panel vertices
         graph.vertices.push(Vertex::new_scaled(13.5, 10.5, 0));
         graph.vertices.push(Vertex::new_scaled(-13.5, 10.5, 1));
-        graph.edges[0][1] = Edge::new(Motion::Left);
-        graph.edges[1][0] = Edge::new(Motion::Right);
+        graph.vertices.push(Vertex::new_scaled(-4.5, 10.5, 29));
+        graph.vertices.push(Vertex::new_scaled(3.5, 10.5, 30));
+        graph.edges[0][30] = Edge::new(Motion::Left);
+        graph.edges[30][0] = Edge::new(Motion::Right);
+
+        graph.edges[30][29] = Edge::new(Motion::Left);
+        graph.edges[29][30] = Edge::new(Motion::Right);
+
+        graph.edges[29][1] = Edge::new(Motion::Left);
+        graph.edges[1][29] = Edge::new(Motion::Right);
 
         
         
         //left side:
 
         //jump box
-        graph.vertices.push(Vertex::new_scaled(-18.5, 7.25, 2));
+        graph.vertices.push(Vertex::new_scaled(-17.5, 7.25, 2));
         graph.edges[1][2] = Edge::new(Motion::Left);
         graph.edges[2][1] = Edge::new(Motion::JumpRight);
+        graph.vertices.push(Vertex::new_scaled(-19.5, 7.25, 31));
+        graph.edges[2][31] = Edge::new(Motion::Left);
+        graph.edges[31][2] = Edge::new(Motion::Right);
+
         //left side of box
         graph.vertices.push(Vertex::new_scaled(-20.5, 4.5, 3));
-        graph.edges[2][3] = Edge::new(Motion::Left);
-        graph.edges[3][2] = Edge::new(Motion::JumpRight);
+        graph.edges[31][3] = Edge::new(Motion::Left);
+        graph.edges[3][31] = Edge::new(Motion::JumpRight);
         //far left of left platform
         graph.vertices.push(Vertex::new_scaled(-28.5, 4.5, 4));
         graph.edges[3][4] = Edge::new(Motion::Left);
@@ -432,10 +444,20 @@ pub fn get_level_mesh(id: i8) -> Graph{
         graph.vertices.push(Vertex::new_scaled(10.5, -0.5, 14));
         graph.edges[11][14] = Edge::new(Motion::Left);
         graph.edges[14][11] = Edge::new(Motion::JumpRight);
+
+        graph.vertices.push(Vertex::new_scaled(2.5, -0.5, 31));
+        graph.edges[31][14] = Edge::new(Motion::Right);
+        graph.edges[14][31] = Edge::new(Motion::Left);
+
+        graph.vertices.push(Vertex::new_scaled(-2.5, -0.5, 32));
+        graph.edges[31][32] = Edge::new(Motion::Left);
+        graph.edges[32][31] = Edge::new(Motion::Right);
+
+
         //right edge of large middle platform
         graph.vertices.push(Vertex::new_scaled(-9.5, -0.5, 15));
-        graph.edges[15][14] = Edge::new(Motion::Right);
-        graph.edges[14][15] = Edge::new(Motion::Left);
+        graph.edges[15][32] = Edge::new(Motion::Right);
+        graph.edges[32][15] = Edge::new(Motion::Left);
 
 
 

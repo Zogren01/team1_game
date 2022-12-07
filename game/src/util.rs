@@ -441,6 +441,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //enemy
         result.push(Descriptor::new(1., 1., -20., 4.5, ObjectType::MeleeEnemy));
+        //result.push(Descriptor::new(1., 1., 20., -4., ObjectType::RangedEnemy));
+        //result.push(Descriptor::new(1., 1., 0., -11., ObjectType::OtherEnemy));
         //result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
     
     }

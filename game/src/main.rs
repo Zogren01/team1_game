@@ -692,7 +692,6 @@ fn apply_collisions(
                     },
                     Collision::Inside => match o.obj_type {
                         _ => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);
                         }
                     },
