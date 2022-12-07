@@ -645,13 +645,13 @@ fn apply_collisions(
                             }
                             ObjectType::Block  => {
                                 
-                                if matches!(object.obj_type, ObjectType::Barrel)
-                                    || matches!(object.obj_type, ObjectType::Breakable)
-                                {
-                                    if (!active.grounded && active.velocity.y < -15.) {
-                                        //object.broken = true;
-                                    }
-                                }
+                                // if matches!(object.obj_type, ObjectType::Barrel)
+                                //     || matches!(object.obj_type, ObjectType::Breakable)
+                                // {
+                                //     if (!active.grounded && active.velocity.y < -15.) {
+                                //         //object.broken = true;
+                                //     }
+                                // }
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -1601,34 +1601,50 @@ fn item_shop(
             clock.timer.unpause();
         }
         if input.just_pressed(KeyCode::B) {
-            if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
+            if pt.translation.x <= -100. {
                 //IF TRY TO BUY UMBRELLA
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Umbrella already purchased!");
-                } else {
-                    p.credits -= UMBRELLA_PRICE;
-                    p.items.push(ItemType::Umbrella);
-                    print!("UMBRELLA PURCHASED!");
+                if p.credits >= UMBRELLA_PRICE {
+                    if p.items.contains(&ItemType::Umbrella) {
+                        println!("Umbrella already purchased!");
+                    } else {
+                        p.credits -= UMBRELLA_PRICE;
+                        p.items.push(ItemType::Umbrella);
+                        print!("UMBRELLA PURCHASED!");
+                    }
                 }
-            } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
+                else {
+                    println!("Insufficient funds.");
+                }
+                
+            } else if pt.translation.x >= 100. {
                 //IF TRY TO BUY JETPACK
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Jetpack already purchased!");
-                } else {
-                    p.credits -= JETPACK_PRICE;
-                    p.items.push(ItemType::Jetpack);
-                    print!("JETPACK PURCHASED!");
+                if p.credits >= JETPACK_PRICE {
+                    if p.items.contains(&ItemType::Jetpack) {
+                        println!("Jetpack already purchased!");
+                    } else {
+                        p.credits -= JETPACK_PRICE;
+                        p.items.push(ItemType::Jetpack);
+                        print!("JETPACK PURCHASED!");
+                    }
                 }
-            } else if p.credits >= BOOTS_PRICE {
-                //IF TRY TO BUY BOOTS
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Boots already purchased!");
-                } else {
-                    p.credits -= BOOTS_PRICE;
-                    p.items.push(ItemType::Boots);
-                    print!("BOOTS PURCHASED!");
+                else {
+                    println!("Insufficient funds.");
                 }
-            }
+            } else {
+                    if p.credits >= BOOTS_PRICE {
+                        //IF TRY TO BUY BOOTS
+                        if p.items.contains(&ItemType::Boots) {
+                            println!("Boots already purchased!");
+                        } else {
+                            p.credits -= BOOTS_PRICE;
+                            p.items.push(ItemType::Boots);
+                            print!("BOOTS PURCHASED!");
+                        }
+                    }
+                    else {
+                        println!("Insufficient funds.");
+                    }
+                }
             println!("PRESS I TO RETURN!");
         }
     }
@@ -1675,23 +1691,26 @@ fn barrels_with_barrels(
                     Collision::Left => {
                         if mao2.velocity.x != 0. {
                             mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
+                            mao.projected_position.x = mao2.projected_position.x + mo2.width;
                         } else if mao.velocity.x != 0. {
                             mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x - mo.width;
+                            mao2.projected_position.x = mao.projected_position.x - mo.width;
                         }
                     }
                     Collision::Right => {
                         if mao2.velocity.x != 0. {
                             mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
+                           mao.projected_position.x = mao2.projected_position.x + mo.width;
                         } else if mao.velocity.x != 0. {
                             mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x - mo.width;
+                          mao2.projected_position.x = mao.projected_position.x - mo.width;
                         }
                     }
                     Collision::Top => {
-                        mao2.velocity.y = 0.;
+                        //println!("should have stopped");
+                        mao.velocity.y = 0.;
+                        mao.grounded=true;
+                        mao.projected_position.y= mao2.projected_position.y+ mo2.height/2. + mo.height/2.;
                     }
                     // Collision::Inside => {
                     //     if (mt.translation.x < mt2.translation.x) {
@@ -1700,15 +1719,20 @@ fn barrels_with_barrels(
                     //         mt.translation.x = mt2.translation.x + mo.width;
                     //     }
                     // }
-                    _ => {
-                        if mao2.velocity.x != 0. {
-                            mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
-                        } else if mao.velocity.x != 0. {
-                            mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x + mo.width;
-                        }
+                    Collision::Bottom => {
+                        // if mao2.velocity.x != 0. {
+                        //     mao.velocity = mao2.velocity;
+                        //     mt.translation.x = mt2.translation.x + mo.width;
+                        // } else if mao.velocity.x != 0. {
+                        //     mao2.velocity = mao.velocity;
+                        //     mt2.translation.x = mt.translation.x + mo.width;
+                        // }
+                        //mao.velocity.y = 0.;
+                       // mao.velocity.x = 0.;
+                       mao2.velocity.y = 0.;
+                       mao2.grounded=true;
                     }
+                    _ => {}
                 }
             }
         }
