@@ -21,6 +21,26 @@ pub const BOOTS_PRICE: i32 = 30;
 pub const ATTACK_HITBOX: Vec2 = Vec2::new(32., 16.);
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
 
+
+#[derive(Component)]
+pub struct Manager {
+    pub room_number: i8,
+    pub prev_room_number: i8,
+}
+
+impl Manager{
+    pub fn new(n: i8, o:i8) -> Self {
+        Self{
+            room_number: o,
+            prev_room_number: n,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct GraphNode;
+
+
 #[derive(Component, Copy, Clone)]
 pub struct Object {
     pub id: i32,
@@ -29,6 +49,7 @@ pub struct Object {
     pub obj_type: ObjectType,
     pub velocity: Vec2,
     pub broken: bool,
+    pub level: i8,
 }
 
 impl Object {
@@ -41,6 +62,19 @@ impl Object {
             velocity: Vec2::splat(0.0),
             // project_pos: Vec3::splat(0.),
             broken: false,
+            level: -50,
+        }
+    }
+    pub fn new2(i: i32, w: f32, h: f32, t: ObjectType, l: i8) -> Self {
+        Self {
+            id: i,
+            width: w,
+            height: h,
+            obj_type: t,
+            velocity: Vec2::splat(0.0),
+            // project_pos: Vec3::splat(0.),
+            broken: false,
+            level: l,
         }
     }
 }
@@ -77,6 +111,7 @@ pub struct Descriptor {
     pub y_pos: f32,
     pub obj_type: ObjectType,
     pub id: i32,
+    pub level: i8,
 }
 impl Descriptor {
     fn new(w: f32, h: f32, x: f32, y: f32, t: ObjectType) -> Self {
@@ -87,6 +122,7 @@ impl Descriptor {
             y_pos: y * 32.,
             obj_type: t,
             id: -50,
+            level: -50,
         }
     }
     pub fn new2(w: f32, h: f32, x: f32, y: f32, t: ObjectType, i: i32) -> Self {
@@ -97,6 +133,18 @@ impl Descriptor {
             y_pos: y,
             obj_type: t,
             id: i,
+            level: -50,
+        }
+    }
+    pub fn new3(w: f32, h: f32, x: f32, y: f32, t: ObjectType, l:i8) -> Self {
+        Self {
+            width: w * 32.,
+            height: h * 32.,
+            x_pos: x * 32.,
+            y_pos: y * 32.,
+            obj_type: t,
+            id: -50,
+            level: l,
         }
     }
 }
@@ -144,6 +192,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        //right teleporter
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 3));
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //block on bottom floor
@@ -377,12 +428,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //enemy
         result.push(Descriptor::new(1., 1., -20., 4.5, ObjectType::MeleeEnemy));
-        result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
-        
-
-        
-
-
+        //result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
+    
     }
     if id == 4 {
         //ceiling
@@ -766,4 +813,5 @@ pub enum ObjectType {
     Breakable,
     Barrel,
     Credit,
+    Teleporter,
 }
