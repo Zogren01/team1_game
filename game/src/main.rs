@@ -1773,8 +1773,7 @@ fn barrels_with_barrels(
 }
 
 fn change_player_direction(
-    mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>, Without<Enemy)>,
-){
+    mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>, Without<Enemy)>,){
     let (mut pl, mut pt, mut p) = player.single_mut();
     if pl.facing_left {
         pt.rotation = Quat::from_rotation_y(std::f32::consts::PI);
