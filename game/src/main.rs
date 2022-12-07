@@ -49,6 +49,7 @@ fn create_level(
     mut manager: Query<&mut Manager, (With<Manager>)>,
     query: Query<Entity, (With<Object>, Without<Player>)>,
     mut player_query: Query<&mut Transform, (With<Player>)>,
+    mut clock: ResMut<Clock>,
     graph_query: Query<Entity, (With<GraphNode>)>, 
     mesh_query: Query<Entity, (With<Graph>)>,
 
@@ -72,7 +73,16 @@ fn create_level(
     let mut level = get_level(m.room_number);
     let mut mesh = get_level_mesh(m.room_number);
     let mut id = 0;
+    
+    if m.room_number == 0 {
+        p.translation = Vec3::new(0., -575., 0.);
+        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
+
+    }
+    else{
+    clock.timer.unpause();
     p.translation = Vec3::new(0., 320., 900.);
+    }
     for desc in level {
         let mut texture_path = "";
         if !matches!(desc.obj_type, ObjectType::Block) {
@@ -544,7 +554,7 @@ fn setup(
     //let mut level = get_level(1);
     //let mesh = get_level_mesh(1);
     
-    commands.spawn().insert(Manager::new(0,1));
+    commands.spawn().insert(Manager::new(-1,0));
     let graph = Graph::new();
     commands.spawn().insert(graph);
     //create_level(commands, asset_server, texture_atlases, level, mesh, 1);
@@ -1269,8 +1279,13 @@ fn move_player(
     if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100{
         
         if p.healing_bar == 240 {
-            p.health += 20;
-            p.healing_bar = 0;
+            if p.health > 80 && p.health < 100{
+                p.health += (100 - p.health);
+            }
+            else {
+                p.health += 20;
+                p.healing_bar = 0; 
+            }
         }
         else {
             p.healing_bar += 1;
@@ -1503,7 +1518,10 @@ fn show_gui(
     mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>, Without<HealthBar>)>,
     mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
     mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
+
 ) {
+    let mut m = manager.single_mut();
     let (p, mut pt) = player.single_mut();
     //create_timer(commands, asset_server, time);
     if pt.translation.y < -400. {
@@ -1525,8 +1543,11 @@ fn show_gui(
             clock.timer.unpause();
         }
         if clock.timer.finished() {
-            println!("Resetting position");
-            pt.translation = Vec3::new(0., 64., 0.);
+            println!("You ran out of time");
+            m.prev_room_number = m.room_number;
+            m.room_number = 0;
+            clock.timer.reset();
+            //pt.translation = Vec3::new(0., 64., 0.);
         }
     }
 
@@ -1545,12 +1566,13 @@ fn item_shop(
     mut clock: ResMut<Clock>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
 ) {
+    let mut m = manager.single_mut();
     let (mut p, mut pt) = player.single_mut();
-    if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
-        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
+    if m.room_number == 0 {
         clock.timer.pause();
-        pt.translation = Vec3::new(0., -575., 0.);
+        //pt.translation = Vec3::new(0., -575., 0.);
 
         let mut id = 0;
         commands
@@ -1595,11 +1617,9 @@ fn item_shop(
                 ..default()
             })
             .insert(Object::new(id, 50., 50., ObjectType::Active));
-    } else if pt.translation.y <= -400. {
-        if input.just_pressed(KeyCode::I) {
-            pt.translation = Vec3::new(0., 64., 0.);
-            clock.timer.unpause();
-        }
+    } 
+    
+    if pt.translation.y <= -400. {
         if input.just_pressed(KeyCode::B) {
             if pt.translation.x <= -100. {
                 //IF TRY TO BUY UMBRELLA
@@ -1653,14 +1673,20 @@ fn item_shop(
 fn player_health(
     mut player: Query<(&mut Player), With<Player>>,
     mut exit: EventWriter<AppExit>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
+    mut clock: ResMut<Clock>,
     // mut healthbar: Query<(Entity), With<HealthBar>>,
     // mut commands: Commands,
 ) {
-    let (p) = player.single_mut();
+    let mut p = player.single_mut();
+    let mut m = manager.single_mut();
     // let e = healthbar.single_mut();
     // commands.entity(e).despawn();
     if p.health <= 0 {
-        exit.send(AppExit);
+        m.prev_room_number = m.room_number;
+        m.room_number = 0;
+        p.health = 100;
+        clock.timer.reset();
         print!("You lose!");
     }
 }
