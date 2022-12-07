@@ -41,20 +41,48 @@ const START_TIME: f32 = 100.;
 const RUNTIME: f64 = 1. / 30.;
 const PROJECTILE_SZ: f32 = 6.;
 
-struct Manager {
-    room_number: i8,
-    wall_id: i8,
-    enemy_id: i8,
-}
 
 fn create_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    level: Vec<Descriptor>,
-    mesh: Graph,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
+    query: Query<Entity, (With<Object>, Without<Player>)>,
+    mut player_query: Query<&mut Transform, (With<Player>)>,
+    mut clock: ResMut<Clock>,
+    graph_query: Query<Entity, (With<GraphNode>)>, 
+    mesh_query: Query<Entity, (With<Graph>)>,
+
 ) {
+    let mut p = player_query.single_mut();
+    let mut m = manager.single_mut();
+    if m.room_number == m.prev_room_number{ return }
+
+    m.prev_room_number = m.room_number;
+
+    for e_ in query.iter() {
+        commands.entity(e_).despawn();
+    }
+    for g_ in graph_query.iter() {
+        commands.entity(g_).despawn();
+    }
+
+    let m_ = mesh_query.single();
+    commands.entity(m_).despawn();
+
+    let mut level = get_level(m.room_number);
+    let mut mesh = get_level_mesh(m.room_number);
     let mut id = 0;
+    
+    if m.room_number == 0 {
+        p.translation = Vec3::new(0., -575., 0.);
+        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
+
+    }
+    else{
+    clock.timer.unpause();
+    p.translation = Vec3::new(0., 320., 900.);
+    }
     for desc in level {
         let mut texture_path = "";
         if !matches!(desc.obj_type, ObjectType::Block) {
@@ -78,6 +106,21 @@ fn create_level(
                         ..default()
                     })
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
+            } else if matches!(desc.obj_type, ObjectType::Teleporter) {
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
+                            ..default()
+                        },
+                        ..default()
+                    })
+                    .insert(Object::new2(id, desc.width, desc.height, desc.obj_type, desc.level));
             } else if matches!(desc.obj_type, ObjectType::UmbrellaItem) {
                 commands
                     .spawn_bundle(SpriteBundle {
@@ -231,6 +274,7 @@ fn create_level(
         id += 1;
     }
 
+    
     for v in mesh.vertices.clone() {
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -244,12 +288,14 @@ fn create_level(
                 ..default()
             },
             ..default()
-        });
+        })
+        .insert(GraphNode);
     }
+
 
     commands.spawn().insert(mesh);
 }
-
+   
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
@@ -336,6 +382,7 @@ fn main() {
         .add_system(attack_static)
         .add_system(attack_active)
         .add_system(shoot)
+        .add_system(create_level)
         .add_fixed_timestep_system(
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
@@ -504,9 +551,13 @@ fn setup(
         .insert(Object::new(-1, PLAYER_SZ, PLAYER_SZ, ObjectType::Player))
         .insert(Player::new());
     //this variable can change based on what room the player is in
-    let mut level = get_level(1);
-    let mesh = get_level_mesh(1);
-    create_level(commands, asset_server, texture_atlases, level, mesh);
+    //let mut level = get_level(1);
+    //let mesh = get_level_mesh(1);
+    
+    commands.spawn().insert(Manager::new(-1,0));
+    let graph = Graph::new();
+    commands.spawn().insert(graph);
+    //create_level(commands, asset_server, texture_atlases, level, mesh, 1);
 }
 
 //we can probably add this as an event, to be used when the level id is outside of the possible range
@@ -524,16 +575,20 @@ fn show_popup(time: Res<Time>, mut popup: Query<(&mut PopupTimer, &mut Transform
 //we will also need to implement collisions between 2 active objects, that is where we will do rigidbody collisions
 //I'm not sure whether that should run before or after object collisions
 fn apply_collisions(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut actives: Query<(&Object, &mut ActiveObject, &Transform), With<ActiveObject>>,
     mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
+    mut m: Query<&mut Manager, (With<Manager>)>,
     //input: Res<Input<KeyCode>>,
     //will want to use something different later
     mut exit: EventWriter<AppExit>,
 ) {
     //loop through all objects that move
+    let mut manager = m.single_mut();
     for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
-            
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -556,6 +611,10 @@ fn apply_collisions(
 
                             active.grounded = false;
                         }
+                        ObjectType::Teleporter => {
+                            manager.prev_room_number = manager.room_number;
+                            manager.room_number = o.level;
+                        }
                         ObjectType::Block => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
@@ -570,6 +629,10 @@ fn apply_collisions(
                             }
                             active.velocity.y = -2.;
                             active.grounded = false;
+                        }
+                        ObjectType::Teleporter => {
+                           manager.prev_room_number = manager.room_number;
+                           manager.room_number = o.level;
                         }
                         ObjectType::Block  => {
                             active.velocity.x = 0.;
@@ -592,13 +655,13 @@ fn apply_collisions(
                             }
                             ObjectType::Block  => {
                                 
-                                if matches!(object.obj_type, ObjectType::Barrel)
-                                    || matches!(object.obj_type, ObjectType::Breakable)
-                                {
-                                    if (!active.grounded && active.velocity.y < -15.) {
-                                        //object.broken = true;
-                                    }
-                                }
+                                // if matches!(object.obj_type, ObjectType::Barrel)
+                                //     || matches!(object.obj_type, ObjectType::Breakable)
+                                // {
+                                //     if (!active.grounded && active.velocity.y < -15.) {
+                                //         //object.broken = true;
+                                //     }
+                                // }
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -1216,8 +1279,13 @@ fn move_player(
     if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100{
         
         if p.healing_bar == 240 {
-            p.health += 20;
-            p.healing_bar = 0;
+            if p.health > 80 && p.health < 100{
+                p.health += (100 - p.health);
+            }
+            else {
+                p.health += 20;
+                p.healing_bar = 0; 
+            }
         }
         else {
             p.healing_bar += 1;
@@ -1450,7 +1518,10 @@ fn show_gui(
     mut text: Query<&mut Text, (With<ClockText>, Without<CreditText>, Without<HealthBar>)>,
     mut credit_text: Query<&mut Text, (With<CreditText>, Without<ClockText>, Without<HealthBar>)>,
     mut healthbar: Query<&mut Text, (With<HealthBar>, Without<ClockText>, Without<CreditText>)>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
+
 ) {
+    let mut m = manager.single_mut();
     let (p, mut pt) = player.single_mut();
     //create_timer(commands, asset_server, time);
     if pt.translation.y < -400. {
@@ -1472,8 +1543,11 @@ fn show_gui(
             clock.timer.unpause();
         }
         if clock.timer.finished() {
-            println!("Resetting position");
-            pt.translation = Vec3::new(0., 64., 0.);
+            println!("You ran out of time");
+            m.prev_room_number = m.room_number;
+            m.room_number = 0;
+            clock.timer.reset();
+            //pt.translation = Vec3::new(0., 64., 0.);
         }
     }
 
@@ -1492,12 +1566,13 @@ fn item_shop(
     mut clock: ResMut<Clock>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
 ) {
+    let mut m = manager.single_mut();
     let (mut p, mut pt) = player.single_mut();
-    if input.just_pressed(KeyCode::I) && pt.translation.y > -400. {
-        println!("\nSHOP INFO: PRESS B WHILE STANDING UNDER ITEM OF CHOICE\nUmbrella: {} Credits\nJumping Boots: {} Credits\nJetpack Price: {} Credits", UMBRELLA_PRICE,BOOTS_PRICE,JETPACK_PRICE);
+    if m.room_number == 0 {
         clock.timer.pause();
-        pt.translation = Vec3::new(0., -575., 0.);
+        //pt.translation = Vec3::new(0., -575., 0.);
 
         let mut id = 0;
         commands
@@ -1542,40 +1617,54 @@ fn item_shop(
                 ..default()
             })
             .insert(Object::new(id, 50., 50., ObjectType::Active));
-    } else if pt.translation.y <= -400. {
-        if input.just_pressed(KeyCode::I) {
-            pt.translation = Vec3::new(0., 64., 0.);
-            clock.timer.unpause();
-        }
+    } 
+    
+    if pt.translation.y <= -400. {
         if input.just_pressed(KeyCode::B) {
-            if pt.translation.x <= -100. && p.credits >= UMBRELLA_PRICE {
+            if pt.translation.x <= -100. {
                 //IF TRY TO BUY UMBRELLA
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Umbrella already purchased!");
-                } else {
-                    p.credits -= UMBRELLA_PRICE;
-                    p.items.push(ItemType::Umbrella);
-                    print!("UMBRELLA PURCHASED!");
+                if p.credits >= UMBRELLA_PRICE {
+                    if p.items.contains(&ItemType::Umbrella) {
+                        println!("Umbrella already purchased!");
+                    } else {
+                        p.credits -= UMBRELLA_PRICE;
+                        p.items.push(ItemType::Umbrella);
+                        print!("UMBRELLA PURCHASED!");
+                    }
                 }
-            } else if pt.translation.x >= 100. && p.credits >= JETPACK_PRICE {
+                else {
+                    println!("Insufficient funds.");
+                }
+                
+            } else if pt.translation.x >= 100. {
                 //IF TRY TO BUY JETPACK
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Jetpack already purchased!");
-                } else {
-                    p.credits -= JETPACK_PRICE;
-                    p.items.push(ItemType::Jetpack);
-                    print!("JETPACK PURCHASED!");
+                if p.credits >= JETPACK_PRICE {
+                    if p.items.contains(&ItemType::Jetpack) {
+                        println!("Jetpack already purchased!");
+                    } else {
+                        p.credits -= JETPACK_PRICE;
+                        p.items.push(ItemType::Jetpack);
+                        print!("JETPACK PURCHASED!");
+                    }
                 }
-            } else if p.credits >= BOOTS_PRICE {
-                //IF TRY TO BUY BOOTS
-                if p.items.contains(&ItemType::Umbrella) {
-                    println!("Boots already purchased!");
-                } else {
-                    p.credits -= BOOTS_PRICE;
-                    p.items.push(ItemType::Boots);
-                    print!("BOOTS PURCHASED!");
+                else {
+                    println!("Insufficient funds.");
                 }
-            }
+            } else {
+                    if p.credits >= BOOTS_PRICE {
+                        //IF TRY TO BUY BOOTS
+                        if p.items.contains(&ItemType::Boots) {
+                            println!("Boots already purchased!");
+                        } else {
+                            p.credits -= BOOTS_PRICE;
+                            p.items.push(ItemType::Boots);
+                            print!("BOOTS PURCHASED!");
+                        }
+                    }
+                    else {
+                        println!("Insufficient funds.");
+                    }
+                }
             println!("PRESS I TO RETURN!");
         }
     }
@@ -1584,14 +1673,20 @@ fn item_shop(
 fn player_health(
     mut player: Query<(&mut Player), With<Player>>,
     mut exit: EventWriter<AppExit>,
+    mut manager: Query<&mut Manager, (With<Manager>)>,
+    mut clock: ResMut<Clock>,
     // mut healthbar: Query<(Entity), With<HealthBar>>,
     // mut commands: Commands,
 ) {
-    let (p) = player.single_mut();
+    let mut p = player.single_mut();
+    let mut m = manager.single_mut();
     // let e = healthbar.single_mut();
     // commands.entity(e).despawn();
     if p.health <= 0 {
-        exit.send(AppExit);
+        m.prev_room_number = m.room_number;
+        m.room_number = 0;
+        p.health = 100;
+        clock.timer.reset();
         print!("You lose!");
     }
 }
@@ -1622,23 +1717,26 @@ fn barrels_with_barrels(
                     Collision::Left => {
                         if mao2.velocity.x != 0. {
                             mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
+                            mao.projected_position.x = mao2.projected_position.x + mo2.width;
                         } else if mao.velocity.x != 0. {
                             mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x - mo.width;
+                            mao2.projected_position.x = mao.projected_position.x - mo.width;
                         }
                     }
                     Collision::Right => {
                         if mao2.velocity.x != 0. {
                             mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
+                           mao.projected_position.x = mao2.projected_position.x + mo.width;
                         } else if mao.velocity.x != 0. {
                             mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x - mo.width;
+                          mao2.projected_position.x = mao.projected_position.x - mo.width;
                         }
                     }
                     Collision::Top => {
-                        mao2.velocity.y = 0.;
+                        //println!("should have stopped");
+                        mao.velocity.y = 0.;
+                        mao.grounded=true;
+                        mao.projected_position.y= mao2.projected_position.y+ mo2.height/2. + mo.height/2.;
                     }
                     // Collision::Inside => {
                     //     if (mt.translation.x < mt2.translation.x) {
@@ -1647,15 +1745,20 @@ fn barrels_with_barrels(
                     //         mt.translation.x = mt2.translation.x + mo.width;
                     //     }
                     // }
-                    _ => {
-                        if mao2.velocity.x != 0. {
-                            mao.velocity = mao2.velocity;
-                            mt.translation.x = mt2.translation.x + mo.width;
-                        } else if mao.velocity.x != 0. {
-                            mao2.velocity = mao.velocity;
-                            mt2.translation.x = mt.translation.x + mo.width;
-                        }
+                    Collision::Bottom => {
+                        // if mao2.velocity.x != 0. {
+                        //     mao.velocity = mao2.velocity;
+                        //     mt.translation.x = mt2.translation.x + mo.width;
+                        // } else if mao.velocity.x != 0. {
+                        //     mao2.velocity = mao.velocity;
+                        //     mt2.translation.x = mt.translation.x + mo.width;
+                        // }
+                        //mao.velocity.y = 0.;
+                       // mao.velocity.x = 0.;
+                       mao2.velocity.y = 0.;
+                       mao2.grounded=true;
                     }
+                    _ => {}
                 }
             }
         }

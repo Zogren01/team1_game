@@ -21,6 +21,26 @@ pub const BOOTS_PRICE: i32 = 30;
 pub const ATTACK_HITBOX: Vec2 = Vec2::new(32., 16.);
 pub const HEALTHBAR_SZ: Vec2 = Vec2::new(50., 6.);
 
+
+#[derive(Component)]
+pub struct Manager {
+    pub room_number: i8,
+    pub prev_room_number: i8,
+}
+
+impl Manager{
+    pub fn new(n: i8, o:i8) -> Self {
+        Self{
+            room_number: o,
+            prev_room_number: n,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct GraphNode;
+
+
 #[derive(Component, Copy, Clone)]
 pub struct Object {
     pub id: i32,
@@ -29,6 +49,7 @@ pub struct Object {
     pub obj_type: ObjectType,
     pub velocity: Vec2,
     pub broken: bool,
+    pub level: i8,
 }
 
 impl Object {
@@ -41,6 +62,19 @@ impl Object {
             velocity: Vec2::splat(0.0),
             // project_pos: Vec3::splat(0.),
             broken: false,
+            level: -50,
+        }
+    }
+    pub fn new2(i: i32, w: f32, h: f32, t: ObjectType, l: i8) -> Self {
+        Self {
+            id: i,
+            width: w,
+            height: h,
+            obj_type: t,
+            velocity: Vec2::splat(0.0),
+            // project_pos: Vec3::splat(0.),
+            broken: false,
+            level: l,
         }
     }
 }
@@ -77,6 +111,7 @@ pub struct Descriptor {
     pub y_pos: f32,
     pub obj_type: ObjectType,
     pub id: i32,
+    pub level: i8,
 }
 impl Descriptor {
     fn new(w: f32, h: f32, x: f32, y: f32, t: ObjectType) -> Self {
@@ -87,6 +122,7 @@ impl Descriptor {
             y_pos: y * 32.,
             obj_type: t,
             id: -50,
+            level: -50,
         }
     }
     pub fn new2(w: f32, h: f32, x: f32, y: f32, t: ObjectType, i: i32) -> Self {
@@ -97,6 +133,18 @@ impl Descriptor {
             y_pos: y,
             obj_type: t,
             id: i,
+            level: -50,
+        }
+    }
+    pub fn new3(w: f32, h: f32, x: f32, y: f32, t: ObjectType, l:i8) -> Self {
+        Self {
+            width: w * 32.,
+            height: h * 32.,
+            x_pos: x * 32.,
+            y_pos: y * 32.,
+            obj_type: t,
+            id: -50,
+            level: l,
         }
     }
 }
@@ -104,10 +152,6 @@ impl Descriptor {
 pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
     //smaller map for testing AI stuff
-    if id == 0 {
-        result.push(Descriptor::new(1., 2., 8., 2., ObjectType::Block));
-        result.push(Descriptor::new(16., 1., 0.5, 0., ObjectType::Block));
-    }
     if id == 1 {
         //ceiling
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
@@ -144,6 +188,12 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        //left teleporter
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 2));
+        //right teleporter
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 3));
+
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //block on bottom floor
@@ -174,6 +224,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 2., 22.5, -4., ObjectType::Block));
         
         result.push(Descriptor::new(1., 2., -12., 5., ObjectType::Breakable)); // platform to hold another item
+        result.push(Descriptor::new(1., 2., 18., 10., ObjectType::Barrel)); // platform to hold another item
+        result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
+        result.push(Descriptor::new(1., 2., 2., 15., ObjectType::Breakable)); // platform to hold another item
+        result.push(Descriptor::new(1., 2., 4., 0., ObjectType::Breakable)); // platform to hold another item
     }
     if id == 2 {
         /* 
@@ -283,6 +337,11 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 4));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 1));
+
+
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
 
@@ -349,6 +408,11 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 1));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 5));
+        
+
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
@@ -377,12 +441,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //enemy
         result.push(Descriptor::new(1., 1., -20., 4.5, ObjectType::MeleeEnemy));
-        result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
-        
-
-        
-
-
+        //result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
+    
     }
     if id == 4 {
         //ceiling
@@ -393,6 +453,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 6));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 2));
+        
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //middle vertical platform
@@ -427,7 +491,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(1., 3.5, -5., -7., ObjectType::Block));
 
         //enemy
-        //result.push(Descriptor::new(1., 1., -7., 4.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., -7., 4.5, ObjectType::MeleeEnemy));
         result.push(Descriptor::new(1., 1., 23.5, -0.5, ObjectType::MeleeEnemy));
     }
     if id == 5 {
@@ -439,6 +503,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 24., -29.5, 5., ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 3));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 7));
+        
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //top vertical platform
@@ -469,7 +537,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(2.5, 3.5, 10., -10.5, ObjectType::Block));
 
         //enemy
-        //result.push(Descriptor::new(1., 1., 20., 10.5, ObjectType::MeleeEnemy));
+        result.push(Descriptor::new(1., 1., 20., 10.5, ObjectType::MeleeEnemy));
         result.push(Descriptor::new(1., 1., -28.5, -6.5, ObjectType::MeleeEnemy));
     }
     if id == 6 {
@@ -481,6 +549,10 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 8));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 4));
+        
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
         //vertical middle line
@@ -605,6 +677,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
 
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 5));
+        
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
@@ -665,6 +739,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new3(1., 6., 29.5, -9., ObjectType::Teleporter, 6));
+        
         //bottom floor
         result.push(Descriptor::new(60., 5., 0., -14.5, ObjectType::Block));
 
@@ -718,23 +794,28 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     }
 
     // shop platform spawns below level
+    if id == 0{
     result.push(Descriptor::new(1., 10., -16., -17., ObjectType::Block)); //shop sides
+
+    result.push(Descriptor::new3(1., 10., 15., -17., ObjectType::Teleporter, 1)); //shop sides
+
     result.push(Descriptor::new(1., 10., 16., -17., ObjectType::Block));
 
-    result.push(Descriptor::new(32., 1., 0., -32., ObjectType::Block)); // shop box code start
-    result.push(Descriptor::new(32., 1., 0., -21., ObjectType::Block));
-    result.push(Descriptor::new(1., 12., 16., -26.5, ObjectType::Block));
-    result.push(Descriptor::new(1., 12., -16., -26.5, ObjectType::Block)); // shop box code end
+    //result.push(Descriptor::new(32., 1., 0., -32., ObjectType::Block)); // shop box code start
+    result.push(Descriptor::new(32., 1., 0., -21.5, ObjectType::Block));
+    //result.push(Descriptor::new(1., 12., 16., -26.5, ObjectType::Block));
+    //result.push(Descriptor::new(1., 12., -16., -26.5, ObjectType::Block)); // shop box code end
 
-    result.push(Descriptor::new(8., 1., 12., -29., ObjectType::Block)); // platform to hold umbrella
-    result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
-    result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
+    //result.push(Descriptor::new(8., 1., 12., -29., ObjectType::Block)); // platform to hold umbrella
+    //result.push(Descriptor::new(8., 1., -12., -29., ObjectType::Block)); // platform to hold another item
+    //result.push(Descriptor::new(8., 1., 0., -26., ObjectType::Block)); // platform to hold jet pack
 
-    result.push(Descriptor::new(1., 2., 18., 10., ObjectType::Barrel)); // platform to hold another item
-    result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
+    //result.push(Descriptor::new(1., 2., 18., 10., ObjectType::Barrel)); // platform to hold another item
+    //result.push(Descriptor::new(1., 2., 5., 9., ObjectType::Barrel)); // platform to hold another item
 
-    result.push(Descriptor::new(1., 2., 2., 15., ObjectType::Breakable)); // platform to hold another item
-    result.push(Descriptor::new(1., 2., 4., 0., ObjectType::Breakable)); // platform to hold another item
+    //result.push(Descriptor::new(1., 2., 2., 15., ObjectType::Breakable)); // platform to hold another item
+    //result.push(Descriptor::new(1., 2., 4., 0., ObjectType::Breakable)); // platform to hold another item
+    }
 
     // result.push(Descriptor::new(
     //     1.,
@@ -766,4 +847,5 @@ pub enum ObjectType {
     Breakable,
     Barrel,
     Credit,
+    Teleporter,
 }

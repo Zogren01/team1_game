@@ -68,17 +68,6 @@ pub fn get_level_mesh(id: i8) -> Graph{
 
     let mut graph = Graph::new();
     //level id for testing
-    if id == 0{
-        //outtated vertex positions
-        graph.vertices.push(Vertex::new(-224., 32., 0));
-        graph.vertices.push(Vertex::new(208., 32., 1));
-        graph.vertices.push(Vertex::new(256., 96., 2));
-
-        graph.edges[0][1] = Edge::new(Motion::Right);
-        graph.edges[1][0] = Edge::new(Motion::Left);
-        graph.edges[1][2] = Edge::new(Motion::JumpRight);
-        graph.edges[2][1] = Edge::new(Motion::Left);
-    }
     if id == 1{
         //starting panel vertices
         graph.vertices.push(Vertex::new_scaled(4., 10.5, 0));
