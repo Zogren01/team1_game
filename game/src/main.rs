@@ -716,9 +716,7 @@ fn apply_collisions(
                         }
                     },
                 }
-            } else {
-                active.stuck = false;
-            }
+            } 
         }
     }
 }

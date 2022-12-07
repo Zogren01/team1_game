@@ -149,6 +149,7 @@ impl Descriptor {
 
 pub fn get_level(id: i8) -> Vec<Descriptor> {
     let mut result = Vec::new();
+    println!("{}",id);
     //smaller map for testing AI stuff
     if id == 0 {
         result.push(Descriptor::new(1., 2., 8., 2., ObjectType::Block));
@@ -196,6 +197,8 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
         result.push(Descriptor::new(1., 23., 29.5, 5.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., -4., 5., ObjectType::Barrel));
+
 
         //left teleporter
         result.push(Descriptor::new3(1., 6., -29.5, -9., ObjectType::Teleporter, 2));
@@ -338,6 +341,9 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         */
 
         //ceiling
+     
+
+
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
         result.push(Descriptor::new(16., 1., -6., 9.5, ObjectType::Block));
@@ -402,6 +408,25 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     }
 
     if id == 3 {
+        result.push(Descriptor::new(1., 2., 12., 13., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2., 0., 2., ObjectType::Barrel));
+
+        result.push(Descriptor::new(1., 2.,21., 2., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2.,23., 2., ObjectType::Breakable));
+        //result.push(Descriptor::new(1., 2.,22., 4., ObjectType::Breakable));
+
+        result.push(Descriptor::new(1., 2.,0., -7., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2.,-1., -7., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2.,1., -7., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2.,-0.5, -4., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2.,-0.5, -4., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2.,0.5, -4., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2.,0., -1., ObjectType::Barrel));
+
+
+
+
+
         //ceiling
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
@@ -445,6 +470,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         //result.push(Descriptor::new(1., 1., 0., 4.5, ObjectType::MeleeEnemy));
     }
     if id == 4 {
+        
         //ceiling
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
@@ -496,6 +522,14 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     }
     if id == 5 {
         //ceiling
+        result.push(Descriptor::new(1., 2., 7., 10.5, ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2., 15., 1., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2., 15.,3., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2., 15.,5., ObjectType::Barrel));
+
+
+
+
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
         result.push(Descriptor::new(28., 1., -10., 9.5, ObjectType::Block));
@@ -674,6 +708,14 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
         result.push(Descriptor::new(60., 1., 0., 16.5, ObjectType::Block));
         //starting platform
         result.push(Descriptor::new(14., 1., 0., 9.5, ObjectType::Block));
+        result.push(Descriptor::new(1., 2., -21.,12., ObjectType::Barrel));
+        result.push(Descriptor::new(1., 2., 7.,-10., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2., 13.,2., ObjectType::Breakable));
+        result.push(Descriptor::new(1., 2., 12.,2., ObjectType::Breakable));
+
+
+
+
 
         //left and right walls
         result.push(Descriptor::new(1., 23., -29.5, 5.5, ObjectType::Block));
