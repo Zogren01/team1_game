@@ -118,14 +118,14 @@ fn create_level(
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                        texture: asset_server.load("explosiveBarrel.png"),
+                        // texture: asset_server.load("explosiveBarrel.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(50,0))
+                    .insert(ActiveObject::new(50, 0))
                     .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
                 //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
@@ -143,7 +143,7 @@ fn create_level(
                         },
                         ..default()
                     })
-                    .insert(ActiveObject::new(50,0))
+                    .insert(ActiveObject::new(50, 0))
                     .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
             } else if matches!(desc.obj_type, ObjectType::MeleeEnemy) {
@@ -191,29 +191,29 @@ fn create_level(
                     ))
                     .insert(Enemy::new(Type::Ranged));
             } else if matches!(desc.obj_type, ObjectType::OtherEnemy) {
-            commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::YELLOW,
-                        custom_size: Some(Vec2::new(desc.width, desc.height)),
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::YELLOW,
+                            custom_size: Some(Vec2::new(desc.width, desc.height)),
+                            ..default()
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
+                            ..default()
+                        },
                         ..default()
-                    },
-                    transform: Transform {
-                        translation: Vec3::new(desc.x_pos, desc.y_pos, 5.),
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(ActiveObject::new(ENEMY_HEALTH, 25))
-                .insert(Object::new(
-                    900,
-                    desc.width,
-                    desc.height,
-                    ObjectType::OtherEnemy,
-                ))
-                .insert(Enemy::new(Type::Hybrid));
-        }
-    } else {
+                    })
+                    .insert(ActiveObject::new(ENEMY_HEALTH, 25))
+                    .insert(Object::new(
+                        900,
+                        desc.width,
+                        desc.height,
+                        ObjectType::OtherEnemy,
+                    ))
+                    .insert(Enemy::new(Type::Hybrid));
+            }
+        } else {
             commands
                 .spawn_bundle(SpriteBundle {
                     sprite: Sprite {
@@ -533,7 +533,6 @@ fn apply_collisions(
     //loop through all objects that move
     for (object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
-            
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
                 //need to change this to get the size of whatever the object is
@@ -571,7 +570,7 @@ fn apply_collisions(
                             active.velocity.y = -2.;
                             active.grounded = false;
                         }
-                        ObjectType::Block  => {
+                        ObjectType::Block => {
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + object.width / 2.;
@@ -590,8 +589,7 @@ fn apply_collisions(
                                 active.velocity.y = -2.;
                                 active.grounded = false;
                             }
-                            ObjectType::Block  => {
-                                
+                            ObjectType::Block => {
                                 if matches!(object.obj_type, ObjectType::Barrel)
                                     || matches!(object.obj_type, ObjectType::Breakable)
                                 {
@@ -605,8 +603,8 @@ fn apply_collisions(
                                 }
                                 active.projected_position.y =
                                     t.translation.y + (o.height / 2.) + object.height / 2.;
-                                
-                                active.grounded=true;
+
+                                active.grounded = true;
                             }
                             _ => {}
                         }
@@ -641,8 +639,14 @@ fn apply_collisions(
 
 //this function doesn't seem to work
 fn enemy_collisions(
-    mut actives: Query<(&mut ActiveObject, &Transform), (With<Player>, Without<Enemy>, Without<MovableObject>)>,
-    mut enemies: Query<(&mut ActiveObject, &mut Transform), (With<Enemy>, Without<Player>, Without<MovableObject>)>,
+    mut actives: Query<
+        (&mut ActiveObject, &Transform),
+        (With<Player>, Without<Enemy>, Without<MovableObject>),
+    >,
+    mut enemies: Query<
+        (&mut ActiveObject, &mut Transform),
+        (With<Enemy>, Without<Player>, Without<MovableObject>),
+    >,
     mut exit: EventWriter<AppExit>,
 ) {
     for (mut active, transform) in actives.iter_mut() {
@@ -733,36 +737,38 @@ fn my_cursor_system(
     }
 }
 fn object_collisions(
-    mut movables: Query<(&mut Object, &mut ActiveObject, &mut Transform), (With<MovableObject>, Without<Player>, Without<Enemy>)>,
+    mut movables: Query<
+        (&mut Object, &mut ActiveObject, &mut Transform),
+        (With<MovableObject>, Without<Player>, Without<Enemy>),
+    >,
     mut player: Query<(&mut ActiveObject, &mut Transform), (With<Player>, Without<MovableObject>)>,
     //mut objects2: Query<(&mut Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
     let (mut pao, pt) = player.single_mut();
-        for(mut o, mut ao, mut t) in movables.iter_mut() {
-
-                let hit_top_half = bevy::sprite::collide_aabb::collide(
-                pao.projected_position,
-                //ne    ed to change this to get the size of whatever the object is
-                Vec2::new(PLAYER_SZ, PLAYER_SZ),
-                ao.projected_position,
-                Vec2::new(o.width, o.height),
-            );
-            if hit_top_half.is_some() { //if player collides with movable object
-                let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
-                match coll_type {
-                    Collision::Top => {
-                        pao.velocity.y=0.;
-                        pao.grounded=true;
-                        ao.velocity.y=0.;
-                    },
-                    Collision::Left => {
-                        //t.rotate_z(-0.1);
-                        if pao.velocity.x > 0. {
-                            ao.velocity.x = pao.velocity.x;
-                        }
-                    pao.projected_position.x =
-                        t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
-                },
+    for (mut o, mut ao, mut t) in movables.iter_mut() {
+        let hit_top_half = bevy::sprite::collide_aabb::collide(
+            pao.projected_position,
+            //ne    ed to change this to get the size of whatever the object is
+            Vec2::new(PLAYER_SZ, PLAYER_SZ),
+            ao.projected_position,
+            Vec2::new(o.width, o.height),
+        );
+        if hit_top_half.is_some() {
+            //if player collides with movable object
+            let coll_type: bevy::sprite::collide_aabb::Collision = hit_top_half.unwrap();
+            match coll_type {
+                Collision::Top => {
+                    pao.velocity.y = 0.;
+                    pao.grounded = true;
+                    ao.velocity.y = 0.;
+                }
+                Collision::Left => {
+                    //t.rotate_z(-0.1);
+                    if pao.velocity.x > 0. {
+                        ao.velocity.x = pao.velocity.x;
+                    }
+                    pao.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
+                }
                 Collision::Right => {
                     if pao.velocity.x < 0. {
                         ao.velocity.x = pao.velocity.x;
@@ -817,7 +823,10 @@ fn update_positions(
 //ex. for enemy in enemies, 1. calc sight 2. make decision on where to go 3. execute one of the select motion commands
 fn move_enemies(
     input: Res<Input<KeyCode>>,
-    mut enemies: Query<(&mut ActiveObject, &Transform, &mut Enemy), (With<Enemy>, Without<MovableObject>)>,
+    mut enemies: Query<
+        (&mut ActiveObject, &Transform, &mut Enemy),
+        (With<Enemy>, Without<MovableObject>),
+    >,
 ) {
     for (mut enemy, et, mut e) in enemies.iter_mut() {
         let mut change = Vec2::splat(0.);
@@ -840,9 +849,8 @@ fn move_enemies(
                 if enemy.grounded {
                     enemy.velocity.y = 10.;
                     change.y = enemy.velocity.y;
-                    e.motion = Motion::Fall;  
-                } 
-                else {
+                    e.motion = Motion::Fall;
+                } else {
                     enemy.velocity.y += GRAVITY;
                 }
             }
@@ -851,8 +859,7 @@ fn move_enemies(
                     enemy.velocity.y = 10.;
                     change.y = enemy.velocity.y;
                     e.motion = Motion::Right;
-                }
-                else {
+                } else {
                     enemy.velocity.y += GRAVITY;
                 }
                 enemy.velocity.x = PLAYER_SPEED;
@@ -863,8 +870,7 @@ fn move_enemies(
                     change.y = enemy.velocity.y;
 
                     e.motion = Motion::Left;
-                }
-                else {
+                } else {
                     enemy.velocity.y += GRAVITY;
                 }
                 enemy.velocity.x = -PLAYER_SPEED;
@@ -887,19 +893,18 @@ fn move_enemies(
     }
 }
 
-fn gravity_on_movables (
-    mut movables: Query<(&Object,&mut ActiveObject, &Transform), With<MovableObject>>,
-    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>
+fn gravity_on_movables(
+    mut movables: Query<(&Object, &mut ActiveObject, &Transform), With<MovableObject>>,
+    mut objects: Query<(&Object, &mut Transform), (With<Object>, Without<ActiveObject>)>,
 ) {
-
-    for(mut mo, mut active, mt) in movables.iter_mut() {
-        
+    for (mut mo, mut active, mt) in movables.iter_mut() {
         if !active.grounded {
-            active.velocity.y+=GRAVITY;
+            active.velocity.y += GRAVITY;
         }
-        
-        active.projected_position= mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
-        active.grounded=false;
+
+        active.projected_position =
+            mt.translation + Vec3::new(active.velocity.x, active.velocity.y, 0.);
+        active.grounded = false;
     }
 }
 
@@ -907,211 +912,168 @@ fn attack_enemies(
     enemies: Query<(&ActiveObject, &Transform, &Enemy), With<Enemy>>,
     mut commands: Commands,
 ) {
-    
     for (enemy, et, e) in enemies.iter() {
-        
         let hitbox: Vec3;
-        
+
         match &e.attack {
-            Attack::Up => {
-                match &e.t{
-                    Type::Melee =>{
-                        hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
-                         commands
-                    .   spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
-                    Type::Ranged =>{}
-                    Type::Hybrid =>{
-                        hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
-                         commands
-                    .   spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
-                }               
-                
-            }
-            Attack::Down => {
-                match &e.t{
-                    Type::Melee =>{
-                        hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
-                         commands
+            Attack::Up => match &e.t {
+                Type::Melee => {
+                    hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
+                    commands
                         .spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: hitbox,
+                                ..default()
+                            },
                             ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
-                    Type::Ranged =>{}
-                    Type::Hybrid =>{
-                        hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
-                         commands
-                        .spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
+                        })
+                        .insert(MeleeBox::new(hitbox));
                 }
-                
-            }
-            Attack::Left => {
-                match &e.t{
-                    Type::Melee =>{
+                Type::Ranged => {}
+                Type::Hybrid => {
+                    hitbox = Vec3::new(et.translation.x, et.translation.y + PLAYER_SZ, 0.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: hitbox,
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .insert(MeleeBox::new(hitbox));
+                }
+            },
+            Attack::Down => match &e.t {
+                Type::Melee => {
+                    hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: hitbox,
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .insert(MeleeBox::new(hitbox));
+                }
+                Type::Ranged => {}
+                Type::Hybrid => {
+                    hitbox = Vec3::new(et.translation.x, et.translation.y - PLAYER_SZ, 0.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: hitbox,
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .insert(MeleeBox::new(hitbox));
+                }
+            },
+            Attack::Left => match &e.t {
+                Type::Melee => {
+                    hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: hitbox,
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .insert(MeleeBox::new(hitbox));
+                }
+                Type::Ranged => {
+                    let vel = Vec2::new(-15., 4.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                                ..default()
+                            },
+                            transform: Transform {
+                                translation: Vec3::new(
+                                    et.translation.x - PLAYER_SZ,
+                                    et.translation.y,
+                                    2.,
+                                ),
+                                ..default()
+                            },
+                            ..default()
+                        })
+                        .insert(Projectile::new(vel, ProjType::EnemyProjectile));
+                }
+                Type::Hybrid => {
+                    if enemy.health > ENEMY_HEALTH / 2 {
                         hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
                         commands
-                         .spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
-                    Type::Ranged =>{
+                            .spawn_bundle(SpriteBundle {
+                                sprite: Sprite {
+                                    color: Color::GREEN,
+                                    custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                    ..default()
+                                },
+                                transform: Transform {
+                                    translation: hitbox,
+                                    ..default()
+                                },
+                                ..default()
+                            })
+                            .insert(MeleeBox::new(hitbox));
+                    } else {
                         let vel = Vec2::new(-15., 4.);
                         commands
-                        .spawn_bundle(SpriteBundle {
-                          sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
-                        ..default()
-                        },
-                        transform: Transform {
-                            translation: Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 2.),
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(Projectile::new(vel, ProjType::EnemyProjectile));
-                    }
-                    Type::Hybrid =>{
-                        if enemy.health > ENEMY_HEALTH / 2 {
-                            hitbox = Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 0.);
-                            commands
-                             .spawn_bundle(SpriteBundle {
-                            sprite: Sprite {
-                                color: Color::GREEN,
-                                custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                                ..default()
-                            },
-                            transform: Transform {
-                                translation: hitbox,
-                                ..default()
-                            },
-                            ..default()
-                            })
-                            .insert(MeleeBox::new(hitbox));
-                        }
-                        else {
-                            let vel = Vec2::new(-15., 4.);
-                            commands
                             .spawn_bundle(SpriteBundle {
-                              sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
-                            ..default()
-                            },
-                            transform: Transform {
-                                translation: Vec3::new(et.translation.x - PLAYER_SZ, et.translation.y, 2.),
+                                sprite: Sprite {
+                                    color: Color::GREEN,
+                                    custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                                    ..default()
+                                },
+                                transform: Transform {
+                                    translation: Vec3::new(
+                                        et.translation.x - PLAYER_SZ,
+                                        et.translation.y,
+                                        2.,
+                                    ),
+                                    ..default()
+                                },
                                 ..default()
-                            },
-                            ..default()
                             })
                             .insert(Projectile::new(vel, ProjType::EnemyProjectile));
-                        }
                     }
                 }
-                
-            }
-            Attack::Right => {
-                match &e.t{
-                    
-                    Type::Melee =>{
-                        hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
-                        commands
-                       .spawn_bundle(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
-                            ..default()
-                        },
-                        transform: Transform {
-                            translation: hitbox,
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(MeleeBox::new(hitbox));
-                    }
-                    Type::Ranged =>{
-
-                        let vel = Vec2::new(15., 4.);
-                        commands
+            },
+            Attack::Right => match &e.t {
+                Type::Melee => {
+                    hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
+                    commands
                         .spawn_bundle(SpriteBundle {
-                          sprite: Sprite {
-                        color: Color::GREEN,
-                        custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
-                        ..default()
-                        },
-                        transform: Transform {
-                            translation: Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 2.),
-                            ..default()
-                        },
-                        ..default()
-                    })
-                    .insert(Projectile::new(vel, ProjType::EnemyProjectile));
-                        
-                    }
-                    Type::Hybrid =>{
-                        if enemy.health > ENEMY_HEALTH / 2{
-                            hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
-                            commands
-                           .spawn_bundle(SpriteBundle {
                             sprite: Sprite {
                                 color: Color::GREEN,
                                 custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
@@ -1122,30 +1084,70 @@ fn attack_enemies(
                                 ..default()
                             },
                             ..default()
-                            })
-                            .insert(MeleeBox::new(hitbox));
-                        }
-                        else{
-                            let vel = Vec2::new(15., 4.);
-                            commands
-                            .spawn_bundle(SpriteBundle {
-                              sprite: Sprite {
-                            color: Color::GREEN,
-                            custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
-                            ..default()
+                        })
+                        .insert(MeleeBox::new(hitbox));
+                }
+                Type::Ranged => {
+                    let vel = Vec2::new(15., 4.);
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::GREEN,
+                                custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                                ..default()
                             },
                             transform: Transform {
-                                translation: Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 2.),
+                                translation: Vec3::new(
+                                    et.translation.x + PLAYER_SZ,
+                                    et.translation.y,
+                                    2.,
+                                ),
                                 ..default()
                             },
                             ..default()
+                        })
+                        .insert(Projectile::new(vel, ProjType::EnemyProjectile));
+                }
+                Type::Hybrid => {
+                    if enemy.health > ENEMY_HEALTH / 2 {
+                        hitbox = Vec3::new(et.translation.x + PLAYER_SZ, et.translation.y, 0.);
+                        commands
+                            .spawn_bundle(SpriteBundle {
+                                sprite: Sprite {
+                                    color: Color::GREEN,
+                                    custom_size: Some(Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.)),
+                                    ..default()
+                                },
+                                transform: Transform {
+                                    translation: hitbox,
+                                    ..default()
+                                },
+                                ..default()
                             })
-                            .insert(Projectile::new(vel, ProjType::EnemyProjectile));     
-                        }
+                            .insert(MeleeBox::new(hitbox));
+                    } else {
+                        let vel = Vec2::new(15., 4.);
+                        commands
+                            .spawn_bundle(SpriteBundle {
+                                sprite: Sprite {
+                                    color: Color::GREEN,
+                                    custom_size: Some(Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ)),
+                                    ..default()
+                                },
+                                transform: Transform {
+                                    translation: Vec3::new(
+                                        et.translation.x + PLAYER_SZ,
+                                        et.translation.y,
+                                        2.,
+                                    ),
+                                    ..default()
+                                },
+                                ..default()
+                            })
+                            .insert(Projectile::new(vel, ProjType::EnemyProjectile));
                     }
                 }
-                
-            }
+            },
             Attack::None => {}
         }
     }
@@ -1173,15 +1175,17 @@ fn meleebox_collisions(
                 p.health -= 5;
             }
         }
-        for (mut object, object_t, object_entity) in objects.iter_mut(){
+        for (mut object, object_t, object_entity) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 obj.position,
                 Vec2::new(PLAYER_SZ * 2., PLAYER_SZ * 2.),
                 object_t.translation,
                 Vec2::new(object.width, object.height),
             );
-            if res.is_some(){
-                if matches!(object.obj_type, ObjectType::Breakable) || matches!(object.obj_type, ObjectType::Breakable) {
+            if res.is_some() {
+                if matches!(object.obj_type, ObjectType::Breakable)
+                    || matches!(object.obj_type, ObjectType::Breakable)
+                {
                     object.broken = true;
                 }
             }
@@ -1213,13 +1217,11 @@ fn move_player(
         pl.velocity.x = pl.velocity.x - 1.;
     }
 
-    if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100{
-        
+    if pl.velocity.x == 0. && pl.velocity.y == 0. && input.pressed(KeyCode::H) && p.health < 100 {
         if p.healing_bar == 240 {
             p.health += 20;
             p.healing_bar = 0;
-        }
-        else {
+        } else {
             p.healing_bar += 1;
         }
     }
