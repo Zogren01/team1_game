@@ -9,6 +9,7 @@ src will contain all source code for the application
 # Game Controls
 - Move: WASD
 - Shoot: L
-- Go to item shop: I
 - Purchase item: B
 - Toggle active item: J
+- Melee Attack: K
+- Heal: Hold H
