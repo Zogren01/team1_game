@@ -329,7 +329,13 @@ fn main() {
             "my_fixed_update",
             0, // fixed timestep name, sub-stage index
             // it can be a conditional system!
-            barrels_with_barrels.after(move_player),
+            change_player_direction.after(move_player),
+        )
+        .add_fixed_timestep_system(
+            "my_fixed_update",
+            0, // fixed timestep name, sub-stage index
+            // it can be a conditional system!
+            barrels_with_barrels.after(change_player_direction),
         )
         .add_fixed_timestep_system(
             "my_fixed_update",
@@ -540,10 +546,11 @@ fn setup(
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::BLUE,
+                // color: Color::BLUE,
                 custom_size: Some(Vec2::new(PLAYER_SZ, PLAYER_SZ)),
                 ..default()
             },
+            texture: asset_server.load("vampire1.png"),
             transform: pt,
             ..default()
         })
@@ -1762,5 +1769,16 @@ fn barrels_with_barrels(
                 }
             }
         }
+    }
+}
+
+fn change_player_direction(
+    mut player: Query<(&mut ActiveObject, &mut Transform, &mut Player), (With<Player>, Without<Enemy)>,
+){
+    let (mut pl, mut pt, mut p) = player.single_mut();
+    if pl.facing_left {
+        pt.rotation = Quat::from_rotation_y(std::f32::consts::PI);
+    } else {
+        pt.rotation = Quat::default();
     }
 }
