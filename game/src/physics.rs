@@ -163,6 +163,9 @@ pub fn projectile_static_collisions(
                     if matches!(o_o.obj_type, ObjectType::Barrel) {
                         o_o.broken = true;
                         commands.entity(entity).despawn();
+                    } else if matches!(o_o.obj_type, ObjectType::Breakable) {
+                        o_o.broken = true;
+                        commands.entity(entity).despawn();
                     } else {
                         match coll_type {
                             Collision::Left => {
@@ -260,7 +263,7 @@ pub fn projectile_active_collision(
         ),
     >,
     mut actives: Query<
-        (&mut ActiveObject, Entity),
+        (&mut ActiveObject, Entity, &mut Object),
         (With<ActiveObject>, Without<Player>, Without<Projectile>),
     >,
     mut player: Query<(&mut Player, &ActiveObject), With<Player>>,
@@ -271,7 +274,7 @@ pub fn projectile_active_collision(
             pro_t.translation.y + pro_o.velocity.y,
             0.,
         );
-        for (mut e_o, entity) in actives.iter_mut() {
+        for (mut e_o, entity, o_o) in actives.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 pro_o.project_pos,
                 Vec2::new(PROJECTILE_SZ, PROJECTILE_SZ),
@@ -466,19 +469,19 @@ pub fn break_objects(
                                 let mut p_yvel = 0.;
                                 match coll_type {
                                     Collision::Left => {
-                                        p_xvel = rng.gen_range(10, 20) as f32;
+                                        p_xvel = rng.gen_range(5, 10) as f32;
                                         p_yvel = (i as f32 - 3.) / 2. + 2.;
                                     }
                                     Collision::Right => {
-                                        p_xvel = rng.gen_range(-20, -10) as f32;
+                                        p_xvel = rng.gen_range(-10, -5) as f32;
                                         p_yvel = (i as f32 - 3.) / 2. + 2.;
                                     }
                                     Collision::Top => {
-                                        p_yvel = rng.gen_range(-20, -10) as f32;
+                                        p_yvel = rng.gen_range(-10, -5) as f32;
                                         p_xvel = (i as f32 - 3.) / 2. + 2.;
                                     }
                                     Collision::Bottom => {
-                                        p_yvel = rng.gen_range(10, 20) as f32;
+                                        p_yvel = rng.gen_range(5, 10) as f32;
                                         p_xvel = (i as f32 - 3.) / 2. + 2.;
                                     }
                                     Collision::Inside => {
@@ -488,20 +491,20 @@ pub fn break_objects(
                                             false
                                         };
                                         if (horizontal && pro_o.velocity.x > 0.) {
-                                            p_xvel = rng.gen_range(10, 20) as f32;
+                                            p_xvel = rng.gen_range(5, 10) as f32;
                                             p_yvel = (i as f32 - 3.) / 2. + 2.;
                                         } else if horizontal && pro_o.velocity.x < 0. {
-                                            p_xvel = rng.gen_range(-20, -10) as f32;
+                                            p_xvel = rng.gen_range(-10, -5) as f32;
                                             p_yvel = (i as f32 - 3.) / 2. + 2.;
                                         } else if !horizontal && pro_o.velocity.y > 0. {
-                                            p_yvel = rng.gen_range(10, 20) as f32;
+                                            p_yvel = rng.gen_range(5, 10) as f32;
                                             p_xvel = (i as f32 - 3.) / 2. + 2.;
                                         } else if !horizontal && pro_o.velocity.y < 0. {
-                                            p_yvel = rng.gen_range(-20, -10) as f32;
+                                            p_yvel = rng.gen_range(-10, -5) as f32;
                                             p_xvel = (i as f32 - 3.) / 2. + 2.;
                                         } else {
                                             p_yvel = rng.gen_range(4, 10) as f32;
-                                            p_xvel = rng.gen_range(-20, -10) as f32;
+                                            p_xvel = rng.gen_range(-10, -5) as f32;
                                         }
                                     }
                                 }
@@ -573,10 +576,10 @@ pub fn break_objects(
                                             p_yvel = (i as f32 - 3.) / 2. + 2.;
                                         } else if !horizontal && pro_o.velocity.y > 0. {
                                             p_yvel = rng.gen_range(10, 20) as f32;
-                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                            p_xvel = (i as f32 - 5.) / 2. + 2.;
                                         } else if !horizontal && pro_o.velocity.y < 0. {
                                             p_yvel = rng.gen_range(-20, -10) as f32;
-                                            p_xvel = (i as f32 - 3.) / 2. + 2.;
+                                            p_xvel = (i as f32 - 5.) / 2. + 2.;
                                         } else {
                                             p_yvel = rng.gen_range(4, 10) as f32;
                                             p_xvel = rng.gen_range(-10, 10) as f32;
@@ -642,17 +645,17 @@ pub fn break_hb_objects(
             if matches!(o_o.obj_type, ObjectType::Barrel) {
                 for i in 1..10 {
                     if (horizontal && pt.translation.x < o_t.translation.x) {
-                        p_xvel = rng.gen_range(10, 20) as f32;
+                        p_xvel = rng.gen_range(5, 10) as f32;
                         p_yvel = (i as f32 - 3.) / 2. + 2.;
                     } else if (horizontal && pt.translation.x > o_t.translation.x) {
-                        p_xvel = rng.gen_range(-20, -10) as f32;
+                        p_xvel = rng.gen_range(-10, -5) as f32;
                         p_yvel = (i as f32 - 3.) / 2. + 2.;
                     } else if (!horizontal && pt.translation.y > o_t.translation.y) {
-                        p_yvel = rng.gen_range(-20, -10) as f32;
-                        p_xvel = (i as f32 - 3.) / 2. + 2.;
-                    } else if (!horizontal && pt.translation.y < o_t.translation.y) {
                         p_yvel = rng.gen_range(10, 20) as f32;
-                        p_xvel = (i as f32 - 3.) / 2. + 2.;
+                        p_xvel = (i as f32 - 5.) / 2. + 2.;
+                    } else if (!horizontal && pt.translation.y < o_t.translation.y) {
+                        p_yvel = rng.gen_range(5, 10) as f32;
+                        p_xvel = (i as f32 - 5.) / 2. + 2.;
                     }
                     let sz = o_o.height / rng.gen_range(8, 16) as f32;
                     commands

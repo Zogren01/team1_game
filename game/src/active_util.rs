@@ -59,6 +59,7 @@ pub struct ActiveObject {
     pub max_health: i32,
     pub health: i32,
     pub projected_position: Vec3,
+    pub stuck: bool,
 }
 
 impl ActiveObject {
@@ -70,6 +71,7 @@ impl ActiveObject {
             max_health: h,
             health: h,
             projected_position: Vec3::splat(0.),
+            stuck: false,
         }
     }
 }

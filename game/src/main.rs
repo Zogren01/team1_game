@@ -157,7 +157,7 @@ fn create_level(
                             custom_size: Some(Vec2::new(desc.width, desc.height)),
                             ..default()
                         },
-                        // texture: asset_server.load("explosiveBarrel.png"),
+                        texture: asset_server.load("explosiveBarrel.png"),
                         transform: Transform {
                             translation: Vec3::new(desc.x_pos, desc.y_pos, 2.),
                             ..default()
@@ -167,7 +167,6 @@ fn create_level(
                     .insert(ActiveObject::new(50, 0))
                     .insert(MovableObject)
                     .insert(Object::new(id, desc.width, desc.height, desc.obj_type));
-                //  .insert(Explosive::new(Timer::from_seconds(2.0, false)));
             } else if matches!(desc.obj_type, ObjectType::Breakable) {
                 commands
                     .spawn_bundle(SpriteBundle {
@@ -573,7 +572,7 @@ fn apply_collisions(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    mut actives: Query<(&Object, &mut ActiveObject, &Transform), With<ActiveObject>>,
+    mut actives: Query<(&mut Object, &mut ActiveObject, &Transform), With<ActiveObject>>,
     mut objects: Query<(&mut Object, &Transform), (With<Object>, Without<ActiveObject>)>,
     mut m: Query<&mut Manager, (With<Manager>)>,
     //input: Res<Input<KeyCode>>,
@@ -582,7 +581,7 @@ fn apply_collisions(
 ) {
     //loop through all objects that move
     let mut manager = m.single_mut();
-    for (object, mut active, transform) in actives.iter_mut() {
+    for (mut object, mut active, transform) in actives.iter_mut() {
         for (mut o, t) in objects.iter_mut() {
             let res = bevy::sprite::collide_aabb::collide(
                 active.projected_position,
@@ -593,9 +592,7 @@ fn apply_collisions(
             );
             if res.is_some() {
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
-                if matches!(o.obj_type, ObjectType::Cobweb) {
-                    println!("{:?}", coll_type);
-                }
+
                 match coll_type {
                     Collision::Left => match o.obj_type {
                         ObjectType::Cobweb => {
@@ -614,6 +611,11 @@ fn apply_collisions(
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x - (o.width / 2.) - object.width / 2.;
+                            if matches!(object.obj_type, ObjectType::Barrel)
+                                || matches!(object.obj_type, ObjectType::Breakable)
+                            {
+                                active.stuck = true;
+                            }
                         }
                         _ => {}
                     },
@@ -633,10 +635,22 @@ fn apply_collisions(
                             active.velocity.x = 0.;
                             active.projected_position.x =
                                 t.translation.x + (o.width / 2.) + object.width / 2.;
+                            if matches!(object.obj_type, ObjectType::Barrel)
+                                || matches!(object.obj_type, ObjectType::Breakable)
+                            {
+                                active.stuck = true;
+                            }
                         }
                         _ => {}
                     },
                     Collision::Top => {
+                        if matches!(object.obj_type, ObjectType::Barrel)
+                            || matches!(object.obj_type, ObjectType::Breakable)
+                        {
+                            if (!active.grounded && active.velocity.y < -15.) {
+                                object.broken = true;
+                            }
+                        }
                         match o.obj_type {
                             ObjectType::Spike => {
                                 exit.send(AppExit);
@@ -649,13 +663,6 @@ fn apply_collisions(
                                 active.grounded = false;
                             }
                             ObjectType::Block => {
-                                // if matches!(object.obj_type, ObjectType::Barrel)
-                                //     || matches!(object.obj_type, ObjectType::Breakable)
-                                // {
-                                //     if (!active.grounded && active.velocity.y < -15.) {
-                                //         //object.broken = true;
-                                //     }
-                                // }
                                 if active.velocity.y < 0. {
                                     //if falling down
                                     active.velocity.y = 0.; //stop vertical velocity
@@ -686,11 +693,12 @@ fn apply_collisions(
                     },
                     Collision::Inside => match o.obj_type {
                         _ => {
-                            println!("NEED TO DETERMINE HOW TO DEAL WITH THIS");
                             active.velocity = Vec2::new(0., 0.);
                         }
                     },
                 }
+            } else {
+                active.stuck = false;
             }
         }
     }
@@ -824,13 +832,17 @@ fn object_collisions(
                 Collision::Left => {
                     //t.rotate_z(-0.1);
                     if pao.velocity.x > 0. {
-                        ao.velocity.x = pao.velocity.x;
+                        if (!ao.stuck) {
+                            ao.velocity.x = pao.velocity.x;
+                        }
                     }
                     pao.projected_position.x = t.translation.x - (PLAYER_SZ / 2.) - o.width / 2.;
                 }
                 Collision::Right => {
                     if pao.velocity.x < 0. {
-                        ao.velocity.x = pao.velocity.x;
+                        if (!ao.stuck) {
+                            ao.velocity.x = pao.velocity.x;
+                        }
                     }
                     pao.projected_position.x = t.translation.x + (PLAYER_SZ / 2.) + o.width / 2.;
                 }
@@ -1356,7 +1368,6 @@ fn move_player(
         pl.velocity.y += 0.0;
         change.y = pl.velocity.y;
     } else if !(pl.grounded) {
-        //print!("Applying Gravity");
         let item = p.items.get(p.active_item).unwrap();
 
         if matches!(item, ItemType::Umbrella) {
@@ -1694,28 +1705,47 @@ fn barrels_with_barrels(
                 match coll_type {
                     Collision::Left => {
                         if mao2.velocity.x != 0. {
-                            mao.velocity = mao2.velocity;
-                            mao.projected_position.x = mao2.projected_position.x + mo2.width;
+                            if (mao.stuck) {
+                                mao2.stuck = true;
+                                mao2.velocity.x = 0.;
+                            } else {
+                                mao.velocity = mao2.velocity;
+                                mao.projected_position.x = mao2.projected_position.x + mo2.width;
+                            }
                         } else if mao.velocity.x != 0. {
-                            mao2.velocity = mao.velocity;
-                            mao2.projected_position.x = mao.projected_position.x - mo.width;
+                            if (mao2.stuck) {
+                                mao.stuck = true;
+                                mao.velocity.x = 0.;
+                            } else {
+                                mao2.velocity = mao.velocity;
+                                mao2.projected_position.x = mao.projected_position.x - mo.width;
+                            }
                         }
                     }
                     Collision::Right => {
                         if mao2.velocity.x != 0. {
-                            mao.velocity = mao2.velocity;
-                            mao.projected_position.x = mao2.projected_position.x + mo.width;
+                            if mao.stuck {
+                                mao2.stuck = true;
+
+                                mao2.velocity.x = 0.;
+                            } else {
+                                mao.velocity = mao2.velocity;
+                                mao.projected_position.x = mao2.projected_position.x + mo.width;
+                            }
                         } else if mao.velocity.x != 0. {
-                            mao2.velocity = mao.velocity;
-                            mao2.projected_position.x = mao.projected_position.x - mo.width;
+                            if (mao2.stuck) {
+                                mao2.stuck = true;
+                                mao.velocity.x = 0.;
+                            } else {
+                                mao2.velocity = mao.velocity;
+                                mao2.projected_position.x = mao.projected_position.x - mo.width;
+                            }
                         }
                     }
                     Collision::Top => {
-                        //println!("should have stopped");
                         mao.velocity.y = 0.;
                         mao.grounded = true;
-                        mao.projected_position.y =
-                            mao2.projected_position.y + mo2.height / 2. + mo.height / 2.;
+                        mt.translation.y = mt2.translation.y + mo2.height / 2. + mo.height / 2.;
                     }
                     // Collision::Inside => {
                     //     if (mt.translation.x < mt2.translation.x) {
