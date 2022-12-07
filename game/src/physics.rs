@@ -285,7 +285,7 @@ pub fn projectile_active_collision(
                 let coll_type: bevy::sprite::collide_aabb::Collision = res.unwrap();
                 if matches!(pro_o.proj_type, ProjType::Particle) {
                     // let mut p = player.single_mut();
-                    e_o.health -= 5;
+                    e_o.health -= 25;
                     // print!("{}\n", e_o.health);
                     commands.entity(entity_p).despawn();
                     match coll_type {
