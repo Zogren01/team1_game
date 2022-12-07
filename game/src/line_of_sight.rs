@@ -152,35 +152,8 @@ pub fn calculate_sight(
                         object_lines.push(o2);
                     }
                 }
-                ObjectType::Breakable | ObjectType::Barrel => {
-                    let (v1, v2, v3) = find_vertices(
-                        pos.x,
-                        pos.y,
-                        t.translation.x,
-                        t.translation.y,
-                        o.width,
-                        o.height,
-                    );
-                    //if the object is within range, add its lines to object lines so that they are checked for line of sight
-                    let l1 = Line::new(Vec2::new(pos.x, pos.y), v3, 0);
-                    if l1.length_squared() < sight_distance * sight_distance {
-
-                        let sight_line = Line::new(
-                            Vec2::new(pos.x, pos.y),
-                            Vec2::new(t.translation.x, t.translation.y),
-                            MAX_VERT + 2,
-                        );
-                        sight_lines.push(sight_line);
-
-                        let o1 = Line::new(v1, v3, 0);
-                        let o2 = Line::new(v2, v3, 0);
-                        object_lines.push(o1);
-                        object_lines.push(o2);
-                    }
-                    //also need to add temporary vertices so enemy can destroy them
-                }
                 ObjectType::Bullet => {
-                    //enemy will avoid these
+                    //enemy will avoid these, or not, who cares
                 }
                 ObjectType::MeleeEnemy => {
                     let sight_line = Line::new(
