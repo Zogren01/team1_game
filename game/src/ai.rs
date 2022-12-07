@@ -49,7 +49,7 @@ impl PartialOrd for State {
 pub enum Type {
     Melee,
     Ranged,
-    Other,
+    Hybrid,
 }
 
 pub enum Action {
@@ -134,8 +134,16 @@ impl Enemy{
                 self.static_retreat_frames += 1;
             }
             //first check is for if player should be attacked
-            if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
-                if matches!(self.t, Type::Ranged) && x_dist < 100.{
+            if self.player_seen && x_dist < 100. && y_dist < 100. && health >= ENEMY_HEALTH/2{
+                if (matches!(self.t, Type::Ranged))&& x_dist < 50.{
+                    self.action = Action::Retreat;
+                }
+                else {
+                    self.action = Action::Attack;
+                }
+            }
+            else if self.player_seen && x_dist < 100. && y_dist < 100. && matches!(self.t, Type::Hybrid){
+                if (matches!(self.t, Type::Ranged))&& x_dist < 50.{
                     self.action = Action::Retreat;
                 }
                 else {
@@ -147,7 +155,7 @@ impl Enemy{
                 self.action = Action::Attack;
             }
             //catch all cases where retreat is better than run or reset
-            else if self.player_seen && health < ENEMY_HEALTH/2 && (matches!(self.action, Action::Attack) || !matches!(self.action, Action::Heal)) && x_dist < 150. && y_dist < 100.{
+            else if !matches!(self.t, Type::Hybrid) && self.player_seen && health < ENEMY_HEALTH/2 && (matches!(self.action, Action::Attack) || !matches!(self.action, Action::Heal)) && x_dist < 150. && y_dist < 100.{
                 self.action = Action::Retreat;
             }
             //if stuck, new or done attacking player, and not healing
@@ -158,7 +166,7 @@ impl Enemy{
                 self.action = Action::Reset;
             }
             else if self.player_seen {
-                if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
+                if !matches!(self.t, Type::Hybrid) && health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
                     self.action = Action::Run;
                 }
                 else{
@@ -184,22 +192,20 @@ impl Enemy{
                     Type::Ranged =>{
                         self.action = Action::Assist;
                     }
-                    Type::Other =>{
-
-                    }
+                    _ =>{}
                 }
             } 
             else{
                 self.action = Action::Strafe;
             }
-            self.update_motion(pos);
+            self.update_motion(pos, health);
         }
         self.old_pos = pos;
         return self.motion;
     }
 
      //updates enemy motion type if they are at or 
-     fn update_motion(&mut self, pos: Vec2){
+     fn update_motion(&mut self, pos: Vec2, health: i32){
 
         match self.action{
             Action::Reset => {
@@ -427,23 +433,70 @@ impl Enemy{
                         }
                     }
                     Type::Ranged => {
-                        //probably needs to be refined once ranged attacks exist for enemies
                         self.motion = Motion::Stop;
-                        if x_to_player < 40.{
+                        if x_to_player < 0.{
                             self.attack = Attack::Right;
                         }
-                        else if x_to_player > -40.{
+                        else{
                             self.attack = Attack::Left;
                         }
-                        else if y_to_player > 0.{
-                            self.attack = Attack::Up;
+                    }
+                    Type::Hybrid => {
+                        if health > ENEMY_HEALTH / 2{
+                            if x_to_player.abs() <= PLAYER_SZ{
+                                if y_to_player.abs() <= PLAYER_SZ{
+                                    //within range to attack
+                                    self.motion = Motion::Stop;
+                                    if x_to_player.abs() > y_to_player.abs(){
+                                        if x_to_player > 0.{
+                                            self.attack = Attack::Left;
+                                        }
+                                        else{
+                                            self.attack = Attack::Right;
+                                        }
+                                    }
+                                    else{
+                                        if y_to_player > 0.{
+                                            self.attack = Attack::Down;
+                                        }
+                                        else{
+                                            self.attack = Attack::Up;
+                                        }
+                                    }
+                                }
+                                //below player
+                                else{
+                                    self.motion = Motion::Jump;
+                                }
+                            }
+                            else{
+                                if x_to_player > 0.{
+                                    if y_to_player > 5.{
+                                        self.motion = Motion::JumpLeft;
+                                    }
+                                    else{
+                                        self.motion = Motion::Left;
+                                    }
+                                }
+                                else{
+                                    if y_to_player > 5.{
+                                        self.motion = Motion::JumpRight;
+                                    }
+                                    else{
+                                        self.motion = Motion::Right;
+                                    }
+                                }
+                            }
                         }
                         else{
-                            self.attack = Attack::Down;
+                            self.motion = Motion::Stop;
+                            if x_to_player < 0.{
+                                self.attack = Attack::Right;
+                            }
+                            else{
+                                self.attack = Attack::Left;
+                            }
                         }
-                    }
-                    Type::Other => {
-                        
                     }
                 }
                 
