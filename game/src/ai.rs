@@ -49,7 +49,7 @@ impl PartialOrd for State {
 pub enum Type {
     Melee,
     Ranged,
-    Other,
+    Hybrid,
 }
 
 pub enum Action {
@@ -134,8 +134,16 @@ impl Enemy{
                 self.static_retreat_frames += 1;
             }
             //first check is for if player should be attacked
-            if self.player_seen && x_dist < 150. && y_dist < 100. && health >= ENEMY_HEALTH/2{
-                if matches!(self.t, Type::Ranged) && x_dist < 100.{
+            if self.player_seen && x_dist < 100. && y_dist < 100. && health >= ENEMY_HEALTH/2{
+                if (matches!(self.t, Type::Ranged))&& x_dist < 50.{
+                    self.action = Action::Retreat;
+                }
+                else {
+                    self.action = Action::Attack;
+                }
+            }
+            else if self.player_seen && x_dist < 100. && y_dist < 100. && matches!(self.t, Type::Hybrid){
+                if (matches!(self.t, Type::Ranged))&& x_dist < 50.{
                     self.action = Action::Retreat;
                 }
                 else {
@@ -147,17 +155,18 @@ impl Enemy{
                 self.action = Action::Attack;
             }
             //catch all cases where retreat is better than run or reset
-            else if self.player_seen && health < ENEMY_HEALTH/2 && (matches!(self.action, Action::Attack) || !matches!(self.action, Action::Heal)) && x_dist < 150. && y_dist < 100.{
+            else if !matches!(self.t, Type::Hybrid) && self.player_seen && health < ENEMY_HEALTH/2 && (matches!(self.action, Action::Attack) || !matches!(self.action, Action::Heal)) && x_dist < 150. && y_dist < 100.{
                 self.action = Action::Retreat;
             }
             //if stuck, new or done attacking player, and not healing
-            else if (self.immobile_frames >= 10 || self.current_vertex == MAX_VERT + 1) && !matches!(self.action, Action::Heal){
+            else if (self.immobile_frames >= 10 || self.current_vertex == MAX_VERT + 1 || matches!(self.action, Action::Attack) || matches!(self.action, Action::Retreat)) 
+                && !matches!(self.action, Action::Heal){
                 self.immobile_frames = 0;
                 self.current_vertex = MAX_VERT + 1;
                 self.action = Action::Reset;
             }
-            else if self.player_seen || (x_dist < 150. && y_dist < 100.) {
-                if health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
+            else if self.player_seen {
+                if !matches!(self.t, Type::Hybrid) && health < ENEMY_HEALTH/2 && !matches!(self.action, Action::Reset){
                     self.action = Action::Run;
                 }
                 else{
@@ -167,17 +176,36 @@ impl Enemy{
             else if health < ENEMY_HEALTH{
                 self.action = Action::Heal;
             }
+            else if self.assist_possible{
+                match self.t{
+                    Type::Melee =>{
+                        let x_diff = (self.friend.x - pos.x).abs();
+                        let y_diff = (self.friend.y - pos.y).abs();
+                        if x_diff < 200. && y_diff < 300.{
+                            //need to reset first
+                            self.action = Action::Strafe;
+                        }
+                        else {
+                            self.action = Action::Assist;
+                        }
+                    }
+                    Type::Ranged =>{
+                        self.action = Action::Assist;
+                    }
+                    _ =>{}
+                }
+            } 
             else{
                 self.action = Action::Strafe;
             }
-            self.update_motion(pos);
+            self.update_motion(pos, health);
         }
         self.old_pos = pos;
         return self.motion;
     }
 
      //updates enemy motion type if they are at or 
-     fn update_motion(&mut self, pos: Vec2){
+     fn update_motion(&mut self, pos: Vec2, health: i32){
 
         match self.action{
             Action::Reset => {
@@ -308,7 +336,7 @@ impl Enemy{
                     }
                 }
                 //retreating but stuck
-                if self.static_retreat_frames > 2{
+                if self.static_retreat_frames > 1{
                     self.motion = Motion::Jump;
                     self.static_retreat_frames = 0;
                 }
@@ -387,28 +415,88 @@ impl Enemy{
                         }
                         else{
                             if x_to_player > 0.{
-                                self.motion = Motion::Left;
+                                if y_to_player > 5.{
+                                    self.motion = Motion::JumpLeft;
+                                }
+                                else{
+                                    self.motion = Motion::Left;
+                                }
                             }
                             else{
-                                self.motion = Motion::Right;
+                                if y_to_player > 5.{
+                                    self.motion = Motion::JumpRight;
+                                }
+                                else{
+                                    self.motion = Motion::Right;
+                                }
                             }
                         }
                     }
                     Type::Ranged => {
-                        //probably needs to be refined once ranged attacks exist for enemies
                         self.motion = Motion::Stop;
-                        if x_to_player < 40.{
+                        if x_to_player < 0.{
                             self.attack = Attack::Right;
                         }
-                        else if x_to_player > 40.{
+                        else{
                             self.attack = Attack::Left;
                         }
-                        else {
-                            self.attack = Attack::Up;
-                        }
                     }
-                    Type::Other => {
-                        
+                    Type::Hybrid => {
+                        if health > ENEMY_HEALTH / 2{
+                            if x_to_player.abs() <= PLAYER_SZ{
+                                if y_to_player.abs() <= PLAYER_SZ{
+                                    //within range to attack
+                                    self.motion = Motion::Stop;
+                                    if x_to_player.abs() > y_to_player.abs(){
+                                        if x_to_player > 0.{
+                                            self.attack = Attack::Left;
+                                        }
+                                        else{
+                                            self.attack = Attack::Right;
+                                        }
+                                    }
+                                    else{
+                                        if y_to_player > 0.{
+                                            self.attack = Attack::Down;
+                                        }
+                                        else{
+                                            self.attack = Attack::Up;
+                                        }
+                                    }
+                                }
+                                //below player
+                                else{
+                                    self.motion = Motion::Jump;
+                                }
+                            }
+                            else{
+                                if x_to_player > 0.{
+                                    if y_to_player > 5.{
+                                        self.motion = Motion::JumpLeft;
+                                    }
+                                    else{
+                                        self.motion = Motion::Left;
+                                    }
+                                }
+                                else{
+                                    if y_to_player > 5.{
+                                        self.motion = Motion::JumpRight;
+                                    }
+                                    else{
+                                        self.motion = Motion::Right;
+                                    }
+                                }
+                            }
+                        }
+                        else{
+                            self.motion = Motion::Stop;
+                            if x_to_player < 0.{
+                                self.attack = Attack::Right;
+                            }
+                            else{
+                                self.attack = Attack::Left;
+                            }
+                        }
                     }
                 }
                 
@@ -421,39 +509,41 @@ impl Enemy{
                 }
             }
             Action::Assist => {
-                //code to have enemies assist the other enemy type
-                match self.t{
-                    Type::Melee => {
-
+                //println!("Chase update");
+                //check that the current target vertex is still the closest one to the player
+                let mut x_diff = f32::MAX;
+                let mut y_diff = f32::MAX;
+                //find the difference in enemies position to the next vertex on the enemies path
+                //needed to determine if the enemy is "at" their destination
+                for v in self.enemy_graph.vertices.iter_mut() {
+                    if v.id == self.next_vertex {
+                        x_diff = pos.x - v.x;
+                        y_diff = pos.y - v.y;
+                        break;
                     }
-                    Type::Ranged => {
-                        // ranged enemy --> melee enemy --> player 
-                        if self.friend.x > pos.x && self.player_pos.x > pos.x && self.friend.x < self.player_pos.x{
+                }
+                if x_diff.abs() <= 5.{
+                    if y_diff.abs() <= 5.  {
+                        self.current_vertex = self.next_vertex;
+                        let pl_vert = self.nearest_vert(self.friend);
+                        //if a better vertex is found or the enemy has arrived (second one shouldn't ever happen)
+                        if pl_vert != self.target_vertex || self.current_vertex == self.target_vertex{
 
+                            self.target_vertex = pl_vert;
+                            self.path = self.shortest_path();
+                            self.index_in_path = 0;
                         }
-                        // melee enemy --> ranged enemy --> player
-                        else if self.friend.x < pos.x && self.player_pos.x > pos.x{
-
-                        }
-                        // player --> melee enemy --> ranged enemy
-                        else if self.friend.x < pos.x && self.player_pos.x < pos.x && self.friend.x > self.player_pos.x{
-
-                        }
-                        else if self.friend.x > pos.x && self.player_pos.x < pos.x && self.friend.x < self.player_pos.x{
-
-                        }
-                        // player --> ranged enemy --> melee enemy
-                        else if self.player_pos.x < pos.x && self.friend.x > pos.x {
-                            
-                        }
-                        // ranged --> player --> melee enemy
-                        // melee --> player --> ranged
                         else{
-
+                            self.index_in_path += 1;
+                        }
+                        if self.path.vertices.len() > self.index_in_path{
+                            self.next_vertex = self.path.vertices[self.index_in_path];
+                            self.motion = self.enemy_graph.edges[self.current_vertex][self.next_vertex].path; 
                         }
                     }
-                    Type::Other => {
-                        
+                    else {
+                        //x position is correct but enemy is still falling to destination
+                        self.motion = Motion::Fall;
                     }
                 }
             }
@@ -544,7 +634,7 @@ impl Enemy{
 
     pub fn update_sight(&mut self, sight: Vec<Line>, obj: Vec<Line>, map_graph: Graph) {
         self.player_seen = false;
-        self.assist_possible = true;
+        self.assist_possible = false;
         for l in sight.iter() {
             let mut result = true;
             for o in obj.iter() {
@@ -559,12 +649,6 @@ impl Enemy{
                     self.player_seen = true;
                     self.player_pos.x = l.end.x;
                     self.player_pos.y = l.end.y;
-                }
-                //case for breakable objects
-                else if l.id == MAX_VERT + 2{
-                    if matches!(self.t, Type::Melee){
-                        //do we care?
-                    }
                 }
                 //case for melee enemy
                 else if l.id == MAX_VERT + 3{
@@ -582,7 +666,7 @@ impl Enemy{
                         self.friend.y = l.end.y;
                     }
                 }
-                else {
+                else if l.id <= MAX_VERT{
                     let vertex = Vertex::new(l.end.x, l.end.y, l.id);
                     let mut seen_before = false;
                     for seen_vertex in self.enemy_graph.vertices.iter_mut(){
