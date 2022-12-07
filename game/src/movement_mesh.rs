@@ -399,13 +399,8 @@ pub fn get_level_mesh(id: i8) -> Graph{
 
         // block to right most top platform
         graph.vertices.push(Vertex::new_scaled(19.5, 10.5, 14));
-        graph.edges[13][14] = Edge::new(Motion::JumpLeft);
-        graph.edges[14][13] = Edge::new(Motion::Right);
-
-        //right most top platform left to right
-        graph.vertices.push(Vertex::new_scaled(15., 10.5, 15));
-        graph.edges[14][15] = Edge::new(Motion::Left);
-        graph.edges[15][14] = Edge::new(Motion::Right);
+        graph.edges[12][14] = Edge::new(Motion::JumpLeft);
+        graph.edges[14][12] = Edge::new(Motion::Right);
 
         //right most top platform left to right
         graph.vertices.push(Vertex::new_scaled(15., 10.5, 15));
