@@ -893,7 +893,7 @@ pub fn get_level(id: i8) -> Vec<Descriptor> {
     result.push(Descriptor::new(1., 10., -16., -17., ObjectType::Block)); //shop sides
 
 
-    result.push(Descriptor::new3(1., 10., 15., -17., ObjectType::Teleporter, 2)); //shop sides
+    result.push(Descriptor::new3(1., 10., 15., -17., ObjectType::Teleporter, 1)); //shop sides
     result.push(Descriptor::new(1., 10., 16., -17., ObjectType::Block));
 
     //result.push(Descriptor::new(32., 1., 0., -32., ObjectType::Block)); // shop box code start
